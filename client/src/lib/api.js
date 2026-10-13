@@ -96,6 +96,7 @@ export const api = {
     product: (id) => request(`/admin/products/${id}`),
     createProduct: (body) => request('/admin/products', { method: 'POST', body }),
     updateProduct: (id, body) => request(`/admin/products/${id}`, { method: 'PUT', body }),
+    patchProduct: (id, body) => request(`/admin/products/${id}`, { method: 'PATCH', body }),
     deleteProduct: (id) => request(`/admin/products/${id}`, { method: 'DELETE' }),
     setStock: (id, stock) => request(`/admin/variants/${id}/stock`, { method: 'PUT', body: { stock } }),
 

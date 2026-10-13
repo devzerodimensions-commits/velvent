@@ -73,6 +73,36 @@
   .no-bar::-webkit-scrollbar { display: none; }
 
   .skeleton { @apply animate-pulse bg-cream-dark; }
+
+  /* ---------------------------------------------------------- admin (wp) --
+     The admin panel is laid out like WooCommerce, so its controls are smaller
+     and squarer than the storefront's. Kept separate so restyling the shop
+     never moves the admin, and the other way round. */
+
+  .wp-btn {
+    @apply inline-flex items-center justify-center gap-1.5 whitespace-nowrap border
+           px-3 py-1.5 text-[12.5px] font-medium transition-colors
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .wp-btn-primary   { @apply wp-btn border-navy bg-navy text-cream hover:bg-navy-deep; }
+  .wp-btn-secondary { @apply wp-btn border-mist bg-white text-navy hover:border-navy hover:bg-cream/50; }
+  .wp-btn-danger    { @apply wp-btn border-sale bg-white text-sale hover:bg-sale hover:text-white; }
+
+  .wp-input {
+    @apply w-full border border-mist bg-white px-2.5 py-1.5 text-[13px] text-navy
+           transition-colors placeholder:text-slate-light
+           focus:border-navy focus:outline-none focus:ring-0;
+  }
+  .wp-select { @apply wp-input w-auto pr-7; }
+  .wp-textarea { @apply wp-input leading-relaxed; }
+
+  .wp-page-btn {
+    @apply inline-flex h-7 w-7 items-center justify-center border border-mist bg-white
+           text-navy transition-colors hover:border-navy hover:bg-cream/50;
+  }
+
+  /* The admin sits on a tinted field so white panels read as panels. */
+  .wp-screen { @apply min-h-screen bg-cream/40; }
 }
 
 @layer utilities {

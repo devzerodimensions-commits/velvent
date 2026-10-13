@@ -1,30 +1,36 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Seo, Spinner } from '../../components/ui';
+import { Seo, Spinner } from '../../components/ui';
+import { MetaBox, Notice, ScreenHeader, StatusPill } from '../../components/wp';
 import { api } from '../../lib/api';
-import { formatDate, inr, STATUS_LABEL, STATUS_TONE } from '../../lib/format';
+import { formatDate, inr } from '../../lib/format';
 
-function Stat({ label, value, sub }) {
-  return (
-    <div className="border border-mist bg-white p-5">
-      <p className="text-[10.5px] font-semibold uppercase tracking-wider2 text-slate">{label}</p>
-      <p className="mt-2.5 font-display text-2xl font-semibold text-navy">{value}</p>
-      {sub && <p className="mt-1 text-[11.5px] text-slate">{sub}</p>}
-    </div>
+/** WooCommerce's row of store-performance figures. */
+function Tile({ label, value, sub, to }) {
+  const body = (
+    <>
+      <p className="text-[11.5px] font-medium text-slate">{label}</p>
+      <p className="mt-1.5 font-display text-[26px] font-semibold leading-none text-navy">{value}</p>
+      {sub && <p className="mt-1.5 text-[11.5px] text-slate">{sub}</p>}
+    </>
+  );
+  return to ? (
+    <Link to={to} className="block border border-mist bg-white p-4 transition hover:border-navy">{body}</Link>
+  ) : (
+    <div className="border border-mist bg-white p-4">{body}</div>
   );
 }
 
-/** 14-day revenue bars — plain SVG, no chart dependency. */
+/** 14-day revenue bars — plain SVG-free markup, no chart dependency. */
 function RevenueChart({ data }) {
   const max = Math.max(1, ...data.map((d) => d.revenue));
   return (
-    <div className="border border-mist bg-white p-5">
-      <h2 className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">Revenue, last 14 days</h2>
-      <div className="mt-6 flex h-40 items-end gap-1.5">
-        {/* each column is h-full so the bar's percentage height has something to resolve against */}
+    <>
+      <div className="flex h-44 items-end gap-1.5">
+        {/* each column is h-full so a bar's percentage height has something to resolve against */}
         {data.map((d) => (
           <div key={d.day} className="group relative flex h-full flex-1 flex-col items-center justify-end">
-            <span className="pointer-events-none absolute -top-7 whitespace-nowrap bg-navy px-2 py-1 text-[10px] text-cream opacity-0 transition group-hover:opacity-100">
+            <span className="pointer-events-none absolute -top-7 z-10 whitespace-nowrap bg-navy px-2 py-1 text-[10px] text-cream opacity-0 transition group-hover:opacity-100">
               {inr(d.revenue)} · {d.orders} order{d.orders === 1 ? '' : 's'}
             </span>
             <div
@@ -34,11 +40,11 @@ function RevenueChart({ data }) {
           </div>
         ))}
       </div>
-      <div className="mt-2.5 flex justify-between text-[10px] text-slate-light">
+      <div className="mt-2.5 flex justify-between text-[10.5px] text-slate-light">
         <span>{data[0] && formatDate(data[0].day)}</span>
         <span>{data.at(-1) && formatDate(data.at(-1).day)}</span>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -46,92 +52,97 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    api.admin.stats().then(setStats).catch((e) => setError(e.message));
-  }, []);
+  useEffect(() => { api.admin.stats().then(setStats).catch((e) => setError(e.message)); }, []);
 
-  if (error) return <Alert>{error}</Alert>;
+  if (error) return <Notice tone="error">{error}</Notice>;
   if (!stats) return <div className="py-20 text-center"><Spinner className="text-navy" /></div>;
+
+  const outOfStock = stats.lowStock.filter((v) => v.stock === 0).length;
 
   return (
     <>
-      <Seo title="Admin — Dashboard" noindex />
-      <h1 className="font-display text-xl font-semibold uppercase tracking-wider2 text-navy">Dashboard</h1>
-
-      <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Revenue" value={inr(stats.revenue)} sub="Excluding cancelled orders" />
-        <Stat label="Orders" value={stats.orders.total} sub={`${stats.orders.week} in the last 7 days`} />
-        <Stat label="Awaiting action" value={stats.orders.new_orders} sub="Newly placed, not yet confirmed" />
-        <Stat label="Products" value={stats.products.active} sub={`${stats.products.total} total in catalog`} />
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <RevenueChart data={stats.chart} />
-
-        <div className="border border-mist bg-white p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">Low stock</h2>
-            <Link to="/admin/products" className="text-[11px] font-semibold text-navy hover:underline">Manage</Link>
-          </div>
-          {stats.lowStock.length === 0 ? (
-            <p className="mt-6 text-[13px] text-slate">Everything is comfortably in stock.</p>
-          ) : (
-            <ul className="mt-4 divide-y divide-mist">
-              {stats.lowStock.slice(0, 8).map((v) => (
-                <li key={v.sku} className="flex items-center justify-between gap-3 py-2.5">
-                  <span className="min-w-0">
-                    <span className="block truncate text-[12.5px] font-medium text-navy">{v.name}</span>
-                    <span className="text-[11px] text-slate">{v.color} · {v.size}</span>
-                  </span>
-                  <span className={`shrink-0 px-2 py-0.5 text-[11px] font-bold ${v.stock === 0 ? 'bg-sale/15 text-sale' : 'bg-amber-100 text-amber-800'}`}>
-                    {v.stock}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-6 border border-mist bg-white">
-        <div className="flex items-center justify-between border-b border-mist px-5 py-4">
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">Recent orders</h2>
-          <Link to="/admin/orders" className="text-[11px] font-semibold text-navy hover:underline">View all</Link>
-        </div>
-
-        {stats.recentOrders.length === 0 ? (
-          <p className="px-5 py-10 text-center text-[13px] text-slate">No orders yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-[13px]">
-              <thead className="bg-cream/60 text-[10.5px] uppercase tracking-wider2 text-slate">
-                <tr>
-                  {['Order', 'Customer', 'Payment', 'Status', 'Total', 'Date'].map((h) => (
-                    <th key={h} scope="col" className="px-5 py-3 text-left font-semibold">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-mist">
-                {stats.recentOrders.map((o) => (
-                  <tr key={o.id} className="hover:bg-cream/40">
-                    <td className="px-5 py-3 font-medium text-navy">{o.order_number}</td>
-                    <td className="px-5 py-3 text-slate">{o.email}</td>
-                    <td className="px-5 py-3 text-slate">
-                      {o.payment_method === 'cod' ? 'COD' : 'Online'} · {o.payment_status}
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className={`px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wider ${STATUS_TONE[o.status]}`}>
-                        {STATUS_LABEL[o.status]}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 font-semibold text-navy">{inr(o.total)}</td>
-                    <td className="px-5 py-3 text-slate">{formatDate(o.created_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <Seo title="Dashboard" noindex />
+      <ScreenHeader title="Dashboard">
+        {stats.orders.new_orders > 0 && (
+          <Notice tone="warning">
+            You have <strong>{stats.orders.new_orders}</strong> order
+            {stats.orders.new_orders === 1 ? '' : 's'} waiting to be processed.{' '}
+            <Link to="/admin/orders" className="font-semibold underline">Go to Orders</Link>
+          </Notice>
         )}
+      </ScreenHeader>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Tile label="Net sales" value={inr(stats.revenue)} sub="Excludes cancelled, refunded and failed" />
+        <Tile label="Orders" value={stats.orders.total} sub={`${stats.orders.week} in the last 7 days`} to="/admin/orders" />
+        <Tile label="Awaiting action" value={stats.orders.new_orders} sub="Pending, processing or on hold" to="/admin/orders" />
+        <Tile label="Products" value={stats.products.total} sub={`${stats.products.active} published`} to="/admin/products" />
+      </div>
+
+      <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-4">
+          <MetaBox title="Revenue — last 14 days">
+            <RevenueChart data={stats.chart} />
+          </MetaBox>
+
+          <MetaBox title="Recent orders">
+            {stats.recentOrders.length === 0 ? (
+              <p className="text-[13px] text-slate">No orders yet.</p>
+            ) : (
+              <table className="w-full text-left text-[13px]">
+                <thead>
+                  <tr className="border-b border-mist text-[12px] text-navy">
+                    <th scope="col" className="py-2 font-semibold">Order</th>
+                    <th scope="col" className="py-2 font-semibold">Status</th>
+                    <th scope="col" className="py-2 text-right font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.recentOrders.map((o) => (
+                    <tr key={o.id} className="border-b border-mist/60 last:border-0">
+                      <td className="py-2">
+                        <Link to="/admin/orders" className="font-medium text-navy hover:underline">{o.order_number}</Link>
+                        <span className="block text-[11.5px] text-slate">{o.email}</span>
+                      </td>
+                      <td className="py-2"><StatusPill status={o.status} /></td>
+                      <td className="py-2 text-right font-medium text-navy">{inr(o.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </MetaBox>
+        </div>
+
+        <div className="space-y-4">
+          <MetaBox title="At a glance">
+            <ul className="space-y-2 text-[13px] text-slate">
+              <li><Link to="/admin/products" className="text-navy hover:underline">{stats.products.total} products</Link>, {stats.products.active} published</li>
+              <li><Link to="/admin/orders" className="text-navy hover:underline">{stats.orders.total} orders</Link> all time</li>
+              {outOfStock > 0 && <li className="text-sale">{outOfStock} variant{outOfStock === 1 ? '' : 's'} out of stock</li>}
+            </ul>
+          </MetaBox>
+
+          <MetaBox title={`Low in stock (${stats.lowStock.length})`}>
+            {stats.lowStock.length === 0 ? (
+              <p className="text-[13px] text-slate">Nothing is running low.</p>
+            ) : (
+              <ul className="divide-y divide-mist/70 text-[12.5px]">
+                {stats.lowStock.map((v) => (
+                  <li key={v.sku} className="flex items-center justify-between gap-3 py-2">
+                    <span className="min-w-0">
+                      <span className="block truncate text-navy">{v.name}</span>
+                      <span className="text-[11.5px] text-slate">{v.color} / {v.size}</span>
+                    </span>
+                    <span className={`shrink-0 font-semibold ${v.stock === 0 ? 'text-sale' : 'text-amber-700'}`}>
+                      {v.stock === 0 ? 'Out' : `${v.stock} left`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </MetaBox>
+        </div>
       </div>
     </>
   );

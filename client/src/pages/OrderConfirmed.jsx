@@ -3,11 +3,11 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { Alert, PageLoader, Seo } from '../components/ui';
 import { Box, Check, Truck } from '../components/Icons';
 import { api } from '../lib/api';
-import { formatDateTime, inr, STATUS_LABEL, STATUS_TONE } from '../lib/format';
+import { formatDateTime, inr, STATUS_LABEL, STATUS_TONE, TRACKING_STEPS } from '../lib/format';
 import { BRAND } from '../lib/brand';
 import { useAuth } from '../store/auth';
 
-const STEPS = ['placed', 'confirmed', 'shipped', 'delivered'];
+const STEPS = TRACKING_STEPS;
 
 export function OrderDetail({ order }) {
   const stepIndex = STEPS.indexOf(order.status);

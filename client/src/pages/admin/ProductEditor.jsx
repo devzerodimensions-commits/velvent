@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Alert, Seo, Spinner } from '../../components/ui';
-import { Plus, Trash, Upload } from '../../components/Icons';
+import { Seo, Spinner } from '../../components/ui';
+import { Box, Grid, Plus, Ruler, Tag, Trash, Upload } from '../../components/Icons';
+import {
+  EditLayout, Field, MetaBox, Notice, PublishBox, ScreenHeader, TabbedMetaBox,
+} from '../../components/wp';
 import { api } from '../../lib/api';
-import { SIZE_ORDER } from '../../lib/format';
+import { bySize, inr, SIZE_ORDER } from '../../lib/format';
 import { useToast } from '../../store/toast';
 
 const BLANK = {
@@ -15,6 +18,14 @@ const BLANK = {
   is_active: true, is_featured: false, is_new: true, sort_order: 0,
   images: [], variants: [],
 };
+
+const TABS = [
+  { key: 'general', label: 'General', Icon: Tag },
+  { key: 'inventory', label: 'Inventory', Icon: Box },
+  { key: 'shipping', label: 'Shipping', Icon: Box },
+  { key: 'attributes', label: 'Attributes', Icon: Ruler },
+  { key: 'variations', label: 'Variations', Icon: Grid },
+];
 
 export default function ProductEditor() {
   const { id } = useParams();
@@ -30,7 +41,7 @@ export default function ProductEditor() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Bulk variant builder
+  // The "add S–3XL for this colour" builder, which is how a run is really added.
   const [bulk, setBulk] = useState({ color: '', hex: '#2C3544', stock: 25 });
 
   useEffect(() => { api.admin.categories().then(setCategories).catch(() => {}); }, []);
@@ -38,20 +49,15 @@ export default function ProductEditor() {
   useEffect(() => {
     if (isNew) return;
     api.admin.product(id)
-      .then((p) => setForm({
-        ...p,
-        category_id: p.category_id ?? '',
-        images: p.images || [],
-        variants: p.variants || [],
-      }))
+      .then((p) => setForm({ ...p, category_id: p.category_id ?? '', images: p.images || [], variants: p.variants || [] }))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [id, isNew]);
 
-  const set = (k) => (e) => {
-    const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setForm((f) => ({ ...f, [k]: v }));
-  };
+  const set = (k) => (e) =>
+    setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+
+  /* ------------------------------------------------------------- images */
 
   const upload = async (e) => {
     const files = [...(e.target.files || [])];
@@ -63,9 +69,8 @@ export default function ProductEditor() {
         setForm((f) => ({ ...f, images: [...f.images, { url, alt: f.name, color: '', sort_order: f.images.length }] }));
       }
       success(`${files.length} image${files.length === 1 ? '' : 's'} uploaded.`);
-    } catch (err) {
-      toastError(err.message);
-    } finally {
+    } catch (err) { toastError(err.message); }
+    finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
     }
@@ -85,7 +90,15 @@ export default function ProductEditor() {
   const removeImage = (i) =>
     setForm((f) => ({ ...f, images: f.images.filter((_, n) => n !== i) }));
 
-  /** Adds S–3XL for one colour in a single click — the common case. */
+  const makePrimary = (i) =>
+    setForm((f) => {
+      const next = [...f.images];
+      const [picked] = next.splice(i, 1);
+      return { ...f, images: [picked, ...next].map((img, n) => ({ ...img, sort_order: n })) };
+    });
+
+  /* ----------------------------------------------------------- variants */
+
   const addColourRun = () => {
     const color = bulk.color.trim();
     if (!color) { toastError('Enter a colour name first.'); return; }
@@ -99,298 +112,331 @@ export default function ProductEditor() {
     setBulk((b) => ({ ...b, color: '' }));
   };
 
-  const patchVariant = (i, patch) =>
-    setForm((f) => ({ ...f, variants: f.variants.map((v, n) => (n === i ? { ...v, ...patch } : v)) }));
+  const patchVariant = (key, patch) =>
+    setForm((f) => ({
+      ...f,
+      variants: f.variants.map((v) => (`${v.color}|${v.size}` === key ? { ...v, ...patch } : v)),
+    }));
 
-  const removeVariant = (i) =>
-    setForm((f) => ({ ...f, variants: f.variants.filter((_, n) => n !== i) }));
+  const removeColour = (colour) =>
+    setForm((f) => ({ ...f, variants: f.variants.filter((v) => v.color !== colour) }));
 
-  const save = async (e) => {
-    e.preventDefault();
+  /* --------------------------------------------------------------- save */
+
+  const save = async () => {
     setSaving(true);
     setError(null);
     const payload = { ...form, category_id: form.category_id || null };
     try {
       if (isNew) {
         const created = await api.admin.createProduct(payload);
-        success(`${created.name} created.`);
+        success(`${created.name} published.`);
         navigate(`/admin/products/${created.id}`, { replace: true });
       } else {
         await api.admin.updateProduct(id, payload);
-        success('Product saved.');
+        success('Product updated.');
       }
     } catch (err) {
       setError(err.message);
       toastError(err.message);
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
+  };
+
+  const trash = async () => {
+    // eslint-disable-next-line no-alert
+    if (!window.confirm(`Move "${form.name}" to Trash? Its images, variants and stock go with it.`)) return;
+    try {
+      await api.admin.deleteProduct(id);
+      success('Product moved to Trash.');
+      navigate('/admin/products');
+    } catch (err) { toastError(err.message); }
   };
 
   if (loading) return <div className="py-20 text-center"><Spinner className="text-navy" /></div>;
 
   const colours = [...new Set(form.variants.map((v) => v.color))];
+  const totalStock = form.variants.reduce((n, v) => n + (Number(v.stock) || 0), 0);
 
   return (
     <>
-      <Seo title={isNew ? 'Admin — New product' : `Admin — ${form.name}`} noindex />
+      <Seo title={isNew ? 'Add New Product' : form.name} noindex />
+      <ScreenHeader
+        title={isNew ? 'Add new product' : 'Edit product'}
+        action={isNew ? undefined : 'Add New'}
+        actionTo={isNew ? undefined : '/admin/products/new'}
+      >
+        {error && <Notice tone="error" onDismiss={() => setError(null)}>{error}</Notice>}
+      </ScreenHeader>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <Link to="/admin/products" className="text-[11px] font-semibold uppercase tracking-wider2 text-slate hover:text-navy">
-            ← Products
-          </Link>
-          <h1 className="mt-2 font-display text-xl font-semibold uppercase tracking-wider2 text-navy">
-            {isNew ? 'New product' : form.name}
-          </h1>
-        </div>
-        {!isNew && form.slug && (
-          <Link to={`/product/${form.slug}`} target="_blank" className="btn-ghost btn-sm">View on store ↗</Link>
-        )}
-      </div>
-
-      {error && <div className="mt-6"><Alert>{error}</Alert></div>}
-
-      <form onSubmit={save} className="mt-7 grid gap-6 lg:grid-cols-[1fr_300px]">
-        <div className="space-y-6">
-          <section className="border border-mist bg-white p-5 sm:p-6">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">Basics</h2>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="label" htmlFor="p-name">Product name</label>
-                <input id="p-name" required value={form.name} onChange={set('name')} className="field" />
-              </div>
-              <div>
-                <label className="label" htmlFor="p-cat">Category</label>
-                <select id="p-cat" value={form.category_id} onChange={set('category_id')} className="field">
-                  <option value="">Uncategorised</option>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label" htmlFor="p-sort">Sort order</label>
-                <input id="p-sort" type="number" value={form.sort_order ?? 0} onChange={set('sort_order')} className="field" />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="label" htmlFor="p-short">Short description</label>
-                <input id="p-short" value={form.short_desc || ''} onChange={set('short_desc')} className="field" />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="label" htmlFor="p-desc">Full description</label>
-                <textarea id="p-desc" rows={6} value={form.description || ''} onChange={set('description')} className="field resize-y" />
-              </div>
-            </div>
-          </section>
-
-          <section className="border border-mist bg-white p-5 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">Images</h2>
-              <div className="flex gap-2">
-                <button type="button" onClick={addImageUrl} className="btn-ghost btn-sm">Add by URL</button>
-                <label className="btn-outline btn-sm cursor-pointer">
-                  <Upload size={15} /> {uploading ? 'Uploading…' : 'Upload'}
-                  <input ref={fileRef} type="file" accept="image/*" multiple onChange={upload} className="hidden" disabled={uploading} />
-                </label>
-              </div>
-            </div>
-
-            {form.images.length === 0 ? (
-              <p className="mt-5 text-[13px] text-slate">No images yet. Upload a photo or point at a file in /public/products.</p>
-            ) : (
-              <ul className="mt-5 space-y-3">
-                {form.images.map((img, i) => (
-                  <li key={`${img.url}-${i}`} className="flex gap-3 border border-mist p-3">
-                    <img src={img.url} alt="" className="h-24 w-[72px] shrink-0 bg-cream object-cover" />
-                    <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-                      <input
-                        value={img.url}
-                        onChange={(e) => patchImage(i, { url: e.target.value })}
-                        placeholder="Image URL"
-                        className="field sm:col-span-2"
-                      />
-                      <input
-                        value={img.alt || ''}
-                        onChange={(e) => patchImage(i, { alt: e.target.value })}
-                        placeholder="Alt text"
-                        className="field"
-                      />
-                      <select
-                        value={img.color || ''}
-                        onChange={(e) => patchImage(i, { color: e.target.value })}
-                        className="field"
-                      >
-                        <option value="">Shown for all colours</option>
-                        {colours.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <button type="button" onClick={() => removeImage(i)} aria-label="Remove image" className="shrink-0 self-start text-slate hover:text-sale">
-                      <Trash size={16} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="border border-mist bg-white p-5 sm:p-6">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">Colours, sizes & stock</h2>
-
-            <div className="mt-5 flex flex-wrap items-end gap-3 border border-dashed border-mist p-4">
-              <div className="min-w-[150px] flex-1">
-                <label className="label" htmlFor="v-color">Colour name</label>
-                <input
-                  id="v-color"
-                  value={bulk.color}
-                  onChange={(e) => setBulk({ ...bulk, color: e.target.value })}
-                  placeholder="Navy"
-                  className="field"
-                />
-              </div>
-              <div>
-                <label className="label" htmlFor="v-hex">Swatch</label>
-                <input
-                  id="v-hex"
-                  type="color"
-                  value={bulk.hex}
-                  onChange={(e) => setBulk({ ...bulk, hex: e.target.value })}
-                  className="h-[46px] w-16 cursor-pointer border border-mist bg-white p-1"
-                />
-              </div>
-              <div className="w-28">
-                <label className="label" htmlFor="v-stock">Stock each</label>
-                <input
-                  id="v-stock"
-                  type="number"
-                  min={0}
-                  value={bulk.stock}
-                  onChange={(e) => setBulk({ ...bulk, stock: e.target.value })}
-                  className="field"
-                />
-              </div>
-              <button type="button" onClick={addColourRun} className="btn-primary btn-sm">
-                <Plus size={15} /> Add S–3XL
-              </button>
-            </div>
-
-            {form.variants.length === 0 ? (
-              <p className="mt-5 text-[13px] text-slate">No variants yet. Add a colour above to create all six sizes at once.</p>
-            ) : (
-              <div className="mt-5 overflow-x-auto">
-                <table className="w-full min-w-[520px] text-[13px]">
-                  <thead className="bg-cream/60 text-[10.5px] uppercase tracking-wider2 text-slate">
-                    <tr>
-                      {['Colour', 'Swatch', 'Size', 'Stock', ''].map((h) => (
-                        <th key={h} scope="col" className="px-3 py-2.5 text-left font-semibold">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-mist">
-                    {form.variants.map((v, i) => (
-                      <tr key={v.id || `${v.color}-${v.size}`}>
-                        <td className="px-3 py-2">
-                          <input value={v.color} onChange={(e) => patchVariant(i, { color: e.target.value })} className="field py-2" />
-                        </td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="color"
-                            value={v.color_hex || '#2C3544'}
-                            onChange={(e) => patchVariant(i, { color_hex: e.target.value })}
-                            className="h-9 w-12 cursor-pointer border border-mist bg-white p-0.5"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <select value={v.size} onChange={(e) => patchVariant(i, { size: e.target.value })} className="field py-2">
-                            {SIZE_ORDER.map((s) => <option key={s}>{s}</option>)}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            min={0}
-                            value={v.stock}
-                            onChange={(e) => patchVariant(i, { stock: e.target.value })}
-                            className="field w-24 py-2"
-                          />
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <button type="button" onClick={() => removeVariant(i)} aria-label="Remove variant" className="text-slate hover:text-sale">
-                            <Trash size={15} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        </div>
-
-        <aside className="space-y-6">
-          <section className="border border-mist bg-white p-5">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">Pricing</h2>
-            <div className="mt-5 space-y-4">
-              <div>
-                <label className="label" htmlFor="p-mrp">MRP (₹)</label>
-                <input id="p-mrp" type="number" min={0} step="0.01" required value={form.mrp} onChange={set('mrp')} className="field" />
-              </div>
-              <div>
-                <label className="label" htmlFor="p-sale">Sale price (₹)</label>
-                <input id="p-sale" type="number" min={0} step="0.01" required value={form.sale_price} onChange={set('sale_price')} className="field" />
-              </div>
-              {Number(form.mrp) > Number(form.sale_price) && (
-                <p className="bg-cream px-3 py-2 text-[12px] text-navy">
-                  {Math.round(((form.mrp - form.sale_price) / form.mrp) * 100)}% off shown to customers
+      <EditLayout
+        main={(
+          <>
+            {/* The WordPress title field and permalink line. */}
+            <div className="border border-mist bg-white p-4">
+              <label htmlFor="p-name" className="sr-only">Product name</label>
+              <input
+                id="p-name"
+                value={form.name}
+                onChange={set('name')}
+                placeholder="Product name"
+                className="w-full border border-transparent px-0 py-1 font-display text-[21px] text-navy placeholder:text-slate-light focus:border-transparent focus:outline-none focus:ring-0"
+              />
+              {form.slug && (
+                <p className="mt-1 text-[12px] text-slate">
+                  Permalink: <Link to={`/product/${form.slug}`} className="text-navy underline">/product/{form.slug}</Link>
                 </p>
               )}
             </div>
-          </section>
 
-          <section className="border border-mist bg-white p-5">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">Visibility</h2>
-            <div className="mt-4 space-y-3">
-              {[
-                ['is_active', 'Live on the store'],
-                ['is_featured', 'Show in Bestsellers'],
-                ['is_new', 'Show the “New” badge'],
-              ].map(([key, label]) => (
-                <label key={key} className="flex cursor-pointer items-center gap-2.5 text-[13px] text-navy">
-                  <input type="checkbox" checked={!!form[key]} onChange={set(key)} className="h-4 w-4 accent-navy" />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </section>
+            <MetaBox title="Description">
+              <label htmlFor="p-desc" className="sr-only">Long description</label>
+              <textarea
+                id="p-desc"
+                rows={7}
+                value={form.description || ''}
+                onChange={set('description')}
+                placeholder="The full description shown on the product page."
+                className="wp-textarea"
+              />
+            </MetaBox>
 
-          <section className="border border-mist bg-white p-5">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">Specification</h2>
-            <div className="mt-4 space-y-4">
-              {[
-                ['fabric', 'Fabric'], ['fit', 'Fit'], ['sleeve', 'Sleeve'], ['collar', 'Collar'],
-              ].map(([key, label]) => (
-                <div key={key}>
-                  <label className="label" htmlFor={`p-${key}`}>{label}</label>
-                  <input id={`p-${key}`} value={form[key] || ''} onChange={set(key)} className="field" />
+            <TabbedMetaBox title="Product data" tabs={TABS}>
+              {(tab) => (
+                <>
+                  {tab === 'general' && (
+                    <div className="space-y-4">
+                      <Field label="Regular price" htmlFor="p-mrp" hint="The struck-through price. WooCommerce calls this the regular price; your brand sheet calls it MRP.">
+                        <input id="p-mrp" type="number" min="0" step="1" value={form.mrp} onChange={set('mrp')} className="wp-input sm:w-44" />
+                      </Field>
+                      <Field label="Sale price" htmlFor="p-sale" hint="What the customer actually pays.">
+                        <input id="p-sale" type="number" min="0" step="1" value={form.sale_price} onChange={set('sale_price')} className="wp-input sm:w-44" />
+                      </Field>
+                      {Number(form.sale_price) > 0 && Number(form.mrp) > Number(form.sale_price) && (
+                        <p className="text-[12.5px] text-emerald-700">
+                          {Math.round((1 - form.sale_price / form.mrp) * 100)}% off — saves {inr(form.mrp - form.sale_price)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {tab === 'inventory' && (
+                    <div className="space-y-4">
+                      <Field label="Stock" hint="Stock is held per colour and size. Set the numbers on the Variations tab.">
+                        <p className="pt-1.5 text-[13px] text-navy">
+                          <span className="font-semibold">{totalStock}</span> across {form.variants.length} variation{form.variants.length === 1 ? '' : 's'}
+                        </p>
+                      </Field>
+                      <Field label="Published" hint="Unpublished products disappear from the storefront but keep their orders.">
+                        <label className="flex items-center gap-2 pt-1.5 text-[12.5px] text-navy">
+                          <input type="checkbox" checked={form.is_active} onChange={set('is_active')} /> Visible in the shop
+                        </label>
+                      </Field>
+                    </div>
+                  )}
+
+                  {tab === 'shipping' && (
+                    <Field label="Weight (g)" htmlFor="p-weight" hint="Used on the product page's details list.">
+                      <input id="p-weight" type="number" min="0" value={form.weight_grams || ''} onChange={set('weight_grams')} className="wp-input sm:w-40" />
+                    </Field>
+                  )}
+
+                  {tab === 'attributes' && (
+                    <div className="space-y-4">
+                      <Field label="Fabric" htmlFor="p-fabric">
+                        <input id="p-fabric" value={form.fabric || ''} onChange={set('fabric')} className="wp-input" />
+                      </Field>
+                      <Field label="Fit" htmlFor="p-fit">
+                        <input id="p-fit" value={form.fit || ''} onChange={set('fit')} className="wp-input" />
+                      </Field>
+                      <Field label="Sleeve" htmlFor="p-sleeve">
+                        <input id="p-sleeve" value={form.sleeve || ''} onChange={set('sleeve')} className="wp-input" />
+                      </Field>
+                      <Field label="Collar" htmlFor="p-collar">
+                        <input id="p-collar" value={form.collar || ''} onChange={set('collar')} className="wp-input" />
+                      </Field>
+                      <Field label="Wash care" htmlFor="p-wash">
+                        <textarea id="p-wash" rows={2} value={form.wash_care || ''} onChange={set('wash_care')} className="wp-textarea" />
+                      </Field>
+                    </div>
+                  )}
+
+                  {tab === 'variations' && (
+                    <div className="space-y-5">
+                      <div className="border border-mist bg-cream/40 p-3">
+                        <p className="mb-2 text-[12.5px] font-semibold text-navy">Add all six sizes for a colour</p>
+                        <div className="flex flex-wrap items-end gap-2">
+                          <div>
+                            <label htmlFor="b-colour" className="mb-1 block text-[11.5px] text-slate">Colour name</label>
+                            <input id="b-colour" value={bulk.color} onChange={(e) => setBulk((b) => ({ ...b, color: e.target.value }))} placeholder="Navy" className="wp-input w-36" />
+                          </div>
+                          <div>
+                            <label htmlFor="b-hex" className="mb-1 block text-[11.5px] text-slate">Swatch</label>
+                            <input id="b-hex" type="color" value={bulk.hex} onChange={(e) => setBulk((b) => ({ ...b, hex: e.target.value }))} className="h-[34px] w-14 border border-mist bg-white p-1" />
+                          </div>
+                          <div>
+                            <label htmlFor="b-stock" className="mb-1 block text-[11.5px] text-slate">Stock each</label>
+                            <input id="b-stock" type="number" min="0" value={bulk.stock} onChange={(e) => setBulk((b) => ({ ...b, stock: e.target.value }))} className="wp-input w-24" />
+                          </div>
+                          <button type="button" onClick={addColourRun} className="wp-btn-secondary"><Plus size={14} /> Add S–3XL</button>
+                        </div>
+                      </div>
+
+                      {colours.length === 0 && (
+                        <p className="text-[13px] text-slate">No variations yet. Add a colour above and all six sizes appear.</p>
+                      )}
+
+                      {colours.map((colour) => {
+                        const rows = form.variants.filter((v) => v.color === colour).sort((a, b) => bySize(a.size, b.size));
+                        return (
+                          <div key={colour} className="border border-mist">
+                            <header className="flex items-center justify-between gap-3 border-b border-mist bg-cream/40 px-3 py-2">
+                              <span className="flex items-center gap-2 text-[13px] font-semibold text-navy">
+                                <span className="h-4 w-4 border border-mist" style={{ background: rows[0]?.color_hex || '#ccc' }} />
+                                {colour}
+                              </span>
+                              <button type="button" onClick={() => removeColour(colour)} className="text-[12px] text-sale transition hover:underline">
+                                Remove colour
+                              </button>
+                            </header>
+                            <div className="grid grid-cols-2 gap-px bg-mist sm:grid-cols-3 lg:grid-cols-6">
+                              {rows.map((v) => (
+                                <label key={v.size} className="bg-white p-2.5">
+                                  <span className="block text-[11.5px] font-semibold text-navy">{v.size}</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={v.stock}
+                                    onChange={(e) => patchVariant(`${v.color}|${v.size}`, { stock: e.target.value })}
+                                    aria-label={`Stock for ${colour} ${v.size}`}
+                                    className="wp-input mt-1"
+                                  />
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </TabbedMetaBox>
+
+            <MetaBox title="Product short description">
+              <label htmlFor="p-short" className="sr-only">Short description</label>
+              <textarea
+                id="p-short"
+                rows={3}
+                value={form.short_desc || ''}
+                onChange={set('short_desc')}
+                placeholder="One or two lines, used on cards and in search results."
+                className="wp-textarea"
+              />
+            </MetaBox>
+          </>
+        )}
+
+        side={(
+          <>
+            <PublishBox
+              onSave={save}
+              saving={saving}
+              saveLabel={isNew ? 'Publish' : 'Update'}
+              onDelete={isNew ? undefined : trash}
+            >
+              <label className="flex items-center gap-2 text-[12.5px] text-navy">
+                <input type="checkbox" checked={form.is_active} onChange={set('is_active')} /> Published
+              </label>
+              <label className="flex items-center gap-2 text-[12.5px] text-navy">
+                <input type="checkbox" checked={form.is_featured} onChange={set('is_featured')} /> Featured
+              </label>
+              <label className="flex items-center gap-2 text-[12.5px] text-navy">
+                <input type="checkbox" checked={form.is_new} onChange={set('is_new')} /> Mark as new
+              </label>
+              <div>
+                <label htmlFor="p-order" className="mb-1 block text-[12.5px] text-navy">Menu order</label>
+                <input id="p-order" type="number" value={form.sort_order ?? 0} onChange={set('sort_order')} className="wp-input w-20" />
+              </div>
+            </PublishBox>
+
+            <MetaBox title="Product categories">
+              <label htmlFor="p-cat" className="sr-only">Category</label>
+              <select id="p-cat" value={form.category_id} onChange={set('category_id')} className="wp-input">
+                <option value="">Uncategorised</option>
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <Link to="/admin/categories" className="mt-2 inline-block text-[12px] text-slate transition hover:text-navy hover:underline">
+                + Add new category
+              </Link>
+            </MetaBox>
+
+            <MetaBox
+              title="Product image"
+              actions={(
+                <span className="text-[11.5px] text-slate">{form.images.length} total</span>
+              )}
+            >
+              {form.images[0] ? (
+                <div>
+                  <img src={form.images[0].url} alt="" className="aspect-[3/4] w-full bg-cream object-cover" />
+                  <button type="button" onClick={() => removeImage(0)} className="mt-2 text-[12px] text-sale transition hover:underline">
+                    Remove product image
+                  </button>
                 </div>
-              ))}
-              <div>
-                <label className="label" htmlFor="p-weight">Weight (grams)</label>
-                <input id="p-weight" type="number" min={0} value={form.weight_grams || ''} onChange={set('weight_grams')} className="field" />
-              </div>
-              <div>
-                <label className="label" htmlFor="p-wash">Wash care</label>
-                <textarea id="p-wash" rows={4} value={form.wash_care || ''} onChange={set('wash_care')} className="field resize-y" />
-              </div>
-            </div>
-          </section>
+              ) : (
+                <p className="text-[12.5px] text-slate">No image set. Upload one below.</p>
+              )}
 
-          <div className="sticky bottom-4">
-            <button type="submit" disabled={saving} className="btn-primary w-full">
-              {saving ? <><Spinner size={16} /> Saving…</> : isNew ? 'Create product' : 'Save changes'}
-            </button>
-          </div>
-        </aside>
-      </form>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="wp-btn-secondary">
+                  <Upload size={14} /> {uploading ? 'Uploading…' : 'Upload'}
+                </button>
+                <button type="button" onClick={addImageUrl} className="wp-btn-secondary">Add by URL</button>
+                <input ref={fileRef} type="file" accept="image/*" multiple onChange={upload} className="hidden" />
+              </div>
+              <p className="mt-2 text-[11.5px] text-slate">
+                JPG, PNG, WEBP or AVIF, up to 3&nbsp;MB. Uploads are stored in the database, so they survive a deploy.
+              </p>
+            </MetaBox>
+
+            {form.images.length > 1 && (
+              <MetaBox title="Product gallery">
+                <ul className="space-y-2">
+                  {form.images.slice(1).map((img, n) => {
+                    const i = n + 1;
+                    return (
+                      <li key={`${img.url}-${i}`} className="flex gap-2.5 border border-mist p-2">
+                        <img src={img.url} alt="" className="h-16 w-12 shrink-0 bg-cream object-cover" />
+                        <div className="min-w-0 flex-1">
+                          <label className="sr-only" htmlFor={`img-colour-${i}`}>Colour for image {i + 1}</label>
+                          <input
+                            id={`img-colour-${i}`}
+                            value={img.color || ''}
+                            onChange={(e) => patchImage(i, { color: e.target.value })}
+                            placeholder="Colour (optional)"
+                            className="wp-input text-[12px]"
+                          />
+                          <div className="mt-1.5 flex gap-2 text-[11.5px]">
+                            <button type="button" onClick={() => makePrimary(i)} className="text-slate transition hover:text-navy hover:underline">
+                              Make primary
+                            </button>
+                            <button type="button" onClick={() => removeImage(i)} className="text-sale transition hover:underline">
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-2 text-[11.5px] leading-relaxed text-slate">
+                  Tagging a gallery image with a colour makes the product page swap to it when a shopper picks that colour.
+                </p>
+              </MetaBox>
+            )}
+          </>
+        )}
+      />
     </>
   );
 }

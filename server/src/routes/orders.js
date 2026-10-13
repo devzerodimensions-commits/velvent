@@ -4,6 +4,7 @@ import { query, withTransaction } from '../db.js';
 import { ah, isEmail, isPhone, isPincode, orderNumber, validate } from '../lib/helpers.js';
 import { requireAuth } from '../lib/auth.js';
 import { priceCart, findCoupon } from '../lib/pricing.js';
+import { CANCELLABLE, initialStatus } from '../lib/orderStatus.js';
 
 const router = Router();
 
@@ -72,10 +73,11 @@ router.post('/orders', ah(async (req, res) => {
 
     const { totals } = priced;
     const { rows: orderRows } = await client.query(
-      `INSERT INTO orders (order_number, user_id, email, phone, payment_method, payment_status,
+      `INSERT INTO orders (order_number, user_id, email, phone, payment_method, payment_status, status,
                            subtotal, discount, shipping, total, coupon_code, shipping_address, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
       [orderNumber(), req.user?.id || null, String(email).toLowerCase(), phone, method, 'pending',
+        initialStatus(method),
         totals.subtotal, totals.discount, totals.shipping, totals.total,
         totals.couponCode, JSON.stringify(a), notes || null],
     );
@@ -161,7 +163,7 @@ router.post('/orders/:orderNumber/verify', ah(async (req, res) => {
   }
 
   const { rows } = await query(
-    `UPDATE orders SET payment_status = 'paid', status = 'confirmed',
+    `UPDATE orders SET payment_status = 'paid', status = 'processing',
             razorpay_payment_id = $2, updated_at = NOW()
       WHERE id = $1 RETURNING *`,
     [order.id, razorpay_payment_id],
@@ -208,7 +210,7 @@ router.post('/orders/:orderNumber/cancel', requireAuth, ah(async (req, res) => {
   );
   const order = rows[0];
   if (!order) return res.status(404).json({ error: 'We could not find that order.' });
-  if (!['placed', 'confirmed'].includes(order.status)) {
+  if (!CANCELLABLE.includes(order.status)) {
     return res.status(400).json({ error: 'This order has already shipped and can no longer be cancelled.' });
   }
 

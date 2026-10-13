@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Breadcrumbs, EmptyState, Seo, Spinner } from '../components/ui';
 import { Box, Heart, Logout, Pin, Plus, Trash, User } from '../components/Icons';
 import { api } from '../lib/api';
-import { formatDate, inr, STATUS_LABEL, STATUS_TONE } from '../lib/format';
+import { CANCELLABLE, formatDate, inr, STATUS_LABEL, STATUS_TONE } from '../lib/format';
 import { useAuth } from '../store/auth';
 import { useToast } from '../store/toast';
 
@@ -66,7 +66,7 @@ function Orders() {
 
           <div className="mt-4 flex flex-wrap gap-2.5">
             <Link to={`/order/${o.order_number}`} className="btn-ghost btn-sm">View details</Link>
-            {['placed', 'confirmed'].includes(o.status) && (
+            {CANCELLABLE.includes(o.status) && (
               <button onClick={() => cancel(o.order_number)} className="btn-sm btn border border-mist text-sale hover:border-sale">
                 Cancel order
               </button>

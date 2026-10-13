@@ -28,18 +28,52 @@ export const deliveryEstimate = () => {
 export const SIZE_ORDER = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
 export const bySize = (a, b) => SIZE_ORDER.indexOf(a) - SIZE_ORDER.indexOf(b);
 
-export const STATUS_LABEL = {
-  placed: 'Order placed',
-  confirmed: 'Confirmed',
+/*
+ * Order statuses follow WooCommerce's seven, plus "shipped" — Woo has no such
+ * status, but a clothing customer needs to know the parcel left, and adding one
+ * is standard practice in Woo stores. Keep this in step with
+ * server/src/lib/orderStatus.js.
+ */
+
+/** What the shop owner sees in the admin, in WooCommerce's own wording. */
+export const ADMIN_STATUS_LABEL = {
+  pending: 'Pending payment',
+  processing: 'Processing',
+  'on-hold': 'On hold',
   shipped: 'Shipped',
-  delivered: 'Delivered',
+  completed: 'Completed',
   cancelled: 'Cancelled',
+  refunded: 'Refunded',
+  failed: 'Failed',
+};
+
+/** What the customer sees. "Processing" means little to a shopper. */
+export const STATUS_LABEL = {
+  pending: 'Awaiting payment',
+  processing: 'Confirmed',
+  'on-hold': 'On hold',
+  shipped: 'Shipped',
+  completed: 'Delivered',
+  cancelled: 'Cancelled',
+  refunded: 'Refunded',
+  failed: 'Payment failed',
 };
 
 export const STATUS_TONE = {
-  placed: 'bg-cream-deep text-navy',
-  confirmed: 'bg-navy/10 text-navy',
+  pending: 'bg-cream-deep text-slate',
+  processing: 'bg-navy/10 text-navy',
+  'on-hold': 'bg-amber-100 text-amber-900',
   shipped: 'bg-blue-100 text-blue-900',
-  delivered: 'bg-emerald-100 text-emerald-900',
-  cancelled: 'bg-rose-100 text-rose-900',
+  completed: 'bg-emerald-100 text-emerald-900',
+  cancelled: 'bg-mist/60 text-slate',
+  refunded: 'bg-slate/15 text-slate',
+  failed: 'bg-rose-100 text-rose-900',
 };
+
+export const ORDER_STATUS_KEYS = Object.keys(ADMIN_STATUS_LABEL);
+
+/** The happy path a parcel walks, for the customer's tracking timeline. */
+export const TRACKING_STEPS = ['pending', 'processing', 'shipped', 'completed'];
+
+/** Statuses a customer may still cancel from. Mirrors the server. */
+export const CANCELLABLE = ['pending', 'processing', 'on-hold'];

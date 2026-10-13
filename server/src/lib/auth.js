@@ -1,5 +1,11 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import dotenv from 'dotenv';
+
+// ES module imports all run before any statement in the file that imports us,
+// so index.js calling dotenv.config() is too late for the check below. db.js
+// loads its own config for the same reason.
+dotenv.config();
 
 // A guessable secret would let anyone mint an admin token, so production has to
 // supply a real one. Development falls back so the store still starts.

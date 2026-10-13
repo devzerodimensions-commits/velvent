@@ -3,6 +3,7 @@ import multer from 'multer';
 import { query, withTransaction } from '../db.js';
 import { ah, slugify } from '../lib/helpers.js';
 import { requireAdmin } from '../lib/auth.js';
+import { ORDER_STATUS_KEYS, NEEDS_ACTION, STOCK_ALREADY_RETURNED } from '../lib/orderStatus.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -21,11 +22,12 @@ const upload = multer({
 router.get('/stats', ah(async (_req, res) => {
   const [orders, revenue, products, lowStock, recent, byDay] = await Promise.all([
     query(`SELECT COUNT(*)::int AS total,
-                  COUNT(*) FILTER (WHERE status = 'placed')::int AS new_orders,
+                  COUNT(*) FILTER (WHERE status = ANY($1::text[]))::int AS new_orders,
                   COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days')::int AS week
-             FROM orders`),
+             FROM orders`, [NEEDS_ACTION]),
+    // Money that never arrived is not revenue.
     query(`SELECT COALESCE(SUM(total),0)::float AS revenue
-             FROM orders WHERE status <> 'cancelled'`),
+             FROM orders WHERE status <> ALL($1::text[])`, [['cancelled', 'refunded', 'failed']]),
     query(`SELECT COUNT(*)::int AS total,
                   COUNT(*) FILTER (WHERE is_active)::int AS active FROM products`),
     query(`SELECT p.name, v.size, v.color, v.stock, v.sku
@@ -38,7 +40,8 @@ router.get('/stats', ah(async (_req, res) => {
                   COUNT(o.id)::int AS orders
              FROM generate_series(NOW() - INTERVAL '13 days', NOW(), INTERVAL '1 day') d
              LEFT JOIN orders o
-               ON o.created_at::date = d::date AND o.status <> 'cancelled'
+               ON o.created_at::date = d::date
+              AND o.status <> ALL(ARRAY['cancelled','refunded','failed'])
             GROUP BY d ORDER BY d`),
   ]);
   res.json({
@@ -117,6 +120,38 @@ router.put('/products/:id', ah(async (req, res) => {
   res.json(rows[0]);
 }));
 
+/**
+ * Partial update, for the list table's Quick Edit and its bulk actions.
+ * The full PUT above replaces every field and both child collections, which is
+ * wrong when all the caller wants is to flip a product to draft.
+ */
+const QUICK_FIELDS = ['name', 'slug', 'mrp', 'sale_price', 'category_id',
+  'is_active', 'is_featured', 'is_new', 'sort_order'];
+
+router.patch('/products/:id', ah(async (req, res) => {
+  const b = req.body || {};
+  const vals = [req.params.id];
+  const sets = [];
+
+  for (const field of QUICK_FIELDS) {
+    if (b[field] === undefined) continue;
+    let value = normalise(field, b[field]);
+    if (field === 'slug') {
+      value = await uniqueSlug(b.slug || b.name || 'product', req.params.id);
+    }
+    vals.push(value);
+    sets.push(`${field} = ${vals.length}`);
+  }
+  if (!sets.length) return res.status(400).json({ error: 'Nothing to update.' });
+
+  const { rows } = await query(
+    `UPDATE products SET ${sets.join(', ')} WHERE id = $1 RETURNING *`,
+    vals,
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Product not found.' });
+  res.json(rows[0]);
+}));
+
 router.delete('/products/:id', ah(async (req, res) => {
   await query('DELETE FROM products WHERE id = $1', [req.params.id]);
   res.json({ ok: true });
@@ -141,11 +176,14 @@ function normalise(field, value) {
   return value;
 }
 
-async function uniqueSlug(base) {
+async function uniqueSlug(base, exceptId = null) {
   const root = slugify(base) || 'product';
   let slug = root;
   for (let n = 2; ; n += 1) {
-    const { rowCount } = await query('SELECT 1 FROM products WHERE slug = $1', [slug]);
+    const { rowCount } = await query(
+      'SELECT 1 FROM products WHERE slug = $1 AND ($2::int IS NULL OR id <> $2)',
+      [slug, exceptId],
+    );
     if (!rowCount) return slug;
     slug = `${root}-${n}`;
   }
@@ -196,7 +234,10 @@ async function replaceChildren(productId, body) {
 /* --------------------------------------------------------------- categories */
 
 router.get('/categories', ah(async (_req, res) => {
-  const { rows } = await query('SELECT * FROM categories ORDER BY sort_order, id');
+  const { rows } = await query(
+    `SELECT c.*, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id)::int AS product_count
+       FROM categories c ORDER BY c.sort_order, c.id`,
+  );
   res.json(rows);
 }));
 
@@ -244,7 +285,7 @@ router.get('/orders', ah(async (req, res) => {
 }));
 
 router.put('/orders/:id/status', ah(async (req, res) => {
-  const allowed = ['placed', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+  const allowed = ORDER_STATUS_KEYS;
   const { status, payment_status } = req.body || {};
   if (status && !allowed.includes(status)) return res.status(400).json({ error: 'Unknown order status.' });
 
@@ -265,7 +306,7 @@ router.put('/orders/:id/status', ah(async (req, res) => {
 
     // Cancelling from here has to return the stock, exactly as it does when a
     // customer cancels their own order.
-    if (status === 'cancelled' && before[0].status !== 'cancelled') {
+    if (STOCK_ALREADY_RETURNED.includes(status) && !STOCK_ALREADY_RETURNED.includes(before[0].status)) {
       const { rows: items } = await client.query(
         'SELECT variant_id, quantity FROM order_items WHERE order_id = $1',
         [before[0].id],

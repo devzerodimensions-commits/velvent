@@ -1,29 +1,40 @@
 import { useEffect, useState } from 'react';
-import { Alert, Seo, Spinner } from '../../components/ui';
-import { Plus, Trash } from '../../components/Icons';
+import { Seo } from '../../components/ui';
+import { Cell, ListTable, Notice, RowActions, ScreenHeader } from '../../components/wp';
 import { api } from '../../lib/api';
 import { useToast } from '../../store/toast';
 
 const BLANK = { name: '', slug: '', tagline: '', description: '', image_url: '', sort_order: 0, is_active: true };
 
+const COLUMNS = [
+  { key: 'name', label: 'Name' },
+  { key: 'description', label: 'Description', className: 'hidden lg:table-cell' },
+  { key: 'slug', label: 'Slug', className: 'hidden md:table-cell w-44' },
+  { key: 'count', label: 'Count', className: 'w-20' },
+];
+
 export default function AdminCategories() {
   const [rows, setRows] = useState(null);
-  const [editing, setEditing] = useState(null);
-  const [error, setError] = useState(null);
+  const [form, setForm] = useState(BLANK);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const [error, setError] = useState(null);
   const { success, error: toastError } = useToast();
 
   const load = () => api.admin.categories().then(setRows).catch((e) => setError(e.message));
   useEffect(() => { load(); }, []);
 
+  const set = (k) => (e) =>
+    setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+
   const save = async (e) => {
     e.preventDefault();
     setBusy(true);
     try {
-      if (editing.id) await api.admin.updateCategory(editing.id, editing);
-      else await api.admin.createCategory(editing);
-      success('Category saved.');
-      setEditing(null);
+      if (form.id) await api.admin.updateCategory(form.id, form);
+      else await api.admin.createCategory(form);
+      setNotice({ tone: 'success', text: `Category "${form.name}" saved.` });
+      setForm(BLANK);
       load();
     } catch (err) { toastError(err.message); }
     finally { setBusy(false); }
@@ -35,92 +46,112 @@ export default function AdminCategories() {
     try {
       await api.admin.deleteCategory(c.id);
       success('Category deleted.');
+      if (form.id === c.id) setForm(BLANK);
       load();
     } catch (err) { toastError(err.message); }
   };
 
-  if (error) return <Alert>{error}</Alert>;
+  const runBulk = async (action, ids) => {
+    if (action !== 'delete') return;
+    // eslint-disable-next-line no-alert
+    if (!window.confirm(`Delete ${ids.length} categor${ids.length === 1 ? 'y' : 'ies'}? Their products become uncategorised.`)) return;
+    try {
+      await Promise.all(ids.map((id) => api.admin.deleteCategory(id)));
+      setNotice({ tone: 'success', text: `${ids.length} categories deleted.` });
+      load();
+    } catch (err) { toastError(err.message); }
+  };
+
+  if (error) return <Notice tone="error">{error}</Notice>;
 
   return (
     <>
-      <Seo title="Admin — Categories" noindex />
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-display text-xl font-semibold uppercase tracking-wider2 text-navy">Categories</h1>
-        <button onClick={() => setEditing({ ...BLANK })} className="btn-primary btn-sm"><Plus size={16} /> New category</button>
-      </div>
+      <Seo title="Categories" noindex />
+      <ScreenHeader title="Product categories">
+        {notice && <Notice tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Notice>}
+      </ScreenHeader>
 
-      {editing && (
-        <form onSubmit={save} className="mt-6 border border-mist bg-white p-5 sm:p-6">
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">
-            {editing.id ? `Edit ${editing.name}` : 'New category'}
-          </h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      {/* WordPress puts the add form on the left and the list on the right. */}
+      <div className="grid items-start gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <form onSubmit={save} className="border border-mist bg-white">
+          <header className="border-b border-mist px-4 py-2.5">
+            <h2 className="text-[13px] font-semibold text-navy">
+              {form.id ? `Edit "${form.name}"` : 'Add new category'}
+            </h2>
+          </header>
+          <div className="space-y-3 p-4">
             <div>
-              <label className="label" htmlFor="c-name">Name</label>
-              <input id="c-name" required value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="field" />
-            </div>
-            <div>
-              <label className="label" htmlFor="c-tagline">Tagline</label>
-              <input id="c-tagline" value={editing.tagline || ''} onChange={(e) => setEditing({ ...editing, tagline: e.target.value })} className="field" />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="label" htmlFor="c-img">Tile image URL</label>
-              <input id="c-img" value={editing.image_url || ''} onChange={(e) => setEditing({ ...editing, image_url: e.target.value })} placeholder="/products/…" className="field" />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="label" htmlFor="c-desc">Description</label>
-              <textarea id="c-desc" rows={3} value={editing.description || ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="field resize-y" />
+              <label htmlFor="cat-name" className="mb-1 block text-[12.5px] font-semibold text-navy">Name</label>
+              <input id="cat-name" value={form.name} onChange={set('name')} required className="wp-input" />
+              <p className="mt-1 text-[11.5px] text-slate">The name as it appears on your site.</p>
             </div>
             <div>
-              <label className="label" htmlFor="c-sort">Sort order</label>
-              <input id="c-sort" type="number" value={editing.sort_order ?? 0} onChange={(e) => setEditing({ ...editing, sort_order: e.target.value })} className="field" />
+              <label htmlFor="cat-slug" className="mb-1 block text-[12.5px] font-semibold text-navy">Slug</label>
+              <input id="cat-slug" value={form.slug || ''} onChange={set('slug')} placeholder="auto from name" className="wp-input" />
+              <p className="mt-1 text-[11.5px] text-slate">The URL-friendly version. Lowercase, letters, numbers and hyphens.</p>
             </div>
-            <label className="flex items-end gap-2.5 pb-3 text-[13px] text-navy">
-              <input
-                type="checkbox"
-                checked={editing.is_active !== false}
-                onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
-                className="h-4 w-4 accent-navy"
-              />
-              Visible on the store
+            <div>
+              <label htmlFor="cat-tagline" className="mb-1 block text-[12.5px] font-semibold text-navy">Tagline</label>
+              <input id="cat-tagline" value={form.tagline || ''} onChange={set('tagline')} className="wp-input" />
+            </div>
+            <div>
+              <label htmlFor="cat-desc" className="mb-1 block text-[12.5px] font-semibold text-navy">Description</label>
+              <textarea id="cat-desc" rows={3} value={form.description || ''} onChange={set('description')} className="wp-textarea" />
+            </div>
+            <div>
+              <label htmlFor="cat-image" className="mb-1 block text-[12.5px] font-semibold text-navy">Image URL</label>
+              <input id="cat-image" value={form.image_url || ''} onChange={set('image_url')} className="wp-input" />
+            </div>
+            <div>
+              <label htmlFor="cat-order" className="mb-1 block text-[12.5px] font-semibold text-navy">Order</label>
+              <input id="cat-order" type="number" value={form.sort_order ?? 0} onChange={set('sort_order')} className="wp-input w-24" />
+            </div>
+            <label className="flex items-center gap-2 text-[12.5px] text-navy">
+              <input type="checkbox" checked={form.is_active !== false} onChange={set('is_active')} /> Visible on the storefront
             </label>
           </div>
-          <div className="mt-6 flex gap-3">
-            <button type="submit" disabled={busy} className="btn-primary">{busy ? 'Saving…' : 'Save'}</button>
-            <button type="button" onClick={() => setEditing(null)} className="btn-ghost">Cancel</button>
-          </div>
+          <footer className="flex items-center gap-2 border-t border-mist bg-cream/40 px-4 py-3">
+            <button type="submit" disabled={busy} className="wp-btn-primary">
+              {busy ? 'Saving…' : form.id ? 'Update' : 'Add new category'}
+            </button>
+            {form.id && (
+              <button type="button" onClick={() => setForm(BLANK)} className="wp-btn-secondary">Cancel</button>
+            )}
+          </footer>
         </form>
-      )}
 
-      {!rows ? (
-        <div className="py-20 text-center"><Spinner className="text-navy" /></div>
-      ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {rows.map((c) => (
-            <div key={c.id} className="border border-mist bg-white">
-              {c.image_url && <img src={c.image_url} alt="" className="aspect-[5/3] w-full bg-cream object-cover" loading="lazy" />}
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="font-display text-[15px] font-semibold uppercase tracking-wider2 text-navy">{c.name}</h2>
-                    <p className="mt-1 text-[11px] text-slate">/{c.slug}</p>
-                  </div>
-                  <span className={`shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase ${c.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-mist text-slate'}`}>
-                    {c.is_active ? 'Live' : 'Hidden'}
-                  </span>
-                </div>
-                {c.tagline && <p className="mt-2.5 text-[12.5px] text-slate">{c.tagline}</p>}
-                <div className="mt-4 flex gap-2">
-                  <button onClick={() => setEditing(c)} className="btn-ghost btn-sm">Edit</button>
-                  <button onClick={() => remove(c)} aria-label={`Delete ${c.name}`} className="btn-sm btn border border-mist text-sale hover:border-sale">
-                    <Trash size={15} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        <ListTable
+          columns={COLUMNS}
+          rows={rows || []}
+          loading={rows === null}
+          bulkActions={[{ value: 'delete', label: 'Delete' }]}
+          onBulkAction={runBulk}
+          total={rows?.length}
+          empty="No categories yet."
+          renderRow={(c) => (
+            <>
+              <Cell primary>
+                <button type="button" onClick={() => setForm(c)} className="font-semibold text-navy hover:underline">
+                  {c.name}
+                </button>
+                {!c.is_active && <span className="ml-1.5 text-[12px] text-slate">— Hidden</span>}
+                <RowActions
+                  actions={[
+                    { label: 'Edit', onClick: () => setForm(c) },
+                    { label: 'View', to: `/category/${c.slug}` },
+                    { label: 'Delete', onClick: () => remove(c), danger: true },
+                  ]}
+                />
+              </Cell>
+              <Cell className="hidden lg:table-cell">
+                <span className="line-clamp-2">{c.tagline || c.description || '—'}</span>
+              </Cell>
+              <Cell className="hidden md:table-cell">{c.slug}</Cell>
+              <Cell>{c.product_count ?? '—'}</Cell>
+            </>
+          )}
+        />
+      </div>
     </>
   );
 }

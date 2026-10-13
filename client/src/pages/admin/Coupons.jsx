@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Alert, Seo, Spinner } from '../../components/ui';
-import { Plus, Trash } from '../../components/Icons';
+import { Seo } from '../../components/ui';
+import { Cell, Field, ListTable, MetaBox, Notice, RowActions, ScreenHeader } from '../../components/wp';
 import { api } from '../../lib/api';
 import { formatDate, inr } from '../../lib/format';
 import { useToast } from '../../store/toast';
@@ -10,15 +10,27 @@ const BLANK = {
   max_discount: '', description: '', is_active: true, expires_at: '',
 };
 
+const COLUMNS = [
+  { key: 'code', label: 'Code' },
+  { key: 'type', label: 'Coupon type', className: 'hidden md:table-cell w-40' },
+  { key: 'amount', label: 'Amount', className: 'w-28' },
+  { key: 'spend', label: 'Minimum spend', className: 'hidden lg:table-cell w-36' },
+  { key: 'expiry', label: 'Expiry date', className: 'w-32' },
+];
+
 export default function AdminCoupons() {
   const [rows, setRows] = useState(null);
   const [form, setForm] = useState(null);
-  const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const [error, setError] = useState(null);
   const { success, error: toastError } = useToast();
 
   const load = () => api.admin.coupons().then(setRows).catch((e) => setError(e.message));
   useEffect(() => { load(); }, []);
+
+  const set = (k) => (e) =>
+    setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
   const save = async (e) => {
     e.preventDefault();
@@ -29,7 +41,7 @@ export default function AdminCoupons() {
         max_discount: form.max_discount === '' ? null : form.max_discount,
         expires_at: form.expires_at || null,
       });
-      success(`Coupon ${form.code.toUpperCase()} saved.`);
+      setNotice({ tone: 'success', text: `Coupon ${form.code.toUpperCase()} saved.` });
       setForm(null);
       load();
     } catch (err) { toastError(err.message); }
@@ -38,121 +50,161 @@ export default function AdminCoupons() {
 
   const remove = async (c) => {
     // eslint-disable-next-line no-alert
-    if (!window.confirm(`Delete coupon ${c.code}?`)) return;
-    await api.admin.deleteCoupon(c.id);
-    success('Coupon deleted.');
-    load();
+    if (!window.confirm(`Delete coupon ${c.code}? Customers can no longer use it.`)) return;
+    try {
+      await api.admin.deleteCoupon(c.id);
+      success('Coupon deleted.');
+      load();
+    } catch (err) { toastError(err.message); }
   };
 
-  if (error) return <Alert>{error}</Alert>;
+  const runBulk = async (action, ids) => {
+    if (action !== 'delete') return;
+    // eslint-disable-next-line no-alert
+    if (!window.confirm(`Delete ${ids.length} coupon(s)?`)) return;
+    try {
+      await Promise.all(ids.map((id) => api.admin.deleteCoupon(id)));
+      setNotice({ tone: 'success', text: `${ids.length} coupons deleted.` });
+      load();
+    } catch (err) { toastError(err.message); }
+  };
+
+  if (error) return <Notice tone="error">{error}</Notice>;
+
+  // The edit screen replaces the list, exactly as adding a coupon does in Woo.
+  if (form) {
+    return (
+      <>
+        <Seo title="Coupons" noindex />
+        <ScreenHeader title={form.id ? `Edit coupon` : 'Add new coupon'} />
+
+        <form onSubmit={save} className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="space-y-4">
+            <div className="border border-mist bg-white p-4">
+              <label htmlFor="c-code" className="sr-only">Coupon code</label>
+              <input
+                id="c-code"
+                value={form.code}
+                onChange={set('code')}
+                required
+                placeholder="Coupon code"
+                className="w-full border-0 px-0 py-1 font-display text-[20px] uppercase tracking-wider text-navy placeholder:text-slate-light focus:outline-none focus:ring-0"
+              />
+              <input
+                value={form.description || ''}
+                onChange={set('description')}
+                placeholder="Description (optional) — only you see this"
+                aria-label="Coupon description"
+                className="mt-2 w-full border-0 px-0 py-1 text-[13px] text-slate placeholder:text-slate-light focus:outline-none focus:ring-0"
+              />
+            </div>
+
+            <MetaBox title="Coupon data">
+              <div className="space-y-4">
+                <Field label="Discount type" htmlFor="c-kind">
+                  <select id="c-kind" value={form.kind} onChange={set('kind')} className="wp-select">
+                    <option value="percent">Percentage discount</option>
+                    <option value="flat">Fixed cart discount</option>
+                  </select>
+                </Field>
+                <Field
+                  label="Coupon amount"
+                  htmlFor="c-value"
+                  hint={form.kind === 'percent' ? 'A percentage of the cart subtotal.' : 'A flat rupee amount off the cart.'}
+                >
+                  <input id="c-value" type="number" min="0" step="1" value={form.value} onChange={set('value')} required className="wp-input sm:w-40" />
+                </Field>
+                <Field label="Minimum spend" htmlFor="c-min" hint="The cart subtotal must reach this before the coupon applies.">
+                  <input id="c-min" type="number" min="0" step="1" value={form.min_order} onChange={set('min_order')} className="wp-input sm:w-40" />
+                </Field>
+                {form.kind === 'percent' && (
+                  <Field label="Maximum discount" htmlFor="c-max" hint="Caps a percentage coupon. Leave blank for no cap.">
+                    <input id="c-max" type="number" min="0" step="1" value={form.max_discount ?? ''} onChange={set('max_discount')} className="wp-input sm:w-40" />
+                  </Field>
+                )}
+                <Field label="Expiry date" htmlFor="c-exp" hint="Leave blank and the coupon never expires.">
+                  <input
+                    id="c-exp"
+                    type="date"
+                    value={form.expires_at ? String(form.expires_at).slice(0, 10) : ''}
+                    onChange={set('expires_at')}
+                    className="wp-input sm:w-52"
+                  />
+                </Field>
+              </div>
+            </MetaBox>
+          </div>
+
+          <div className="space-y-4">
+            <section className="border border-mist bg-white">
+              <header className="border-b border-mist px-4 py-2.5">
+                <h2 className="text-[13px] font-semibold text-navy">Publish</h2>
+              </header>
+              <div className="border-b border-mist p-4">
+                <label className="flex items-center gap-2 text-[12.5px] text-navy">
+                  <input type="checkbox" checked={form.is_active !== false} onChange={set('is_active')} /> Active
+                </label>
+                <p className="mt-1.5 text-[11.5px] text-slate">Inactive coupons are rejected at checkout.</p>
+              </div>
+              <footer className="flex items-center justify-between gap-3 bg-cream/40 px-4 py-3">
+                <button type="button" onClick={() => setForm(null)} className="text-[12px] text-slate transition hover:text-navy">
+                  Cancel
+                </button>
+                <button type="submit" disabled={busy} className="wp-btn-primary">
+                  {busy ? 'Saving…' : form.id ? 'Update' : 'Publish'}
+                </button>
+              </footer>
+            </section>
+          </div>
+        </form>
+      </>
+    );
+  }
 
   return (
     <>
-      <Seo title="Admin — Coupons" noindex />
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-display text-xl font-semibold uppercase tracking-wider2 text-navy">Coupons</h1>
-        <button onClick={() => setForm({ ...BLANK })} className="btn-primary btn-sm"><Plus size={16} /> New coupon</button>
-      </div>
+      <Seo title="Coupons" noindex />
+      <ScreenHeader title="Coupons" action="Add New" onAction={() => setForm(BLANK)}>
+        {notice && <Notice tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Notice>}
+      </ScreenHeader>
 
-      {form && (
-        <form onSubmit={save} className="mt-6 border border-mist bg-white p-5 sm:p-6">
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">
-            {form.id ? `Edit ${form.code}` : 'New coupon'}
-          </h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className="label" htmlFor="cp-code">Code</label>
-              <input
-                id="cp-code" required value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-                className="field uppercase" placeholder="VELVENT10"
+      <ListTable
+        columns={COLUMNS}
+        rows={rows || []}
+        loading={rows === null}
+        bulkActions={[{ value: 'delete', label: 'Delete' }]}
+        onBulkAction={runBulk}
+        total={rows?.length}
+        empty="No coupons yet."
+        renderRow={(c) => (
+          <>
+            <Cell primary>
+              <button type="button" onClick={() => setForm(c)} className="font-semibold uppercase tracking-wider text-navy hover:underline">
+                {c.code}
+              </button>
+              {!c.is_active && <span className="ml-1.5 text-[12px] text-slate">— Inactive</span>}
+              <RowActions
+                actions={[
+                  { label: 'Edit', onClick: () => setForm(c) },
+                  { label: 'Delete', onClick: () => remove(c), danger: true },
+                ]}
               />
-            </div>
-            <div>
-              <label className="label" htmlFor="cp-kind">Type</label>
-              <select id="cp-kind" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })} className="field">
-                <option value="percent">Percent off</option>
-                <option value="flat">Flat amount off</option>
-              </select>
-            </div>
-            <div>
-              <label className="label" htmlFor="cp-value">{form.kind === 'percent' ? 'Percent (%)' : 'Amount (₹)'}</label>
-              <input id="cp-value" type="number" min={0} required value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} className="field" />
-            </div>
-            <div>
-              <label className="label" htmlFor="cp-min">Minimum order (₹)</label>
-              <input id="cp-min" type="number" min={0} value={form.min_order} onChange={(e) => setForm({ ...form, min_order: e.target.value })} className="field" />
-            </div>
-            <div>
-              <label className="label" htmlFor="cp-max">Max discount (₹, optional)</label>
-              <input id="cp-max" type="number" min={0} value={form.max_discount ?? ''} onChange={(e) => setForm({ ...form, max_discount: e.target.value })} className="field" />
-            </div>
-            <div>
-              <label className="label" htmlFor="cp-exp">Expires (optional)</label>
-              <input id="cp-exp" type="date" value={form.expires_at ? String(form.expires_at).slice(0, 10) : ''} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} className="field" />
-            </div>
-            <div className="sm:col-span-3">
-              <label className="label" htmlFor="cp-desc">Description shown on the cart</label>
-              <input id="cp-desc" value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} className="field" placeholder="10% off orders above ₹999" />
-            </div>
-          </div>
-
-          <label className="mt-4 flex items-center gap-2.5 text-[13px] text-navy">
-            <input type="checkbox" checked={form.is_active !== false} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} className="h-4 w-4 accent-navy" />
-            Active
-          </label>
-
-          <div className="mt-6 flex gap-3">
-            <button type="submit" disabled={busy} className="btn-primary">{busy ? 'Saving…' : 'Save coupon'}</button>
-            <button type="button" onClick={() => setForm(null)} className="btn-ghost">Cancel</button>
-          </div>
-        </form>
-      )}
-
-      {!rows ? (
-        <div className="py-20 text-center"><Spinner className="text-navy" /></div>
-      ) : rows.length === 0 ? (
-        <p className="mt-10 text-[13.5px] text-slate">No coupons yet.</p>
-      ) : (
-        <div className="mt-6 overflow-x-auto border border-mist bg-white">
-          <table className="w-full min-w-[700px] text-[13px]">
-            <thead className="bg-cream/60 text-[10.5px] uppercase tracking-wider2 text-slate">
-              <tr>
-                {['Code', 'Discount', 'Min order', 'Cap', 'Expires', 'Status', ''].map((h) => (
-                  <th key={h} scope="col" className="px-4 py-3 text-left font-semibold">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-mist">
-              {rows.map((c) => (
-                <tr key={c.id} className="hover:bg-cream/40">
-                  <td className="px-4 py-3">
-                    <span className="block font-semibold tracking-wide text-navy">{c.code}</span>
-                    {c.description && <span className="text-[11px] text-slate">{c.description}</span>}
-                  </td>
-                  <td className="px-4 py-3 text-slate">
-                    {c.kind === 'percent' ? `${Number(c.value)}%` : inr(c.value)}
-                  </td>
-                  <td className="px-4 py-3 text-slate">{inr(c.min_order)}</td>
-                  <td className="px-4 py-3 text-slate">{c.max_discount ? inr(c.max_discount) : '—'}</td>
-                  <td className="px-4 py-3 text-slate">{c.expires_at ? formatDate(c.expires_at) : 'Never'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase ${c.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-mist text-slate'}`}>
-                      {c.is_active ? 'Active' : 'Off'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="flex items-center justify-end gap-2">
-                      <button onClick={() => setForm(c)} className="text-[11px] font-semibold uppercase tracking-wider text-navy hover:underline">Edit</button>
-                      <button onClick={() => remove(c)} aria-label={`Delete ${c.code}`} className="text-slate hover:text-sale"><Trash size={15} /></button>
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              {c.description && <span className="block text-[11.5px] text-slate">{c.description}</span>}
+            </Cell>
+            <Cell className="hidden md:table-cell">
+              {c.kind === 'percent' ? 'Percentage discount' : 'Fixed cart discount'}
+            </Cell>
+            <Cell>
+              <span className="font-semibold text-navy">
+                {c.kind === 'percent' ? `${Number(c.value)}%` : inr(c.value)}
+              </span>
+              {c.max_discount && <span className="block text-[11px] text-slate">max {inr(c.max_discount)}</span>}
+            </Cell>
+            <Cell className="hidden lg:table-cell">{Number(c.min_order) ? inr(c.min_order) : '—'}</Cell>
+            <Cell>{c.expires_at ? formatDate(c.expires_at) : '—'}</Cell>
+          </>
+        )}
+      />
     </>
   );
 }

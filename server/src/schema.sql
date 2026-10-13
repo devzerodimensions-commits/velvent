@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS orders (
   user_id             INT REFERENCES users(id) ON DELETE SET NULL,
   email               TEXT NOT NULL,
   phone               TEXT NOT NULL,
-  status              TEXT NOT NULL DEFAULT 'placed',   -- placed|confirmed|shipped|delivered|cancelled
+  status              TEXT NOT NULL DEFAULT 'processing', -- WooCommerce: pending|processing|on-hold|shipped|completed|cancelled|refunded|failed
   payment_method      TEXT NOT NULL DEFAULT 'cod',      -- cod|razorpay
   payment_status      TEXT NOT NULL DEFAULT 'pending',  -- pending|paid|failed|refunded
   subtotal            NUMERIC(10,2) NOT NULL,
