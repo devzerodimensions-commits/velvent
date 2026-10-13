@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import Newsletter from '../components/Newsletter';
@@ -16,6 +16,49 @@ const PROMISES = [
   { Icon: Shield, title: 'Secure checkout', body: 'UPI, cards and net banking' },
 ];
 
+/**
+ * The Oversized Tee range has not been photographed yet, so its images are flat
+ * brand renders. Beside real photographs they read as clip art, and that single
+ * mismatch is what makes an otherwise finished page look unfinished — so the
+ * homepage shows only what has been properly shot. Nothing is hidden from the
+ * shop itself, and this corrects itself the moment real photos are uploaded.
+ */
+const isPhotographed = (item) => {
+  const urls = item.images?.length ? item.images.map((i) => i.url) : [item.image_url];
+  return urls.some((u) => u && !String(u).toLowerCase().endsWith('.svg'));
+};
+
+/**
+ * Fades a section up the first time it reaches the viewport. Sections already on
+ * screen at load fire immediately, so nothing sits invisible waiting for a
+ * scroll that never comes. The reduced-motion rule in index.css flattens it.
+ */
+function Reveal({ children }) {
+  const ref = useRef(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setShown(true); return undefined; }
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setShown(true); io.disconnect(); }
+    }, { rootMargin: '0px 0px -10% 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-[opacity,transform] duration-700 ease-out motion-reduce:transition-none ${
+        shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
 /* --------------------------------------------------------------------- hero */
 
 function Hero() {
@@ -24,7 +67,7 @@ function Hero() {
       <img
         src="/products/rugby-stripe-polo-1.jpg"
         alt="Model wearing the VELVENT Rugby Stripe Knitted Polo"
-        className="absolute inset-0 h-full w-full object-cover object-[center_26%] opacity-[0.62]"
+        className="absolute inset-0 h-full w-full animate-hero-pan object-cover object-[center_26%] opacity-[0.62]"
         fetchpriority="high"
       />
       {/* narrow screens wrap the copy across the full width, so they need a flat scrim too —
@@ -40,26 +83,32 @@ function Hero() {
         </span>
       </div>
 
-      <div className="shell relative flex min-h-[86vh] items-center py-24">
-        <div className="max-w-xl animate-fade-up text-cream">
+      <div className="shell relative flex min-h-[88svh] items-center py-28 lg:min-h-[94svh]">
+        <div className="max-w-2xl animate-fade-up text-cream">
           <p className="eyebrow text-cream/70">Knitted cotton, done properly</p>
-          <h1 className="mt-6 font-display text-[2.6rem] font-semibold uppercase leading-[1.04] tracking-wide text-balance sm:text-6xl lg:text-[4.25rem]">
+          <h1 className="mt-7 font-display text-[3rem] font-semibold uppercase leading-[0.95] tracking-tight text-balance sm:text-[4.5rem] lg:text-[5.75rem]">
             Crafted for<br />Confidence
           </h1>
-          <p className="mt-7 max-w-md text-[15px] leading-relaxed text-cream/80">
+          <p className="mt-8 max-w-md text-[16px] leading-relaxed text-cream/80">
             Polos, button-through shirts and heavyweight oversized tees — built from one fabric
             we actually understand, and cut to sit right.
           </p>
-          <div className="mt-9 flex flex-wrap gap-3">
+          <div className="mt-10 flex flex-wrap gap-3">
             <Link to="/shop" className="btn-cream">Shop the collection</Link>
             <Link to="/category/polo-t-shirt" className="btn border border-cream/50 text-cream hover:bg-cream hover:text-navy">
               Polo T-Shirts
             </Link>
           </div>
-          <p className="mt-10 text-[11px] font-semibold uppercase tracking-brand text-cream/55">
+          <p className="mt-12 text-[11px] font-semibold uppercase tracking-brand text-cream/55">
             Flat 33% off · ₹1,499 <span className="mx-1.5">→</span> ₹1,005
           </p>
         </div>
+
+        {/* Tells a visitor on a tall screen that the page continues. */}
+        <span className="pointer-events-none absolute bottom-7 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-cream/45 lg:flex">
+          <span className="text-[9.5px] font-semibold uppercase tracking-brand">Scroll</span>
+          <ChevronDown size={16} className="animate-bounce" />
+        </span>
       </div>
 
       <Link
@@ -98,9 +147,9 @@ function Promises() {
 
 function Categories({ categories, loading }) {
   return (
-    <section className="shell py-16 sm:py-20">
+    <section className="shell py-20 sm:py-28 lg:py-32">
       <SectionHead eyebrow="Three ways to wear it" title="Shop by Category" action="View all" actionTo="/shop" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className={`grid gap-4 sm:grid-cols-2${categories.length > 2 ? ' lg:grid-cols-3' : ''}`}>
         {loading
           ? [0, 1, 2].map((i) => <div key={i} className="skeleton aspect-[4/5]" />)
           : categories.map((c, i) => (
@@ -119,7 +168,7 @@ function Categories({ categories, loading }) {
               </span>
               <div className="absolute inset-x-0 bottom-0 p-6 text-cream">
                 <p className="text-[10px] font-medium uppercase tracking-brand text-cream/65">{c.tagline}</p>
-                <h3 className="mt-2 font-display text-xl font-semibold uppercase tracking-wider2">{c.name}</h3>
+                <h3 className="mt-2 font-display text-xl font-semibold uppercase tracking-wider2 sm:text-2xl">{c.name}</h3>
                 <p className="mt-2.5 text-[11px] uppercase tracking-wider2 text-cream/75">
                   {c.product_count} {Number(c.product_count) === 1 ? 'style' : 'styles'}
                   <span className="ml-2.5 inline-block transition-transform duration-300 group-hover:translate-x-1.5">→</span>
@@ -215,7 +264,7 @@ function Anatomy() {
 
   return (
     <section className="border-y border-mist bg-cream">
-      <div className="shell py-16 sm:py-20">
+      <div className="shell py-20 sm:py-28 lg:py-32">
         <div className="max-w-2xl">
           <p className="eyebrow">Why it costs what it costs</p>
           <h2 className="mt-3 font-display text-3xl font-semibold uppercase leading-[1.08] tracking-wider2 text-navy sm:text-[2.5rem]">
@@ -431,7 +480,7 @@ function FitGuide() {
 function Rail({ eyebrow, title, products, loading, action, actionTo }) {
   if (!loading && !products.length) return null;
   return (
-    <section className="shell py-16 sm:py-20">
+    <section className="shell py-20 sm:py-28 lg:py-32">
       <SectionHead eyebrow={eyebrow} title={title} action={action} actionTo={actionTo} />
       <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
         {loading
@@ -524,7 +573,7 @@ const HOME_FAQ = [
 
 function Faqs() {
   return (
-    <section className="shell py-16 sm:py-20">
+    <section className="shell py-20 sm:py-28 lg:py-32">
       <div className="grid gap-10 lg:grid-cols-[320px_1fr] lg:gap-20">
         <div>
           <p className="eyebrow">Good to know</p>
@@ -580,14 +629,14 @@ export default function Home() {
     let alive = true;
     Promise.all([
       api.categories(),
-      api.products({ featured: 'true', limit: 8 }),
-      api.products({ sort: 'newest', limit: 4 }),
+      api.products({ featured: 'true', limit: 16 }),
+      api.products({ sort: 'newest', limit: 16 }),
     ])
       .then(([cats, feat, fresh]) => {
         if (!alive) return;
-        setCategories(cats);
-        setFeatured(feat.products);
-        setNewest(fresh.products);
+        setCategories(cats.filter(isPhotographed));
+        setFeatured(feat.products.filter(isPhotographed).slice(0, 8));
+        setNewest(fresh.products.filter(isPhotographed).slice(0, 4));
       })
       .catch(() => {})
       .finally(() => alive && setLoading(false));
@@ -602,28 +651,32 @@ export default function Home() {
       />
       <Hero />
       <Promises />
-      <Categories categories={categories} loading={loading} />
+      <Reveal><Categories categories={categories} loading={loading} /></Reveal>
       <Marquee />
-      <Rail
-        eyebrow="Just landed"
-        title="New Arrivals"
-        products={newest}
-        loading={loading}
-        action="Shop all"
-        actionTo="/shop?sort=newest"
-      />
-      <Anatomy />
-      <Rail
-        eyebrow="Most wanted"
-        title="Bestsellers"
-        products={featured}
-        loading={loading}
-        action="Shop all"
-        actionTo="/shop"
-      />
-      <FitGuide />
-      <StoryBand />
-      <Faqs />
+      <Reveal>
+        <Rail
+          eyebrow="Just landed"
+          title="New Arrivals"
+          products={newest}
+          loading={loading}
+          action="Shop all"
+          actionTo="/shop?sort=newest"
+        />
+      </Reveal>
+      <Reveal><Anatomy /></Reveal>
+      <Reveal>
+        <Rail
+          eyebrow="Most wanted"
+          title="Bestsellers"
+          products={featured}
+          loading={loading}
+          action="Shop all"
+          actionTo="/shop"
+        />
+      </Reveal>
+      <Reveal><FitGuide /></Reveal>
+      <Reveal><StoryBand /></Reveal>
+      <Reveal><Faqs /></Reveal>
       <SignupBand />
     </>
   );
