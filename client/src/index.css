@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --nav-h: 64px;
+  }
+
+  * { -webkit-tap-highlight-color: transparent; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    @apply bg-white text-navy font-sans antialiased;
+    font-feature-settings: 'kern' 1;
+  }
+
+  ::selection { @apply bg-navy text-cream; }
+
+  /* A thin, brand-coloured scrollbar rather than the default chrome */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { @apply bg-cream; }
+  ::-webkit-scrollbar-thumb { @apply bg-navy/30 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-navy/50; }
+
+  :focus-visible { @apply outline-none ring-2 ring-navy ring-offset-2 ring-offset-white; }
+
+  input, select, textarea { @apply text-navy; }
+  input::placeholder, textarea::placeholder { @apply text-slate-light; }
+}
+
+@layer components {
+  .shell { @apply mx-auto w-full max-w-shell px-4 sm:px-6 lg:px-10; }
+
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-brand text-slate;
+  }
+
+  .h-section {
+    @apply font-display text-2xl font-semibold uppercase tracking-wider2 text-navy sm:text-[28px];
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none
+           px-7 py-3.5 text-[12px] font-semibold uppercase tracking-wider2
+           transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary { @apply btn bg-navy text-cream hover:bg-navy-deep active:scale-[.99]; }
+  .btn-outline { @apply btn border border-navy bg-transparent text-navy hover:bg-navy hover:text-cream; }
+  .btn-ghost   { @apply btn border border-mist bg-white text-navy hover:border-navy; }
+  .btn-cream   { @apply btn bg-cream text-navy hover:bg-cream-dark; }
+  .btn-sm      { @apply px-4 py-2.5 text-[11px]; }
+
+  .field {
+    @apply w-full border border-mist bg-white px-4 py-3 text-sm text-navy
+           transition-colors placeholder:text-slate-light
+           focus:border-navy focus:outline-none focus:ring-0;
+  }
+  .field-error { @apply border-sale; }
+  .label { @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-wider2 text-slate; }
+  .err { @apply mt-1 text-[11px] font-medium text-sale; }
+
+  .card-surface { @apply border border-mist/70 bg-white; }
+
+  .link-underline {
+    @apply relative after:absolute after:bottom-0 after:left-0 after:h-px after:w-0
+           after:bg-current after:transition-all after:duration-300 hover:after:w-full;
+  }
+
+  /* Hides the scrollbar on horizontal product rails without disabling scrolling */
+  .no-bar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-bar::-webkit-scrollbar { display: none; }
+
+  .skeleton { @apply animate-pulse bg-cream-dark; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .pause-hover:hover { animation-play-state: paused; }
+}
+
+/* A page whose last section is already full-bleed dark should meet the footer
+   with no white band between them. */
+main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
