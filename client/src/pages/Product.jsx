@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { Accordion, Alert, Breadcrumbs, PageLoader, Rating, SectionHead, Seo } from '../components/ui';
+import { SizeGuideModal } from '../components/SizeGuide';
 import { Bag, Heart, Minus, Plus, Refresh, Ruler, Shield, Truck } from '../components/Icons';
 import { api } from '../lib/api';
 import { bySize, deliveryEstimate, discountPct, formatDate, inr } from '../lib/format';
@@ -148,6 +149,7 @@ export default function Product() {
   const [size, setSize] = useState(null);
   const [qty, setQty] = useState(1);
   const [sizeWarning, setSizeWarning] = useState(false);
+  const [sizeGuide, setSizeGuide] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -257,6 +259,13 @@ export default function Product() {
 
   return (
     <>
+      <SizeGuideModal
+        open={sizeGuide}
+        onClose={() => setSizeGuide(false)}
+        categorySlug={product.category_slug}
+        selectedSize={size}
+      />
+
       <Seo
         title={product.name}
         description={product.short_desc || product.description?.slice(0, 155)}
@@ -338,9 +347,13 @@ export default function Product() {
           <section className="mt-8">
             <div className="flex items-center justify-between">
               <h2 className="eyebrow">Select size</h2>
-              <Link to="/size-guide" className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider2 text-navy hover:underline">
+              <button
+                type="button"
+                onClick={() => setSizeGuide(true)}
+                className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider2 text-navy hover:underline"
+              >
                 <Ruler size={15} /> Size guide
-              </Link>
+              </button>
             </div>
 
             <div className="mt-3.5 flex flex-wrap gap-2.5">
@@ -379,18 +392,19 @@ export default function Product() {
             <div className="flex items-center border border-mist">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="grid h-12 w-12 place-items-center transition hover:bg-cream"
+                disabled={qty <= 1}
+                className="grid h-9 w-9 place-items-center transition hover:bg-cream disabled:cursor-not-allowed disabled:text-slate-light disabled:hover:bg-transparent"
                 aria-label="Decrease quantity"
               >
-                <Minus size={15} />
+                <Minus size={13} />
               </button>
-              <span className="w-10 text-center text-sm font-semibold">{qty}</span>
+              <span className="w-8 text-center text-[13px] font-semibold tabular-nums">{qty}</span>
               <button
                 onClick={() => setQty((q) => Math.min(10, variant ? Math.min(variant.stock, q + 1) : q + 1))}
-                className="grid h-12 w-12 place-items-center transition hover:bg-cream"
+                className="grid h-9 w-9 place-items-center transition hover:bg-cream"
                 aria-label="Increase quantity"
               >
-                <Plus size={15} />
+                <Plus size={13} />
               </button>
             </div>
             <p className="text-[12px] text-slate">

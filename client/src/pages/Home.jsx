@@ -4,6 +4,7 @@ import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import Newsletter from '../components/Newsletter';
 import { Mark } from '../components/Logo';
 import { Accordion, SectionHead, Seo } from '../components/ui';
+import { SizeGuideModal } from '../components/SizeGuide';
 import { Bag, ChevronDown, Refresh, Ruler, Rupee, Shield, Truck } from '../components/Icons';
 import { api } from '../lib/api';
 import { BRAND } from '../lib/brand';
@@ -396,6 +397,8 @@ const FITS = [
 ];
 
 function FitGuide() {
+  const [sizeGuide, setSizeGuide] = useState(false);
+
   return (
     <section className="bg-navy text-cream">
       <div className="shell py-20 sm:py-24">
@@ -468,9 +471,13 @@ function FitGuide() {
             ))}
           </ul>
 
-          <Link to="/size-guide" className="btn-cream shrink-0"><Ruler size={17} /> Size guide</Link>
+          <button type="button" onClick={() => setSizeGuide(true)} className="btn-cream shrink-0">
+            <Ruler size={17} /> Size guide
+          </button>
         </div>
       </div>
+
+      <SizeGuideModal open={sizeGuide} onClose={() => setSizeGuide(false)} />
     </section>
   );
 }
