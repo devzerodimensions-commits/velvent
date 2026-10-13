@@ -69,6 +69,12 @@ coupons · contact inbox and newsletter subscribers.
 - **Cancelling an order returns its stock.**
 - **Uploaded images are stored in Postgres** and served from `/api/media/:id`, because Render's
   filesystem is wiped on every deploy.
+- **`/robots.txt` and `/sitemap.xml` are generated from the live catalog**, with the origin taken
+  from the request, so there is no domain to configure and every new product appears in the
+  sitemap on its own.
+- **Only Vite’s fingerprinted assets are cached for a year.** The HTML shell is `no-cache` so a
+  deploy takes effect at once, and product photos keep a one-hour cache since their names are
+  stable across deploys.
 
 ---
 
@@ -120,7 +126,8 @@ Sign in at `/login` with the `ADMIN_EMAIL` / `ADMIN_PASSWORD` you set, then open
    - `DATABASE_URL` — the Neon pooled connection string
    - `ADMIN_EMAIL`, `ADMIN_PASSWORD`
    - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` — only if you want online payment
-   `JWT_SECRET` is generated for you.
+   `JWT_SECRET` is generated for you. The server refuses to start in production without it,
+   so do not clear it.
 4. Deploy. Then run the migrations **once** against the same Neon database, from your machine:
    ```bash
    npm run db:setup
@@ -128,6 +135,14 @@ Sign in at `/login` with the `ADMIN_EMAIL` / `ADMIN_PASSWORD` you set, then open
    ```
 5. Check `https://<your-service>.onrender.com/api/health` — it should report
    `{"status":"ok","db":"connected",…}`.
+6. Run the end-to-end check against the deployed store:
+   ```bash
+   npm run smoke -- https://<your-service>.onrender.com
+   ```
+   It browses, prices a cart, applies a coupon, places a COD order, looks it up as a guest and
+   cancels it to confirm the stock came back. **It writes to whatever database it points at**, so
+   against production it leaves a test order and a test account behind — delete them from
+   `/admin` afterwards.
 
 Render builds with `npm run build` (installs both halves and builds the client) and serves with
 `npm start`. In production Express serves `client/dist` itself, so there is only one service and
