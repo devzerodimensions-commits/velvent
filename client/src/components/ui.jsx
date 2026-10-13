@@ -168,6 +168,14 @@ export function Alert({ tone = 'error', children }) {
   );
 }
 
+/**
+ * Keeps a post-sign-in redirect on this site. Anything that is not a plain
+ * single-slash path — "//evil.example", "/\evil.example", a full URL — is
+ * thrown away and the caller falls back to its own default.
+ */
+export const safeReturnPath = (path) =>
+  (typeof path === 'string' && /^\/[^/\\]/.test(path) ? path : null);
+
 const DEFAULT_DESCRIPTION =
   'VELVENT is a premium clothing label built on knitted cotton — polo t-shirts, '
   + 'button-through polo shirts and oversized tees. Simple. Timeless. Premium.';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Alert, Seo, Spinner } from '../components/ui';
+import { Alert, safeReturnPath, Seo, Spinner } from '../components/ui';
 import Logo from '../components/Logo';
 import { useAuth } from '../store/auth';
 import { useToast } from '../store/toast';
@@ -16,7 +16,9 @@ export default function Register() {
   const [fields, setFields] = useState({});
   const [busy, setBusy] = useState(false);
 
-  if (ready && user) return <Navigate to={state?.from || '/account'} replace />;
+  const returnTo = safeReturnPath(state?.from);
+
+  if (ready && user) return <Navigate to={returnTo || '/account'} replace />;
 
   const set = (k) => (e) => {
     setForm({ ...form, [k]: e.target.value });
@@ -31,7 +33,7 @@ export default function Register() {
     try {
       const u = await register(form);
       success(`Welcome to VELVENT, ${u.name.split(' ')[0]}.`);
-      navigate(state?.from || '/account', { replace: true });
+      navigate(returnTo || '/account', { replace: true });
     } catch (err) {
       setError(err.message);
       if (err.fields) setFields(err.fields);
