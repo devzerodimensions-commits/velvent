@@ -59,7 +59,7 @@ const PANEL_SIZE = {
 function CollectionPanel({ c, size, index }) {
   const lead = size !== 'stack';
   return (
-    <Link to={`/category/${c.slug}`} className={`group relative isolate block overflow-hidden bg-navy-deep ${PANEL_SIZE[size]}`}>
+    <Link to={`/category/${c.slug}`} data-cursor="Shop" className={`group relative isolate block overflow-hidden bg-navy-deep ${PANEL_SIZE[size]}`}>
       <Reveal variant="img" className="absolute inset-0">
         <img
           src={c.image_url}
@@ -588,7 +588,7 @@ export default function Home() {
         description="VELVENT — modern, minimal, timeless knitted cotton. Shop polo t-shirts, polo shirts and oversized tees in sizes S to 3XL, with free shipping and easy returns."
       />
       <Intro />
-      <Cinema />
+      <Cinema products={featured} />
       <Collection categories={categories} loading={loading} />
       <Promises />
       <Rail

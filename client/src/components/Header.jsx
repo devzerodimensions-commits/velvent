@@ -59,6 +59,8 @@ export default function Header() {
     // until the end marker after them scrolls up under it.
     const onScroll = () => {
       setSolid(window.scrollY > 8);
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      headerRef.current?.style.setProperty('--read', max > 0 ? (window.scrollY / max).toFixed(4) : '0');
       const end = document.querySelector('[data-cinema-end]');
       const h = headerRef.current?.offsetHeight ?? 0;
       setOnDark(Boolean(end) && end.getBoundingClientRect().top > h);
@@ -172,6 +174,9 @@ export default function Header() {
             </button>
           </div>
         </div>
+
+        {/* reading thread: how far down the page you are */}
+        <div className="read-thread" aria-hidden />
 
         {searchOpen && (
           <div className="border-t border-mist bg-white">

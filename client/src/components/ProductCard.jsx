@@ -30,7 +30,7 @@ export default function ProductCard({ product, eager = false }) {
 
   return (
     <article className="group relative">
-      <Link to={`/product/${product.slug}`} className="block">
+      <Link to={`/product/${product.slug}`} className="block" data-cursor="View">
         <div
           className="relative aspect-[3/4] overflow-hidden bg-cream"
           onMouseEnter={() => images[1] && setIdx(1)}

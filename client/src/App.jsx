@@ -4,6 +4,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
+import Cursor from './components/Cursor';
 import { PageLoader, ScrollToTop } from './components/ui';
 import { AuthProvider, useAuth } from './store/auth';
 import { CartProvider } from './store/cart';
@@ -106,6 +107,7 @@ function Storefront() {
       </main>
       <Footer />
       <CartDrawer />
+      <Cursor />
     </div>
   );
 }
