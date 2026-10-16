@@ -1,6 +1,49 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, Star } from './Icons';
+
+/**
+ * Animates its contents in the first time they reach the viewport. `variant` picks
+ * the motion (rise, fade, depth, open, mask, img — see the reveal rules in index.css);
+ * `delay` staggers siblings. Anything already on screen at load reveals at once.
+ */
+export function Reveal({ as: Tag = 'div', variant = 'rise', delay = 0, className = '', style, children, ...rest }) {
+  const ref = useRef(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setShown(true); return undefined; }
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setShown(true); io.disconnect(); }
+    }, { rootMargin: '0px 0px -8% 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const cls = variant === 'img' ? 'reveal-img' : `reveal reveal--${variant}`;
+  return (
+    <Tag
+      ref={ref}
+      className={`${cls}${shown ? ' is-revealed' : ''} ${className}`}
+      style={{ '--d': `${delay}ms`, ...style }}
+      {...rest}
+    >
+      {children}
+    </Tag>
+  );
+}
+
+/** A headline whose lines each slide up out of their own row. Pass one string per line. */
+export function MaskHeading({ as = 'h2', lines, className = '', delay = 0 }) {
+  return (
+    <Reveal as={as} variant="mask" delay={delay} className={className} aria-label={lines.join(' ')}>
+      {lines.map((line, i) => (
+        <span key={line} aria-hidden><span style={{ '--l': i }}>{line}</span></span>
+      ))}
+    </Reveal>
+  );
+}
 
 /** Scrolls to the top on every navigation — routers do not do this by default. */
 export function ScrollToTop() {
@@ -48,8 +91,8 @@ export function SectionHead({ eyebrow, title, action, actionTo, center = false }
   return (
     <div className={`mb-8 flex items-end gap-4 ${center ? 'flex-col items-center text-center' : 'justify-between'}`}>
       <div>
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h2 className="h-section mt-2">{title}</h2>
+        {eyebrow && <Reveal as="p" variant="fade" className="eyebrow">{eyebrow}</Reveal>}
+        <MaskHeading lines={[title]} className="h-section mt-3" delay={80} />
       </div>
       {action && actionTo && (
         <Link to={actionTo} className="link-underline shrink-0 pb-1 text-[11px] font-semibold uppercase tracking-wider2 text-navy">

@@ -45,6 +45,8 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [term, setTerm] = useState('');
   const [solid, setSolid] = useState(false);
+  const [onDark, setOnDark] = useState(false);
+  const headerRef = useRef(null);
   const { count, openDrawer } = useCart();
   const { user, wishlist } = useAuth();
   const navigate = useNavigate();
@@ -53,10 +55,34 @@ export default function Header() {
 
   useEffect(() => { setMenuOpen(false); setSearchOpen(false); }, [location.pathname]);
   useEffect(() => {
-    const onScroll = () => setSolid(window.scrollY > 8);
+    // The homepage opens on full-screen dark stages; the bar goes clear and light
+    // until the end marker after them scrolls up under it.
+    const onScroll = () => {
+      setSolid(window.scrollY > 8);
+      const end = document.querySelector('[data-cinema-end]');
+      const h = headerRef.current?.offsetHeight ?? 0;
+      setOnDark(Boolean(end) && end.getBoundingClientRect().top > h);
+    };
     onScroll();
+    const t = setTimeout(onScroll, 50);
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [location.pathname]);
+
+  // Publishes the header's height so the first homepage stage can tuck up under it.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => {
+      document.documentElement.style.setProperty('--header-h', `${el.offsetHeight}px`);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
@@ -73,13 +99,21 @@ export default function Header() {
     setTerm('');
   };
 
-  const iconBtn = 'relative grid h-10 w-10 place-items-center text-navy transition hover:text-slate';
+  const iconBtn = `relative grid h-10 w-10 place-items-center transition ${
+    onDark ? 'text-cream hover:text-cream-deep' : 'text-navy hover:text-slate'
+  }`;
 
   return (
-    <header className="sticky top-0 z-50">
+    <header ref={headerRef} className="sticky top-0 z-50">
       <Ticker />
 
-      <div className={`border-b bg-white/95 backdrop-blur transition-shadow ${solid ? 'border-mist shadow-sm' : 'border-transparent'}`}>
+      <div
+        className={`border-b backdrop-blur transition-[background-color,color,border-color,box-shadow] duration-500 ${
+          onDark
+            ? `border-cream/10 text-cream ${solid ? 'bg-ink/55' : 'bg-transparent'}`
+            : `bg-white/95 text-navy ${solid ? 'border-mist shadow-sm' : 'border-transparent'}`
+        }`}
+      >
         <div className="shell flex h-[var(--nav-h)] items-center justify-between gap-4">
           <button
             className={`${iconBtn} lg:hidden`}
@@ -100,7 +134,9 @@ export default function Header() {
                 to={n.to}
                 className={({ isActive }) =>
                   `link-underline py-1 text-[11.5px] font-semibold uppercase tracking-wider2 transition ${
-                    isActive ? 'text-navy after:w-full' : 'text-slate hover:text-navy'
+                    onDark
+                      ? (isActive ? 'text-cream after:w-full' : 'text-cream/70 hover:text-cream')
+                      : (isActive ? 'text-navy after:w-full' : 'text-slate hover:text-navy')
                   }`}
               >
                 {n.label}

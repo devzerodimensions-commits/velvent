@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import Newsletter from '../components/Newsletter';
 import { Mark } from '../components/Logo';
-import { Accordion, SectionHead, Seo } from '../components/ui';
+import { Accordion, MaskHeading, Reveal, SectionHead, Seo } from '../components/ui';
+import { Cinema, Intro } from '../components/Cinema';
 import { SizeGuideModal } from '../components/SizeGuide';
-import { Bag, ChevronDown, Refresh, Ruler, Rupee, Shield, Truck } from '../components/Icons';
+import { Bag, Refresh, Ruler, Rupee, Shield, Truck } from '../components/Icons';
 import { api } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { SIZE_ORDER, inr } from '../lib/format';
@@ -29,153 +30,86 @@ const isPhotographed = (item) => {
   return urls.some((u) => u && !String(u).toLowerCase().endsWith('.svg'));
 };
 
-/**
- * Fades a section up the first time it reaches the viewport. Sections already on
- * screen at load fire immediately, so nothing sits invisible waiting for a
- * scroll that never comes. The reduced-motion rule in index.css flattens it.
- */
-function Reveal({ children }) {
-  const ref = useRef(null);
-  const [shown, setShown] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === 'undefined') { setShown(true); return undefined; }
-    const io = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setShown(true); io.disconnect(); }
-    }, { rootMargin: '0px 0px -10% 0px' });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={`transition-[opacity,transform] duration-700 ease-out motion-reduce:transition-none ${
-        shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
-      }`}
-    >
-      {children}
-    </div>
-  );
-}
-
-/* --------------------------------------------------------------------- hero */
-
-function Hero() {
-  return (
-    <section className="relative isolate overflow-hidden bg-navy">
-      <img
-        src="/products/rugby-stripe-polo-1.jpg"
-        alt="Model wearing the VELVENT Rugby Stripe Knitted Polo"
-        className="absolute inset-0 h-full w-full animate-hero-pan object-cover object-[center_26%] opacity-[0.62]"
-        fetchpriority="high"
-      />
-      {/* narrow screens wrap the copy across the full width, so they need a flat scrim too —
-          the left-to-right gradient alone only protects contrast on wide layouts */}
-      <div className="absolute inset-0 bg-navy-deep/55 lg:hidden" />
-      <div className="absolute inset-0 bg-gradient-to-r from-navy-deep/92 via-navy-deep/55 to-navy-deep/10" />
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-navy-deep/70 to-transparent" />
-
-      <div className="pointer-events-none absolute left-4 top-0 hidden h-full flex-col items-center gap-5 pt-24 lg:flex">
-        <span className="h-20 w-px bg-cream/30" />
-        <span className="text-[10px] font-semibold uppercase tracking-brand text-cream/50 [writing-mode:vertical-rl]">
-          Autumn Knitwear — 01
-        </span>
-      </div>
-
-      <div className="shell relative flex min-h-[88svh] items-center py-28 lg:min-h-[94svh]">
-        <div className="max-w-2xl animate-fade-up text-cream">
-          <p className="eyebrow text-cream/70">Knitted cotton, done properly</p>
-          <h1 className="mt-7 font-display text-[3rem] font-semibold uppercase leading-[0.95] tracking-tight text-balance sm:text-[4.5rem] lg:text-[5.75rem]">
-            Crafted for<br />Confidence
-          </h1>
-          <p className="mt-8 max-w-md text-[16px] leading-relaxed text-cream/80">
-            Polos, button-through shirts and heavyweight oversized tees — built from one fabric
-            we actually understand, and cut to sit right.
-          </p>
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Link to="/shop" className="btn-cream">Shop the collection</Link>
-            <Link to="/category/polo-t-shirt" className="btn border border-cream/50 text-cream hover:bg-cream hover:text-navy">
-              Polo T-Shirts
-            </Link>
-          </div>
-          <p className="mt-12 text-[11px] font-semibold uppercase tracking-brand text-cream/55">
-            Flat 33% off · ₹1,499 <span className="mx-1.5">→</span> ₹1,005
-          </p>
-        </div>
-
-        {/* Tells a visitor on a tall screen that the page continues. */}
-        <span className="pointer-events-none absolute bottom-7 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-cream/45 lg:flex">
-          <span className="text-[9.5px] font-semibold uppercase tracking-brand">Scroll</span>
-          <ChevronDown size={16} className="animate-bounce" />
-        </span>
-      </div>
-
-      <Link
-        to="/product/rugby-stripe-knitted-polo"
-        className="group absolute bottom-6 right-4 hidden items-center gap-3 border border-cream/25 bg-navy-deep/55 px-4 py-3 backdrop-blur transition hover:border-cream/60 sm:flex lg:right-8"
-      >
-        <img src="/products/rugby-stripe-polo-1.jpg" alt="" className="h-12 w-9 object-cover" />
-        <span className="text-cream">
-          <span className="block text-[9.5px] font-semibold uppercase tracking-brand text-cream/55">Shown here</span>
-          <span className="mt-1 block text-[12px] font-medium">Rugby Stripe Knitted Polo</span>
-          <span className="text-[11px] text-cream/70">{inr(1005)}</span>
-        </span>
-        <ChevronDown size={16} className="-rotate-90 text-cream/50 transition group-hover:translate-x-0.5 group-hover:text-cream" />
-      </Link>
-    </section>
-  );
-}
-
 function Promises() {
   return (
-    <section className="border-b border-mist bg-cream">
-      <div className="shell grid grid-cols-2 gap-x-6 gap-y-7 py-9 lg:grid-cols-4">
-        {PROMISES.map(({ Icon, title, body }) => (
-          <div key={title} className="flex items-start gap-3.5">
-            <Icon size={24} className="mt-0.5 shrink-0 text-navy" />
-            <div>
-              <p className="text-[12px] font-semibold uppercase tracking-wider2 text-navy">{title}</p>
-              <p className="mt-1 text-[12px] leading-relaxed text-slate">{body}</p>
-            </div>
-          </div>
+    <section className="border-y border-cream-deep bg-cream">
+      <div className="shell grid grid-cols-2 gap-x-6 gap-y-8 py-10 lg:grid-cols-4 lg:py-12">
+        {PROMISES.map(({ Icon, title, body }, i) => (
+          <Reveal key={title} delay={i * 90} className="flex flex-col items-center text-center">
+            <Icon size={24} className="text-navy" />
+            <p className="mt-4 font-heading text-[13px] font-semibold uppercase tracking-[0.12em] text-navy">{title}</p>
+            <p className="mt-1.5 text-[12px] leading-relaxed text-slate">{body}</p>
+          </Reveal>
         ))}
       </div>
     </section>
   );
 }
 
-function Categories({ categories, loading }) {
+/* ------------------------------------------------------------ collection --
+   The categories as an editorial spread: one tall lead panel and the rest
+   stacked beside it, each a full photograph with its name set over it. */
+
+const PANEL_SIZE = {
+  lead: 'min-h-[68svh] lg:row-span-2 lg:min-h-[86vh]',
+  stack: 'min-h-[52svh] lg:min-h-0',
+  half: 'min-h-[68svh] lg:min-h-[80vh]',
+};
+
+function CollectionPanel({ c, size, index }) {
+  const lead = size !== 'stack';
   return (
-    <section className="shell py-20 sm:py-28 lg:py-32">
-      <SectionHead eyebrow="Three ways to wear it" title="Shop by Category" action="View all" actionTo="/shop" />
-      <div className={`grid gap-4 sm:grid-cols-2${categories.length > 2 ? ' lg:grid-cols-3' : ''}`}>
+    <Link to={`/category/${c.slug}`} className={`group relative isolate block overflow-hidden bg-navy-deep ${PANEL_SIZE[size]}`}>
+      <Reveal variant="img" className="absolute inset-0">
+        <img
+          src={c.image_url}
+          alt={c.name}
+          loading={lead ? 'eager' : 'lazy'}
+          className="h-full w-full object-cover object-top !duration-[1600ms] group-hover:!scale-[1.06]"
+        />
+      </Reveal>
+      <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/25 to-ink/5 transition-opacity duration-700 group-hover:opacity-90" />
+      <span className="absolute left-6 top-6 text-[10px] font-semibold tracking-brand text-cream/60 lg:left-8 lg:top-8">
+        {String(index + 1).padStart(2, '0')}
+      </span>
+
+      <div className="absolute inset-x-0 bottom-0 p-6 text-cream sm:p-8 lg:p-10">
+        <Reveal as="p" variant="fade" className="text-[10px] font-semibold uppercase tracking-brand text-cream-deep">
+          {c.tagline || `${c.product_count} styles`}
+        </Reveal>
+        <MaskHeading
+          as="h3"
+          lines={c.name.split(' ').length > 2 && lead ? [c.name.split(' ').slice(0, -1).join(' '), c.name.split(' ').slice(-1)[0]] : [c.name]}
+          className={`h-display mt-3 ${lead ? 'text-[34px] sm:text-[48px] lg:text-[60px]' : 'text-[26px] sm:text-[34px]'}`}
+          delay={120}
+        />
+        <span className="cx-link mt-6">
+          Shop {c.name} <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function Collection({ categories, loading }) {
+  const shown = categories.slice(0, 3);
+  const spread = shown.length === 3;
+  return (
+    <section className="bg-ink text-cream">
+      <div className="shell flex flex-col items-center py-16 text-center sm:py-20">
+        <Reveal as="p" variant="fade" className="eyebrow text-cream-deep">New in</Reveal>
+        <MaskHeading lines={['The Autumn', 'Collection']} className="h-display mt-4 text-[36px] sm:text-[52px] lg:text-[64px]" delay={80} />
+        <Reveal delay={260}>
+          <Link to="/shop" className="cx-link mt-8">Shop the collection <span aria-hidden>→</span></Link>
+        </Reveal>
+      </div>
+
+      {/* three or more: a lead panel with two stacked beside it; fewer: equal halves */}
+      <div className={`grid gap-px bg-ink lg:grid-cols-2${spread ? ' lg:grid-rows-2' : ''}`}>
         {loading
-          ? [0, 1, 2].map((i) => <div key={i} className="skeleton aspect-[4/5]" />)
-          : categories.map((c, i) => (
-            <Link key={c.id} to={`/category/${c.slug}`} className="group relative isolate block overflow-hidden bg-cream">
-              <div className="aspect-[4/5] w-full overflow-hidden">
-                <img
-                  src={c.image_url}
-                  alt={c.name}
-                  loading={i === 0 ? 'eager' : 'lazy'}
-                  className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105"
-                />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-navy-deep/85 via-navy-deep/15 to-transparent" />
-              <span className="absolute left-5 top-5 font-display text-[11px] font-bold tracking-brand text-cream/60">
-                0{i + 1}
-              </span>
-              <div className="absolute inset-x-0 bottom-0 p-6 text-cream">
-                <p className="text-[10px] font-medium uppercase tracking-brand text-cream/65">{c.tagline}</p>
-                <h3 className="mt-2 font-display text-xl font-semibold uppercase tracking-wider2 sm:text-2xl">{c.name}</h3>
-                <p className="mt-2.5 text-[11px] uppercase tracking-wider2 text-cream/75">
-                  {c.product_count} {Number(c.product_count) === 1 ? 'style' : 'styles'}
-                  <span className="ml-2.5 inline-block transition-transform duration-300 group-hover:translate-x-1.5">→</span>
-                </p>
-              </div>
-            </Link>
+          ? [0, 1].map((i) => <div key={i} className={`animate-pulse bg-navy-deep ${PANEL_SIZE.half}`} />)
+          : shown.map((c, i) => (
+            <CollectionPanel key={c.id} c={c} index={i} size={spread ? (i === 0 ? 'lead' : 'stack') : 'half'} />
           ))}
       </div>
     </section>
@@ -191,21 +125,21 @@ function Marquee() {
     <div className="flex shrink-0 items-center" aria-hidden>
       {MARQUEE_WORDS.map((word) => (
         <span key={word} className="flex items-center">
-          <span className="whitespace-nowrap px-7 font-display text-base font-medium uppercase tracking-brand text-navy sm:px-9 sm:text-lg lg:text-xl">
+          <span className="whitespace-nowrap px-8 font-heading text-[22px] font-medium uppercase tracking-[0.12em] text-navy sm:px-12 sm:text-[30px] lg:text-[38px]">
             {word}
           </span>
-          <Mark className="h-4 w-auto shrink-0 text-navy/30 sm:h-[18px]" />
+          <Mark className="h-5 w-auto shrink-0 text-navy/25 sm:h-6" />
         </span>
       ))}
     </div>
   );
   return (
-    <section className="overflow-hidden border-y border-mist bg-cream py-5 sm:py-6">
+    <section className="overflow-hidden border-y border-cream-deep bg-cream py-7 sm:py-9">
       <h2 className="sr-only">{MARQUEE_WORDS.join('. ')}.</h2>
       {/* shorter words than before, so the shared 28s keyframe would crawl — pace it here */}
       <div
         className="flex w-max animate-marquee pause-hover"
-        style={{ animationDuration: '24s' }}
+        style={{ animationDuration: '36s' }}
       >
         {strip}{strip}
       </div>
@@ -267,19 +201,17 @@ function Anatomy() {
     <section className="border-y border-mist bg-cream">
       <div className="shell py-20 sm:py-28 lg:py-32">
         <div className="max-w-2xl">
-          <p className="eyebrow">Why it costs what it costs</p>
-          <h2 className="mt-3 font-display text-3xl font-semibold uppercase leading-[1.08] tracking-wider2 text-navy sm:text-[2.5rem]">
-            Anatomy of a polo
-          </h2>
-          <p className="mt-5 text-[15px] leading-relaxed text-slate">
+          <Reveal as="p" variant="fade" className="eyebrow">Why it costs what it costs</Reveal>
+          <MaskHeading lines={['Anatomy', 'of a polo']} className="h-section mt-3" delay={80} />
+          <Reveal as="p" delay={200} className="mt-5 text-[15px] leading-relaxed text-slate">
             Most of what you pay for is invisible from two metres away. Tap a point on the{' '}
             {GARMENT.name} to see it from twenty centimetres.
-          </p>
+          </Reveal>
         </div>
 
         <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] lg:gap-16">
           {/* the garment, with the markers laid over it */}
-          <div className="relative mx-auto w-full max-w-sm overflow-hidden bg-white lg:max-w-none">
+          <Reveal variant="img" className="relative mx-auto w-full max-w-sm overflow-hidden bg-white lg:max-w-none">
             <img src={GARMENT.photo} alt={GARMENT.name} loading="lazy" className="w-full object-cover" />
 
             {POINTS.map((pt, i) => {
@@ -308,7 +240,7 @@ function Anatomy() {
                 </button>
               );
             })}
-          </div>
+          </Reveal>
 
           {/* the close-up and copy for whichever point is active */}
           <div className="flex flex-col">
@@ -324,7 +256,7 @@ function Anatomy() {
                 <p className="text-[10px] font-semibold uppercase tracking-brand text-slate-light">
                   {String(active + 1).padStart(2, '0')} — {point.label}
                 </p>
-                <h3 className="mt-2.5 font-display text-lg font-semibold leading-snug text-navy sm:text-xl">
+                <h3 className="mt-2.5 font-heading text-xl font-medium uppercase leading-snug tracking-[0.03em] text-navy sm:text-2xl">
                   {point.title}
                 </h3>
               </div>
@@ -401,25 +333,23 @@ function FitGuide() {
 
   return (
     <section className="bg-navy text-cream">
-      <div className="shell py-20 sm:py-24">
+      <div className="shell py-20 sm:py-28 lg:py-32">
         <div className="max-w-2xl">
-          <p className="eyebrow text-cream/55">Before you pick a size</p>
-          <h2 className="mt-3 font-display text-3xl font-semibold uppercase leading-[1.08] tracking-wider2 sm:text-[2.5rem]">
-            Which fit is for you?
-          </h2>
-          <p className="mt-6 text-[15px] leading-relaxed text-cream/70">
+          <Reveal as="p" variant="fade" className="eyebrow text-cream-deep">Before you pick a size</Reveal>
+          <MaskHeading lines={['Which fit', 'is for you?']} className="h-section mt-3 !text-cream" delay={80} />
+          <Reveal as="p" delay={200} className="mt-6 text-[15px] leading-relaxed text-cream/70">
             Three cuts, three different jobs. Every one of them is made in all six sizes — not just
             the safe middle three.
-          </p>
+          </Reveal>
         </div>
 
         <div className="mt-12 grid gap-5 md:grid-cols-3">
-          {FITS.map((f) => (
-            <Link
-              key={f.slug}
-              to={`/category/${f.slug}`}
-              className="group flex flex-col border border-cream/15 bg-cream/[0.04] transition hover:border-cream/45 hover:bg-cream/[0.08]"
-            >
+          {FITS.map((f, i) => (
+            <Reveal key={f.slug} variant="depth" delay={i * 110} className="flex">
+              <Link
+                to={`/category/${f.slug}`}
+                className="group flex w-full flex-col border border-cream/15 bg-cream/[0.04] transition duration-500 hover:-translate-y-1 hover:border-cream/45 hover:bg-cream/[0.08]"
+              >
               <div className="aspect-[5/4] overflow-hidden bg-navy-deep/40">
                 <img
                   src={f.img}
@@ -430,7 +360,7 @@ function FitGuide() {
               </div>
 
               <div className="flex flex-1 flex-col p-6">
-                <h3 className="font-display text-lg font-semibold uppercase tracking-wider2">{f.name}</h3>
+                <h3 className="font-heading text-xl font-medium uppercase tracking-[0.04em]">{f.name}</h3>
 
                 <dl className="mt-5 space-y-3 border-t border-cream/15 pt-5 text-[13px]">
                   {[['Fit', f.fit], ['Collar', f.collar], ['Best for', f.best]].map(([k, v]) => (
@@ -448,13 +378,14 @@ function FitGuide() {
                   <span className="transition-transform duration-300 group-hover:translate-x-1.5">→</span>
                 </span>
               </div>
-            </Link>
+              </Link>
+            </Reveal>
           ))}
         </div>
 
         <div className="mt-14 flex flex-col gap-7 border-t border-cream/15 pt-10 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h3 className="font-display text-lg font-semibold uppercase tracking-wider2">Every style, S through 3XL</h3>
+            <h3 className="font-heading text-xl font-medium uppercase tracking-[0.04em]">Every style, S through 3XL</h3>
             <p className="mt-2 text-[13.5px] text-cream/65">Pick a size to see everything in stock.</p>
           </div>
 
@@ -492,7 +423,9 @@ function Rail({ eyebrow, title, products, loading, action, actionTo }) {
       <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
         {loading
           ? [0, 1, 2, 3].map((i) => <ProductCardSkeleton key={i} />)
-          : products.map((p) => <ProductCard key={p.id} product={p} />)}
+          : products.map((p, i) => (
+            <Reveal key={p.id} variant="depth" delay={(i % 4) * 90}><ProductCard product={p} /></Reveal>
+          ))}
       </div>
     </section>
   );
@@ -504,11 +437,9 @@ function StoryBand() {
       <div className="grid lg:grid-cols-2">
         <div className="order-2 flex items-center px-6 py-16 sm:px-12 lg:order-1 lg:py-24 lg:pl-[max(2.5rem,calc((100vw-1440px)/2+2.5rem))]">
           <div className="max-w-md">
-            <Mark className="h-11 w-auto text-navy" />
-            <p className="eyebrow mt-7">The brand</p>
-            <h2 className="mt-3 font-display text-2xl font-semibold uppercase leading-snug tracking-wider2 text-navy sm:text-3xl">
-              Simple. Timeless.<br />Premium.
-            </h2>
+            <Reveal variant="fade"><Mark className="h-11 w-auto text-navy" /></Reveal>
+            <Reveal as="p" variant="fade" delay={80} className="eyebrow mt-7">The brand</Reveal>
+            <MaskHeading lines={['Nothing loud.', 'Nothing disposable.']} className="h-section mt-3" delay={140} />
             <p className="mt-6 text-[15px] leading-relaxed text-slate">
               VELVENT is built on one fabric done properly: knitted cotton. Every polo, shirt
               and tee starts from the same question — will this still look right after fifty washes?
@@ -528,7 +459,9 @@ function StoryBand() {
             '/products/coastal-stripe-polo-1.jpg',
             '/products/cable-knit-polo-burgundy-1.jpg',
           ].map((src) => (
-            <img key={src} src={src} alt="" loading="lazy" className="aspect-square w-full object-cover" />
+            <Reveal key={src} variant="img" className="overflow-hidden">
+              <img src={src} alt="" loading="lazy" className="aspect-square w-full object-cover" />
+            </Reveal>
           ))}
         </div>
       </div>
@@ -583,8 +516,8 @@ function Faqs() {
     <section className="shell py-20 sm:py-28 lg:py-32">
       <div className="grid gap-10 lg:grid-cols-[320px_1fr] lg:gap-20">
         <div>
-          <p className="eyebrow">Good to know</p>
-          <h2 className="h-section mt-3">Questions,<br />answered</h2>
+          <Reveal as="p" variant="fade" className="eyebrow">Good to know</Reveal>
+          <MaskHeading lines={['Before', 'you order']} className="h-section mt-3" delay={80} />
           <p className="mt-5 text-[14px] leading-relaxed text-slate">
             The five we get asked most. There are more on the FAQ page, and a real person on the
             phone during business hours.
@@ -595,7 +528,7 @@ function Faqs() {
           </div>
         </div>
 
-        <Accordion items={HOME_FAQ} defaultOpen={0} />
+        <Reveal delay={150}><Accordion items={HOME_FAQ} defaultOpen={0} /></Reveal>
       </div>
     </section>
   );
@@ -603,14 +536,12 @@ function Faqs() {
 
 function SignupBand() {
   return (
-    <section data-flush className="bg-navy-deep text-cream">
+    <section data-flush className="bg-ink text-cream">
       <div className="shell flex flex-col items-center gap-8 py-16 text-center sm:py-20">
         <Mark className="h-10 w-auto text-cream/80" />
         <div>
-          <p className="eyebrow text-cream/55">First access</p>
-          <h2 className="mt-3 font-display text-2xl font-semibold uppercase tracking-wider2 sm:text-3xl">
-            Know before it sells out
-          </h2>
+          <Reveal as="p" variant="fade" className="eyebrow text-cream-deep">First access</Reveal>
+          <MaskHeading lines={['Know before', 'it sells out']} className="h-section mt-3 !text-cream" delay={80} />
           <p className="mx-auto mt-4 max-w-md text-[14.5px] leading-relaxed text-cream/70">
             New colourways and restocks go to the list first. We make short runs, so the good sizes
             do not hang around.
@@ -656,34 +587,31 @@ export default function Home() {
         title="Premium Knitted Polos, Shirts & Oversized Tees"
         description="VELVENT — modern, minimal, timeless knitted cotton. Shop polo t-shirts, polo shirts and oversized tees in sizes S to 3XL, with free shipping and easy returns."
       />
-      <Hero />
+      <Intro />
+      <Cinema />
+      <Collection categories={categories} loading={loading} />
       <Promises />
-      <Reveal><Categories categories={categories} loading={loading} /></Reveal>
+      <Rail
+        eyebrow="Just landed"
+        title="New Arrivals"
+        products={newest}
+        loading={loading}
+        action="Shop all"
+        actionTo="/shop?sort=newest"
+      />
       <Marquee />
-      <Reveal>
-        <Rail
-          eyebrow="Just landed"
-          title="New Arrivals"
-          products={newest}
-          loading={loading}
-          action="Shop all"
-          actionTo="/shop?sort=newest"
-        />
-      </Reveal>
-      <Reveal><Anatomy /></Reveal>
-      <Reveal>
-        <Rail
-          eyebrow="Most wanted"
-          title="Bestsellers"
-          products={featured}
-          loading={loading}
-          action="Shop all"
-          actionTo="/shop"
-        />
-      </Reveal>
-      <Reveal><FitGuide /></Reveal>
-      <Reveal><StoryBand /></Reveal>
-      <Reveal><Faqs /></Reveal>
+      <Anatomy />
+      <Rail
+        eyebrow="Most wanted"
+        title="Bestsellers"
+        products={featured}
+        loading={loading}
+        action="Shop all"
+        actionTo="/shop"
+      />
+      <FitGuide />
+      <StoryBand />
+      <Faqs />
       <SignupBand />
     </>
   );

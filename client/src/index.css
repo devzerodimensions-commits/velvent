@@ -38,7 +38,12 @@
   }
 
   .h-section {
-    @apply font-display text-2xl font-semibold uppercase tracking-wider2 text-navy sm:text-[28px];
+    @apply font-heading text-[26px] font-medium uppercase leading-[1.08] tracking-[0.04em] text-navy sm:text-[34px] lg:text-[40px];
+  }
+
+  /* The big serif used for editorial headlines across the storefront. */
+  .h-display {
+    @apply font-heading font-medium uppercase leading-[1.02] tracking-[0.02em];
   }
 
   .btn {
@@ -113,6 +118,257 @@
 /* A page whose last section is already full-bleed dark should meet the footer
    with no white band between them. */
 main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
+
+/* ----------------------------------------------------------- reveal ----
+   Elements start hidden only once JS has marked the page (main.jsx adds
+   .js-motion), so a page that never runs its script still shows everything. */
+
+.reveal {
+  transition: opacity .9s cubic-bezier(.22,.61,.36,1), transform .9s cubic-bezier(.22,.61,.36,1);
+  transition-delay: var(--d, 0ms);
+}
+.js-motion .reveal--rise,
+.js-motion .reveal--fade,
+.js-motion .reveal--depth { opacity: 0; }
+.js-motion .reveal--rise  { transform: translate3d(0, 28px, 0); }
+.js-motion .reveal--depth { transform: perspective(900px) translate3d(0, 32px, -90px); }
+.js-motion .reveal--open  { transform: scaleX(.3); transform-origin: left; }
+.reveal.is-revealed { opacity: 1; transform: none; }
+
+/* Each child line slides up out of its own clipped row. */
+.reveal--mask > * { display: block; overflow: hidden; }
+.reveal--mask > * > span {
+  display: block;
+  transition: transform 1s cubic-bezier(.22,.61,.36,1);
+  transition-delay: calc(var(--d, 0ms) + var(--l, 0) * 90ms);
+}
+.js-motion .reveal--mask > * > span { transform: translate3d(0, 105%, 0); }
+.reveal--mask.is-revealed > * > span { transform: none; }
+
+/* Photos that settle out of a slight zoom as they arrive. */
+.js-motion .reveal-img img { transform: scale(1.12); }
+.reveal-img img { transition: transform 1.6s cubic-bezier(.22,.61,.36,1); }
+.reveal-img.is-revealed img { transform: none; }
+
+/* ------------------------------------------------------------ cinema ----
+   Tall sections with a sticky, full-screen stage inside. Cinema.jsx writes
+   the scroll position through the section to --p (0 → 1), and every layer
+   below derives its scale, opacity and blur from that one number. */
+
+.cx-outer { position: relative; background: #0F131A; }
+.cx-outer--open  { height: 220vh; margin-top: calc(-1 * var(--header-h, 0px)); }
+.cx-outer--words,
+.cx-outer--theme { height: 250vh; }
+
+.cx-stage {
+  --p: 0;
+  position: sticky; top: 0;
+  height: 100vh; height: 100svh;
+  overflow: hidden;
+  display: grid; place-items: center;
+  background: #0F131A;
+  isolation: isolate;
+  color: #F6F2EA;
+}
+.cx-stage > * { grid-area: 1 / 1; place-self: center; }
+
+.cx-photo {
+  position: absolute; inset: -6%;
+  width: 112%; height: 112%; max-width: none;
+  object-fit: cover; object-position: center 26%;
+  transform: scale(calc(1.02 + var(--p) * .28));
+  filter: brightness(calc(.4 - var(--p) * .22)) saturate(.85);
+}
+
+.cx-grain {
+  position: absolute; inset: -50%;
+  opacity: .12; pointer-events: none; z-index: 2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  animation: cx-grain .7s steps(3) infinite;
+}
+
+.cx-vignette {
+  position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: radial-gradient(64% 68% at 50% 50%, transparent 24%, rgba(15,19,26,.55) 66%, #0F131A 96%);
+}
+
+.cx-ring {
+  display: block; z-index: 1;
+  width: min(46vh, 74vw); height: min(46vh, 74vw);
+  border-radius: 50%;
+  border: 1px solid rgba(226,217,198,.4);
+  pointer-events: none;
+}
+.cx-ring--a { transform: scale(calc(.5 + max(0, var(--p) - .1) * 5.5)); opacity: min(calc((var(--p) - .1) * 9), calc((.5 - var(--p)) * 7)); }
+.cx-ring--b { transform: scale(calc(.5 + max(0, var(--p) - .2) * 5.5)); opacity: min(calc((var(--p) - .2) * 9), calc((.6 - var(--p)) * 7)); }
+
+/* Round, soft-edged photographs that drift, spin slowly and breathe. */
+.cx-orbs { display: grid; place-items: center; z-index: 1; width: min(54vh, 86vw); height: min(54vh, 86vw); }
+.cx-orbs > * {
+  grid-area: 1 / 1;
+  width: 100%; height: 100%;
+  object-fit: cover; border-radius: 50%;
+  -webkit-mask-image: radial-gradient(circle, #000 34%, transparent 69%);
+          mask-image: radial-gradient(circle, #000 34%, transparent 69%);
+}
+
+/* opening: the headline arrives small and parts as it grows */
+.cx-type {
+  position: relative; z-index: 3;
+  display: flex; flex-direction: column; align-items: center;
+  pointer-events: none;
+  font-family: Cinzel, 'Trajan Pro', Georgia, serif;
+  text-transform: uppercase;
+  font-size: clamp(34px, min(9.6vw, 12.5vh), 124px);
+  line-height: .98; letter-spacing: .01em; white-space: nowrap;
+  text-shadow: 0 2px 60px rgba(15,19,26,.85);
+  opacity: min(1, calc((1.02 - var(--p)) * 7));
+}
+.cx-type > span { display: block; will-change: transform, opacity; }
+.cx-type__a { transform: translateX(calc(var(--p) * -15vw)) scale(calc(.7 + var(--p) * .85)); opacity: calc(.6 + var(--p) * 5); }
+.cx-type__b { transform: translateX(calc(var(--p) * 15vw)) scale(calc(.7 + var(--p) * .85)); opacity: calc(.6 + var(--p) * 5); }
+
+.cx-eyebrow {
+  z-index: 4;
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .28em;
+  color: #E2D9C6;
+  transform: translateY(-27vh);
+  opacity: calc(1 - var(--p) * 3);
+}
+@media (min-width: 640px) { .cx-eyebrow { font-size: 11px; } }
+
+.cx-foot {
+  position: absolute; inset: auto 0 0 0; z-index: 4;
+  place-self: end stretch;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem;
+  padding: 0 clamp(1rem, 4vw, 2.5rem) clamp(1.5rem, 5vh, 3rem);
+  opacity: calc(1 - var(--p) * 6);
+}
+.cx-hint { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .28em; color: rgba(246,242,234,.55); animation: cx-hint 2.6s ease-in-out infinite; }
+
+.cx-link {
+  display: inline-flex; align-items: center; gap: .6rem;
+  padding-bottom: .35rem;
+  border-bottom: 1px solid rgba(226,217,198,.8);
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .22em;
+  color: #F6F2EA; pointer-events: auto;
+  transition: border-color .2s, letter-spacing .35s cubic-bezier(.22,.61,.36,1);
+}
+.cx-link:hover { border-color: #F6F2EA; letter-spacing: .3em; }
+@media (min-width: 640px) { .cx-link { font-size: 12px; } }
+
+/* words: a sentence that resolves one word at a time out of a blur */
+.cx-stage--words .cx-orbs { transform: scale(calc(.7 + var(--p) * 1.9)); filter: blur(calc(max(0, var(--p) - .35) * 14px)) brightness(calc(.6 + var(--p) * .15)); }
+.cx-orbs--words > :nth-child(1) { animation: cx-spin 60s linear infinite, cx-swell 13s ease-in-out infinite alternate; }
+.cx-orbs--words > :nth-child(2) { mix-blend-mode: screen; opacity: .55; transform: scaleX(-1); animation: cx-spin-r 80s linear infinite, cx-swell 10s ease-in-out infinite alternate; }
+
+.cx-words {
+  position: relative; z-index: 4;
+  max-width: 28ch; margin: 0 auto; padding: 1.2em 1.4em;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 0 .32em;
+  font-family: Cinzel, 'Trajan Pro', Georgia, serif;
+  text-transform: uppercase; text-align: center;
+  font-size: clamp(19px, min(3.2vw, 4.4vh), 44px);
+  line-height: 1.38; letter-spacing: .03em;
+  text-shadow: 0 2px 30px rgba(15,19,26,.95);
+  background: radial-gradient(closest-side, rgba(15,19,26,.6), rgba(15,19,26,.28) 60%, transparent);
+}
+.cx-word {
+  --k: clamp(0, (var(--p) - .16 - var(--i) * .045) * 7, 1);
+  display: inline-block;
+  opacity: calc((var(--p) - .16 - var(--i) * .045) * 9);
+  transform: translateY(calc((1 - var(--k)) * .7em));
+  filter: blur(calc((1 - var(--k)) * 8px));
+}
+.cx-word--em { color: #E2D9C6; font-style: normal; }
+
+/* theme: letters fly in and lock into a line */
+.cx-orbs--theme { filter: saturate(.6) brightness(calc(.42 + var(--p) * .14)) contrast(1.05); }
+.cx-orbs--theme > * { -webkit-mask-image: radial-gradient(circle, #000 28%, transparent 62%); mask-image: radial-gradient(circle, #000 28%, transparent 62%); }
+.cx-orbs--theme > :nth-child(1) { transform: translate(calc(var(--p) * -10vw), calc(var(--p) * -3vh)) scale(calc(1 - var(--p) * .2)); animation: cx-breathe 12s ease-in-out infinite alternate; }
+.cx-orbs--theme > :nth-child(2) { width: 44%; height: 44%; place-self: center; opacity: .9; transform: translate(calc(17vw + var(--p) * 9vw), calc(-10vh - var(--p) * 4vh)) scale(calc(.8 + var(--p) * .3)); animation: cx-breathe 8s ease-in-out infinite alternate; }
+.cx-orbs--theme > :nth-child(3) { width: 32%; height: 32%; place-self: center; opacity: .8; transform: translate(calc(-16vw - var(--p) * 7vw), calc(13vh + var(--p) * 5vh)) scale(calc(.7 + var(--p) * .35)); animation: cx-breathe 6.5s ease-in-out infinite alternate; }
+
+.cx-assemble {
+  position: relative; z-index: 3;
+  display: flex; flex-direction: column; align-items: center;
+  pointer-events: none;
+  font-family: Cinzel, 'Trajan Pro', Georgia, serif;
+  text-transform: uppercase;
+  font-size: clamp(26px, min(7.6vw, 10.5vh), 108px);
+  line-height: 1.04; letter-spacing: .01em;
+  text-shadow: 0 2px 60px rgba(15,19,26,.85);
+  transform: translateY(calc(var(--p) * -6vh));
+}
+.cx-assemble__line { display: block; white-space: nowrap; }
+.cx-space { display: inline-block; width: .3em; }
+.cx-char {
+  --k: clamp(0, (var(--p) - .06 - var(--i) * .022) * 6, 1);
+  display: inline-block;
+  opacity: calc((var(--p) - .06 - var(--i) * .022) * 8);
+  transform: translateY(calc((1 - var(--k)) * -1.1em)) rotate(calc((1 - var(--k)) * -22deg)) scale(calc(.55 + var(--k) * .45));
+  filter: blur(calc((1 - var(--k)) * 5px));
+}
+.cx-char:nth-child(even) { transform: translateY(calc((1 - var(--k)) * 1.1em)) rotate(calc((1 - var(--k)) * 22deg)) scale(calc(.55 + var(--k) * .45)); }
+
+.cx-statement {
+  z-index: 4; max-width: 36ch; padding: 0 1.5rem; text-align: center;
+  font-size: clamp(13px, min(1.6vw, 2.3vh), 17px); line-height: 1.7; letter-spacing: .04em;
+  color: rgba(246,242,234,.78);
+  transform: translateY(24vh);
+  opacity: min(calc((var(--p) - .32) * 7), calc((.8 - var(--p)) * 8));
+}
+
+.cx-outro {
+  z-index: 5;
+  display: flex; flex-direction: column; align-items: center; gap: 1.4rem;
+  transform: translateY(calc(30vh - var(--k) * 4vh));
+  --k: clamp(0, (var(--p) - .72) * 5, 1);
+  opacity: var(--k);
+  pointer-events: none;
+}
+.cx-outro a { pointer-events: auto; }
+.cx-wordmark { font-family: Cinzel, 'Trajan Pro', Georgia, serif; text-transform: uppercase; font-size: clamp(15px, 2vw, 24px); letter-spacing: .32em; }
+
+/* With reduced motion the stages stop being scroll-driven: one screen each,
+   frozen at the moment the copy reads best. */
+@media (prefers-reduced-motion: reduce) {
+  .cx-outer--open, .cx-outer--words, .cx-outer--theme { height: auto; }
+  .cx-stage { position: relative; }
+  .cx-stage--open  { --p: .42 !important; }
+  .cx-stage--words { --p: .7 !important; }
+  .cx-stage--theme { --p: .9 !important; }
+  .cx-stage--theme .cx-statement { opacity: 1; }
+}
+
+@keyframes cx-grain   { 0%,100% { transform: translate(0,0); } 33% { transform: translate(-2%,1%); } 66% { transform: translate(1%,-2%); } }
+@keyframes cx-spin    { to { rotate: 360deg; } }
+@keyframes cx-spin-r  { from { rotate: 360deg; } to { rotate: 0deg; } }
+@keyframes cx-breathe { from { scale: 1; } to { scale: 1.07; } }
+@keyframes cx-swell   { from { scale: .94; } to { scale: 1.12; } }
+@keyframes cx-hint    { 0%,100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+
+/* ------------------------------------------------------------- intro ----
+   A short title card on the first visit of a session: the V mark lands,
+   the wordmark types out, and the card lifts away. Click to skip. */
+
+.intro {
+  position: fixed; inset: 0; z-index: 100;
+  display: grid; place-items: center;
+  background: #0F131A; color: #F6F2EA;
+  cursor: pointer;
+  transition: opacity .8s cubic-bezier(.22,.61,.36,1), transform .9s cubic-bezier(.22,.61,.36,1);
+}
+.intro.is-leaving { opacity: 0; transform: translateY(-3%); pointer-events: none; }
+.intro__mark { animation: intro-mark 1.3s cubic-bezier(.2,.7,.3,1) both, intro-float 3s ease-in-out 1.3s infinite alternate; }
+.intro__word { font-family: Cinzel, 'Trajan Pro', Georgia, serif; text-transform: uppercase; letter-spacing: .32em; }
+.intro__char { display: inline-block; opacity: 0; animation: intro-char .5s cubic-bezier(.22,.61,.36,1) forwards; animation-delay: calc(.9s + var(--i) * 80ms); }
+.intro__rule { transform-origin: center; transform: scaleX(0); animation: intro-rule .9s cubic-bezier(.22,.61,.36,1) 1.6s forwards; }
+
+@keyframes intro-mark  { 0% { opacity: 0; transform: scale(.2) translateY(30px); } 20% { opacity: 1; } 75% { transform: scale(1.04); } 100% { opacity: 1; transform: none; } }
+@keyframes intro-float { to { translate: 0 -6px; } }
+@keyframes intro-char  { from { opacity: 0; transform: translateY(.4em); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes intro-rule  { to { transform: scaleX(1); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

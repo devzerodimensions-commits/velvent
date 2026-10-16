@@ -8,11 +8,13 @@ export default {
         slate: { DEFAULT: '#586272', light: '#8A93A1' },
         cream: { DEFAULT: '#F6F2EA', dark: '#EDE7DA', deep: '#E2D9C6' },
         mist:  '#D6D6D6',
+        ink:   '#0F131A',
         sale:  '#B23A48',
       },
       fontFamily: {
         sans: ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         display: ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        heading: ['Cinzel', 'Trajan Pro', 'Georgia', 'serif'],
       },
       letterSpacing: { brand: '0.28em', wider2: '0.18em' },
       maxWidth: { shell: '1440px' },
