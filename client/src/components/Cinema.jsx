@@ -4,17 +4,16 @@ import { Mark } from './Logo';
 import { inr } from '../lib/format';
 
 /*
- * The homepage opening: three tall sections, each with a full-screen stage pinned
- * inside it. While a section scrolls past, its stage receives --p, the fraction of
- * the way through (0 → 1). Every effect is plain CSS that reads --p (see the
- * "cinema" rules in index.css), so this file only measures and writes one number.
+ * The homepage opening has a static hero followed by two scroll-driven sections.
+ * Those later stages receive --p, the fraction of the way through (0 → 1).
  */
 
-function useStageProgress() {
+function useStageProgress(enabled) {
   const outerRef = useRef(null);
   const stageRef = useRef(null);
 
   useEffect(() => {
+    if (!enabled) return undefined;
     const outer = outerRef.current;
     const stage = stageRef.current;
     if (!outer || !stage) return undefined;
@@ -42,16 +41,16 @@ function useStageProgress() {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
-  }, []);
+  }, [enabled]);
 
   return { outerRef, stageRef };
 }
 
-function Stage({ kind, label, className = '', children }) {
-  const { outerRef, stageRef } = useStageProgress();
+function Stage({ kind, label, children }) {
+  const { outerRef, stageRef } = useStageProgress(kind !== 'frame');
   return (
     <section ref={outerRef} className={`cx-outer cx-outer--${kind}`} aria-label={label}>
-      <div ref={stageRef} className={`cx-stage cx-stage--${kind} ${className}`}>
+      <div ref={stageRef} className={`cx-stage cx-stage--${kind}`}>
         {children}
         <div className="cx-grain" aria-hidden />
       </div>
@@ -59,34 +58,11 @@ function Stage({ kind, label, className = '', children }) {
   );
 }
 
-/* ---- intro hand-off: the opening stage waits for the title card to leave ---- */
-
 const INTRO_KEY = 'velvent:intro';
-const INTRO_DONE = 'velvent:intro-done';
 
 function shouldShowIntro() {
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
   try { return !sessionStorage.getItem(INTRO_KEY); } catch { return true; }
-}
-
-let introRunning = false;
-
-function useIntroDone() {
-  const [done, setDone] = useState(() => !introRunning);
-  useEffect(() => {
-    if (done) return undefined;
-    const on = () => setDone(true);
-    window.addEventListener(INTRO_DONE, on);
-    return () => window.removeEventListener(INTRO_DONE, on);
-  }, [done]);
-  return done;
-}
-
-/** Splits a line into letters that rise one after another. */
-function Rise({ text, offset = 0 }) {
-  return [...text].map((ch, i) => (
-    <span key={i} style={{ '--i': i + offset }}>{ch === ' ' ? ' ' : ch}</span>
-  ));
 }
 
 const STATEMENT = 'Velvent is knitted cotton for people who dress with intent.';
@@ -109,23 +85,19 @@ const toRailItem = (p) => ({
 });
 
 export function Cinema({ products = [] }) {
-  const ready = useIntroDone();
   const rail = products.length ? products.slice(0, 6).map(toRailItem) : RAIL_FALLBACK;
 
   return (
     <>
-      {/* 1 — the photo pulls back into a frame; the headline splits around it */}
-      <Stage kind="frame" label="Crafted for confidence" className={ready ? 'is-ready' : ''}>
+      {/* 1 — a full-screen, still photograph and headline */}
+      <Stage kind="frame" label="Crafted for confidence">
         <div className="cx-frame">
           <img src="/products/rugby-stripe-polo-1.jpg" alt="" fetchpriority="high" />
         </div>
-        <div className="cx-bands" aria-hidden>
-          {Array.from({ length: 8 }, (_, i) => <span key={i} className="cx-band" style={{ '--i': i }} />)}
-        </div>
 
         <h1 className="cx-headline" aria-label="Crafted for confidence">
-          <span className="cx-headline__line" aria-hidden><Rise text="Crafted for" /></span>
-          <span className="cx-headline__line" aria-hidden><Rise text="Confidence" offset={4} /></span>
+          <span className="cx-headline__line" aria-hidden>Crafted for</span>
+          <span className="cx-headline__line" aria-hidden>Confidence</span>
         </h1>
 
         <span className="cx-side cx-meta hidden md:block" aria-hidden>Autumn knitwear — 01</span>
@@ -134,7 +106,7 @@ export function Cinema({ products = [] }) {
         <div className="cx-caption">
           <span className="cx-meta">Shown here</span>
           <Link to="/product/rugby-stripe-knitted-polo" className="cx-link" data-cursor="View">
-            Rugby Stripe Knitted Polo · {inr(1005)}
+            Rugby Stripe Knitted Polo
           </Link>
         </div>
 
@@ -209,7 +181,6 @@ export function Cinema({ products = [] }) {
 export function Intro() {
   const [phase, setPhase] = useState(() => (shouldShowIntro() ? 'on' : 'gone'));
   const [count, setCount] = useState(0);
-  if (phase === 'on') introRunning = true;
 
   useEffect(() => {
     if (phase === 'gone') return undefined;
@@ -229,15 +200,13 @@ export function Intro() {
       return () => { cancelAnimationFrame(raf); clearTimeout(t); };
     }
 
-    // leaving: let the stage start its own entrance while the rows clear
+    // Let the page scroll again while the title card clears.
     document.body.style.overflow = '';
-    introRunning = false;
-    window.dispatchEvent(new Event(INTRO_DONE));
     const t = setTimeout(() => setPhase('gone'), 1400);
     return () => clearTimeout(t);
   }, [phase]);
 
-  useEffect(() => () => { document.body.style.overflow = ''; introRunning = false; }, []);
+  useEffect(() => () => { document.body.style.overflow = ''; }, []);
 
   if (phase === 'gone') return null;
   return (
