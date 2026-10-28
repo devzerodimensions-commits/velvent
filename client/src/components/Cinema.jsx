@@ -4,8 +4,10 @@ import { Mark } from './Logo';
 import { inr } from '../lib/format';
 
 /*
- * The homepage opening has a static hero followed by two scroll-driven sections.
- * Those later stages receive --p, the fraction of the way through (0 → 1).
+ * The homepage opening: three tall sections, each with a full-screen stage pinned
+ * inside it. While a section scrolls past, its stage receives --p, the fraction of
+ * the way through (0 → 1). Every effect is plain CSS that reads --p (see the
+ * "cinema" rules in index.css), so this file only measures and writes one number.
  */
 
 function useStageProgress(enabled) {
@@ -46,11 +48,11 @@ function useStageProgress(enabled) {
   return { outerRef, stageRef };
 }
 
-function Stage({ kind, label, children }) {
-  const { outerRef, stageRef } = useStageProgress(kind !== 'frame');
+function Stage({ kind, label, className = '', scrollDriven = true, children }) {
+  const { outerRef, stageRef } = useStageProgress(scrollDriven);
   return (
     <section ref={outerRef} className={`cx-outer cx-outer--${kind}`} aria-label={label}>
-      <div ref={stageRef} className={`cx-stage cx-stage--${kind}`}>
+      <div ref={stageRef} className={`cx-stage cx-stage--${kind} ${className}`}>
         {children}
         <div className="cx-grain" aria-hidden />
       </div>
@@ -58,12 +60,44 @@ function Stage({ kind, label, children }) {
   );
 }
 
+/* ---- intro hand-off: the opening stage waits for the title card to leave ---- */
+
 const INTRO_KEY = 'velvent:intro';
+const INTRO_DONE = 'velvent:intro-done';
 
 function shouldShowIntro() {
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
   try { return !sessionStorage.getItem(INTRO_KEY); } catch { return true; }
 }
+
+let introRunning = false;
+
+function useIntroDone() {
+  const [done, setDone] = useState(() => !introRunning);
+  useEffect(() => {
+    if (done) return undefined;
+    const on = () => setDone(true);
+    window.addEventListener(INTRO_DONE, on);
+    return () => window.removeEventListener(INTRO_DONE, on);
+  }, [done]);
+  return done;
+}
+
+/** Splits a line into letters that rise one after another. */
+function Rise({ text, offset = 0 }) {
+  return [...text].map((ch, i) => (
+    <span key={i} style={{ '--i': i + offset }}>{ch === ' ' ? ' ' : ch}</span>
+  ));
+}
+
+/* The garment the opening stage is shot in. The photograph, the caption and the
+   click target over the whole stage all read from here so they cannot drift
+   apart and send someone to a different product than the one on show. */
+const HERO = {
+  slug: 'rugby-stripe-knitted-polo',
+  name: 'Rugby Stripe Knitted Polo',
+  photo: '/products/rugby-stripe-polo-1.jpg',
+};
 
 const STATEMENT = 'Velvent is knitted cotton for people who dress with intent.';
 const EMPHASIS = new Set(['knitted', 'cotton', 'intent.']);
@@ -84,20 +118,162 @@ const toRailItem = (p) => ({
   img: p.images?.[0]?.url || p.image_url,
 });
 
+/* ------------------------------------------------ the range, stepped ---- */
+
+/**
+ * The range used to run sideways as the page scrolled, which took the reader's
+ * scroll away from them for three screens. It is now an ordinary row they step
+ * through with the two buttons underneath. The row stays a real scroller, so a
+ * swipe still works on a phone and focusing a card off-screen still brings it
+ * into view — the buttons simply drive it, and the bar shows how far along it is.
+ */
+function RailStage({ rail }) {
+  const viewportRef = useRef(null);
+  const trackRef = useRef(null);
+  const [page, setPage] = useState(0);
+  // How many fit, how many pages that makes, and how far to slide. All three
+  // are measured rather than assumed, because the CSS decides how many cards
+  // share the row at a given width and it changes with the breakpoints.
+  const [view, setView] = useState({ per: 4, pages: 1, offset: 0 });
+
+  // The range, plus the circle that leads into the shop: it takes a card's
+  // place on the last page rather than trailing after the final product.
+  const count = rail.length + 1;
+
+  // Products arrive after the first render and change how many pages there are.
+  useEffect(() => { setPage(0); }, [rail.length]);
+
+  useEffect(() => {
+    const vp = viewportRef.current;
+    const track = trackRef.current;
+    if (!vp || !track) return undefined;
+
+    const measure = () => {
+      const gap = Number.parseFloat(getComputedStyle(track).columnGap) || 0;
+      const card = track.querySelector('.cx-card');
+      const width = card ? card.getBoundingClientRect().width : 0;
+      const span = vp.clientWidth;
+      const per = width > 0 ? Math.max(1, Math.round((span + gap) / (width + gap))) : 1;
+      const pages = Math.max(1, Math.ceil(count / per));
+
+      // Stop at the track's end instead of overshooting, so the last page is a
+      // full row of products rather than one card and a stretch of background.
+      const limit = Math.max(0, track.scrollWidth - span);
+      const current = Math.min(page, pages - 1);
+      if (current !== page) setPage(current);
+      setView({ per, pages, offset: Math.min(current * (span + gap), limit) });
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(vp);
+    return () => ro.disconnect();
+  }, [page, count]);
+
+  const { per, pages, offset } = view;
+  const atStart = page === 0;
+  const atEnd = page >= pages - 1;
+  const onPage = (i) => Math.floor(i / per) === page;
+
+  /* Everything off the current page is left in the layout but taken out of the
+     tab order and the accessibility tree. Without this, tabbing reaches a card
+     nobody can see and the browser drags the window sideways to show it. */
+  const hidden = (i) => (onPage(i) ? undefined : { tabIndex: -1, 'aria-hidden': 'true' });
+
+  return (
+    <Stage kind="rail" label="The range" scrollDriven={false}>
+      <div className="cx-rail-head">
+        <p className="cx-meta">The range</p>
+        <h2 className="h-display mt-3 text-[28px] sm:text-[40px]">Made to be<br />worn often</h2>
+      </div>
+      <span className="cx-chapter cx-meta" aria-hidden>03 / 03</span>
+
+      <div className="cx-rail-row">
+        <div className="cx-viewport" ref={viewportRef}>
+          <div className="cx-track" ref={trackRef} style={{ transform: `translate3d(${-offset}px, 0, 0)` }}>
+            {rail.map((item, i) => (
+              <Link
+                key={item.id}
+                to={item.slug ? `/product/${item.slug}` : '/shop'}
+                className="cx-card"
+                data-cursor="View"
+                {...hidden(i)}
+              >
+                <span className="cx-card__no">{String(i + 1).padStart(2, '0')}</span>
+                <div className="cx-card__img"><img src={item.img} alt={item.name} loading="lazy" /></div>
+                <p className="cx-card__name">{item.name}</p>
+                {item.price != null && <p className="cx-card__price">{inr(item.price)}</p>}
+              </Link>
+            ))}
+            <div className="cx-end-slot">
+              <Link to="/shop" className="cx-end" data-cursor="Enter" {...hidden(rail.length)}>
+                Enter the<br />collection
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="cx-rail-nav">
+          <div className="cx-arrows">
+            <button
+              type="button"
+              className="cx-arrow"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={atStart}
+              aria-label="Previous products"
+            >
+              <span aria-hidden>←</span>
+            </button>
+            <button
+              type="button"
+              className="cx-arrow"
+              onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}
+              disabled={atEnd}
+              aria-label="Next products"
+            >
+              <span aria-hidden>→</span>
+            </button>
+          </div>
+          <p className="cx-rail-count cx-meta" aria-live="polite">
+            {String(page + 1).padStart(2, '0')} / {String(pages).padStart(2, '0')}
+          </p>
+        </div>
+      </div>
+    </Stage>
+  );
+}
+
 export function Cinema({ products = [] }) {
+  const ready = useIntroDone();
   const rail = products.length ? products.slice(0, 6).map(toRailItem) : RAIL_FALLBACK;
 
   return (
     <>
-      {/* 1 — a full-screen, still photograph and headline */}
-      <Stage kind="frame" label="Crafted for confidence">
+      {/* 1 — a full-bleed photo eases back behind closing bars; the headline splits around it */}
+      <Stage kind="frame" label="Crafted for confidence" className={ready ? 'is-ready' : ''}>
         <div className="cx-frame">
-          <img src="/products/rugby-stripe-polo-1.jpg" alt="" fetchpriority="high" />
+          <img src={HERO.photo} alt="" fetchpriority="high" />
+        </div>
+        <div className="cx-bands" aria-hidden>
+          {Array.from({ length: 8 }, (_, i) => <span key={i} className="cx-band" style={{ '--i': i }} />)}
         </div>
 
+        {/* The photograph itself is the link to the garment it shows. It is a
+            pointer convenience only: the caption below carries the same
+            destination as real, focusable text, so this layer stays out of the
+            tab order and out of the accessibility tree rather than announcing
+            the same product twice. */}
+        <Link
+          to={`/product/${HERO.slug}`}
+          className="cx-plate"
+          data-cursor="View"
+          aria-hidden="true"
+          tabIndex={-1}
+        />
+
         <h1 className="cx-headline" aria-label="Crafted for confidence">
-          <span className="cx-headline__line" aria-hidden>Crafted for</span>
-          <span className="cx-headline__line" aria-hidden>Confidence</span>
+          <span className="cx-headline__line" aria-hidden><Rise text="Crafted for" /></span>
+          <span className="cx-headline__line" aria-hidden><Rise text="Confidence" offset={4} /></span>
         </h1>
 
         <span className="cx-side cx-meta hidden md:block" aria-hidden>Autumn knitwear — 01</span>
@@ -105,8 +281,8 @@ export function Cinema({ products = [] }) {
 
         <div className="cx-caption">
           <span className="cx-meta">Shown here</span>
-          <Link to="/product/rugby-stripe-knitted-polo" className="cx-link" data-cursor="View">
-            Rugby Stripe Knitted Polo
+          <Link to={`/product/${HERO.slug}`} className="cx-link" data-cursor="View">
+            {HERO.name}
           </Link>
         </div>
 
@@ -135,7 +311,6 @@ export function Cinema({ products = [] }) {
               key={w + i}
               aria-hidden
               className={`cx-fill__word${EMPHASIS.has(w.toLowerCase()) ? ' cx-fill__word--em' : ''}`}
-              style={{ '--i': i }}
             >
               {w}
             </span>
@@ -144,34 +319,8 @@ export function Cinema({ products = [] }) {
         <span className="cx-chapter cx-meta" aria-hidden>02 / 03</span>
       </Stage>
 
-      {/* 3 — the range runs past sideways, a giant line sliding the other way */}
-      <Stage kind="rail" label="The range">
-        <span className="cx-backline" aria-hidden>Simple · Timeless · Premium ·</span>
-        <div className="cx-rail-head">
-          <p className="cx-meta">The range</p>
-          <h2 className="h-display mt-3 text-[28px] sm:text-[40px]">Made to be<br />worn often</h2>
-        </div>
-        <span className="cx-chapter cx-meta" aria-hidden>03 / 03</span>
-
-        <div className="cx-track">
-          {rail.map((item, i) => (
-            <Link
-              key={item.id}
-              to={item.slug ? `/product/${item.slug}` : '/shop'}
-              className="cx-card"
-              data-cursor="View"
-            >
-              <span className="cx-card__no">{String(i + 1).padStart(2, '0')}</span>
-              <div className="cx-card__img"><img src={item.img} alt={item.name} loading="lazy" /></div>
-              <p className="cx-card__name">{item.name}</p>
-              {item.price != null && <p className="cx-card__price">{inr(item.price)}</p>}
-            </Link>
-          ))}
-          <Link to="/shop" className="cx-end" data-cursor="Enter">Enter the<br />collection</Link>
-        </div>
-
-        <span className="cx-progress" aria-hidden />
-      </Stage>
+      {/* 3 — the range, stepped through with its own arrows */}
+      <RailStage rail={rail} />
       <span data-cinema-end aria-hidden />
     </>
   );
@@ -181,6 +330,7 @@ export function Cinema({ products = [] }) {
 export function Intro() {
   const [phase, setPhase] = useState(() => (shouldShowIntro() ? 'on' : 'gone'));
   const [count, setCount] = useState(0);
+  if (phase === 'on') introRunning = true;
 
   useEffect(() => {
     if (phase === 'gone') return undefined;
@@ -200,13 +350,15 @@ export function Intro() {
       return () => { cancelAnimationFrame(raf); clearTimeout(t); };
     }
 
-    // Let the page scroll again while the title card clears.
+    // leaving: let the stage start its own entrance while the rows clear
     document.body.style.overflow = '';
+    introRunning = false;
+    window.dispatchEvent(new Event(INTRO_DONE));
     const t = setTimeout(() => setPhase('gone'), 1400);
     return () => clearTimeout(t);
   }, [phase]);
 
-  useEffect(() => () => { document.body.style.overflow = ''; }, []);
+  useEffect(() => () => { document.body.style.overflow = ''; introRunning = false; }, []);
 
   if (phase === 'gone') return null;
   return (

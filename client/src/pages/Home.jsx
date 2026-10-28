@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import Newsletter from '../components/Newsletter';
@@ -118,7 +118,7 @@ function Collection({ categories, loading }) {
 
 /* ------------------------------------------------------------- marquee band */
 
-const MARQUEE_WORDS = ['Simple', 'Timeless', 'Premium', 'Knitted Cotton', 'Sizes S–3XL'];
+const MARQUEE_WORDS = ['Simple', 'Timeless', 'Premium', 'Knitted Cotton'];
 
 function Marquee() {
   const strip = (
@@ -136,11 +136,9 @@ function Marquee() {
   return (
     <section className="overflow-hidden border-y border-cream-deep bg-cream py-7 sm:py-9">
       <h2 className="sr-only">{MARQUEE_WORDS.join('. ')}.</h2>
-      {/* shorter words than before, so the shared 28s keyframe would crawl — pace it here */}
-      <div
-        className="flex w-max animate-marquee pause-hover"
-        style={{ animationDuration: '36s' }}
-      >
+      {/* The 36s override here was pacing a longer strip; with one word fewer
+          the shared 28s keyframe carries it at the same speed again. */}
+      <div className="flex w-max animate-marquee pause-hover">
         {strip}{strip}
       </div>
     </section>
@@ -197,6 +195,35 @@ function Anatomy() {
   const [active, setActive] = useState(0);
   const point = POINTS[active];
 
+  // The magnifier, on the close-up itself.
+  const frameRef = useRef(null);
+  const [natural, setNatural] = useState(0);   // the file's own pixel width
+  const [frameW, setFrameW] = useState(0);     // how wide it is actually drawn
+  const [loupe, setLoupe] = useState(false);
+  const [spot, setSpot] = useState({ x: 50, y: 50 });
+
+  /*
+   * These crops are 800px files upscaled from a 729px garment shot, so only
+   * about 250px of that is real detail. The magnifier works because the frame
+   * draws them at 112–176px: there are pixels in hand to move into. The cap
+   * keeps the magnified view inside the file's own width, where the browser is
+   * still downsampling — past that it starts inventing, and the softness shows.
+   * Sharper photography raises this on its own.
+   */
+  const factor = natural && frameW
+    ? Math.max(1.5, Math.min(2.8, (natural / frameW) * 0.85))
+    : 2;
+
+  const track = (clientX, clientY) => {
+    const r = frameRef.current?.getBoundingClientRect();
+    if (!r) return;
+    if (r.width && r.width !== frameW) setFrameW(r.width);
+    setSpot({
+      x: Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100)),
+      y: Math.min(100, Math.max(0, ((clientY - r.top) / r.height) * 100)),
+    });
+  };
+
   return (
     <section className="border-y border-mist bg-cream">
       <div className="shell py-20 sm:py-28 lg:py-32">
@@ -245,13 +272,45 @@ function Anatomy() {
           {/* the close-up and copy for whichever point is active */}
           <div className="flex flex-col">
             <div className="flex gap-5">
-              <img
+              {/* Move over the close-up and it magnifies where the pointer is,
+                  in place — the same file, panned closer. */}
+              <div
                 key={point.crop}
-                src={point.crop}
-                alt={point.title}
-                loading="lazy"
-                className="h-28 w-28 shrink-0 animate-fade-in border border-mist object-cover sm:h-36 sm:w-36"
-              />
+                ref={frameRef}
+                data-cursor="Zoom"
+                role="img"
+                aria-label={`${point.title}. Move the pointer over it to magnify.`}
+                onMouseEnter={(e) => { setLoupe(true); track(e.clientX, e.clientY); }}
+                onMouseLeave={() => setLoupe(false)}
+                onMouseMove={(e) => track(e.clientX, e.clientY)}
+                onTouchStart={(e) => { setLoupe(true); track(e.touches[0].clientX, e.touches[0].clientY); }}
+                onTouchMove={(e) => track(e.touches[0].clientX, e.touches[0].clientY)}
+                onTouchEnd={() => setLoupe(false)}
+                className="relative h-28 w-28 shrink-0 animate-fade-in cursor-zoom-in touch-none select-none overflow-hidden border border-mist bg-white sm:h-44 sm:w-44"
+              >
+                <img
+                  src={point.crop}
+                  alt=""
+                  loading="lazy"
+                  onLoad={(e) => setNatural(e.currentTarget.naturalWidth)}
+                  className={`h-full w-full object-cover transition-opacity duration-200 ${loupe ? 'opacity-0' : 'opacity-100'}`}
+                />
+                <div
+                  aria-hidden
+                  className={`pointer-events-none absolute inset-0 bg-no-repeat transition-opacity duration-200 ${loupe ? 'opacity-100' : 'opacity-0'}`}
+                  style={{
+                    backgroundImage: `url(${point.crop})`,
+                    backgroundSize: `${factor * 100}%`,
+                    backgroundPosition: `${spot.x}% ${spot.y}%`,
+                  }}
+                />
+                <span
+                  aria-hidden
+                  className={`pointer-events-none absolute inset-x-0 bottom-0 bg-navy/70 py-1 text-center text-[8.5px] font-semibold uppercase tracking-brand text-cream transition-opacity duration-200 ${loupe ? 'opacity-0' : 'opacity-100'}`}
+                >
+                  Move to zoom
+                </span>
+              </div>
               <div className="min-w-0 pt-1">
                 <p className="text-[10px] font-semibold uppercase tracking-brand text-slate-light">
                   {String(active + 1).padStart(2, '0')} — {point.label}
@@ -292,6 +351,7 @@ function Anatomy() {
           </div>
         </div>
       </div>
+
     </section>
   );
 }

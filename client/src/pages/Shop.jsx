@@ -181,17 +181,19 @@ export default function Shop() {
 
       <div className="shell py-8 sm:py-12">
         <div className="lg:grid lg:grid-cols-[232px_1fr] lg:gap-12">
+          {/* The filters sit at the top of the column and scroll away with the
+              rest of the page — nothing pinned. The Filters button that opens
+              the sheet is small-screen only, so on a desktop the way back to
+              them is up: worth remembering if the grid ever runs long. */}
           <aside className="hidden lg:block">
-            <div className="sticky top-[calc(var(--nav-h)+48px)]">
-              <FilterPanel
-                facets={facets}
-                selected={selected}
-                onToggle={toggle}
-                onPrice={(v) => update({ maxPrice: v })}
-                onClear={() => update({ size: '', color: '', maxPrice: '' })}
-                activeCount={activeCount}
-              />
-            </div>
+            <FilterPanel
+              facets={facets}
+              selected={selected}
+              onToggle={toggle}
+              onPrice={(v) => update({ maxPrice: v })}
+              onClear={() => update({ size: '', color: '', maxPrice: '' })}
+              activeCount={activeCount}
+            />
           </aside>
 
           <div>

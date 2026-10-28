@@ -9,6 +9,10 @@ CREATE TABLE IF NOT EXISTS categories (
   image_url   TEXT,
   sort_order  INT  NOT NULL DEFAULT 0,
   is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+  -- { note, rows: [[size, chest, length, sleeve, shoulder], ...],
+  --   howTo: [[label, text], ...] } — the size guide for this category, edited
+  -- in the admin. NULL means the storefront falls back to its built-in chart.
+  size_chart  JSONB,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -180,3 +184,10 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   is_read    BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+/* ---------------------------------------------------------------- migrations
+   CREATE TABLE IF NOT EXISTS leaves an existing table alone, so a column added
+   after a database was first built needs saying again here. Each one is
+   idempotent, so running setup against any database brings it up to date. */
+
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS size_chart JSONB;

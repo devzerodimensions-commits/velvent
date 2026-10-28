@@ -42,7 +42,7 @@ const CATEGORIES = [
 const base = {
   mrp: MRP,
   sale_price: SALE,
-  fabric: 'Knitted Cotton',
+  fabric: '100% Knitted Cotton',
   wash_care: 'Machine wash cold with like colours. Do not bleach. Tumble dry low. Warm iron on reverse.',
   weight_grams: 450,
 };

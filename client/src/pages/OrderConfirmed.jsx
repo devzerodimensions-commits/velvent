@@ -1,13 +1,83 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Alert, PageLoader, Seo } from '../components/ui';
-import { Box, Check, Truck } from '../components/Icons';
+import { Box, Check, Close, Truck } from '../components/Icons';
 import { api } from '../lib/api';
 import { formatDateTime, inr, STATUS_LABEL, STATUS_TONE, TRACKING_STEPS } from '../lib/format';
 import { BRAND } from '../lib/brand';
 import { useAuth } from '../store/auth';
 
 const STEPS = TRACKING_STEPS;
+
+/**
+ * Offered once, just after an order goes through, to a shopper who checked out
+ * as a guest: the one moment they have already typed everything an account
+ * needs. Skip and close both mean no, and the answer is remembered against the
+ * order number so a refresh does not ask again.
+ */
+function MemberInvite({ email, onClose }) {
+  const panelRef = useRef(null);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    panelRef.current?.focus();
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center p-4 sm:items-center sm:p-6">
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default bg-navy-deep/60 animate-fade-in"
+      />
+
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="member-invite-title"
+        tabIndex={-1}
+        className="relative w-full max-w-md bg-white p-6 shadow-2xl outline-none animate-fade-up sm:p-8"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-3 top-3 p-1.5 text-slate transition hover:text-navy"
+        >
+          <Close size={19} />
+        </button>
+
+        <p className="eyebrow">One last thing</p>
+        <h2 id="member-invite-title" className="mt-2 font-display text-lg font-semibold uppercase tracking-wider2 text-navy">
+          Become a member
+        </h2>
+        <p className="mt-3 text-[13.5px] leading-relaxed text-slate">
+          Keep your orders and addresses in one place, save pieces to a wishlist, and get first
+          access to drops and restocks. We will use <strong className="text-navy">{email}</strong> —
+          you only need to pick a password.
+        </p>
+
+        <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
+          <Link to="/register" state={{ email }} onClick={onClose} className="btn-primary flex-1">
+            Create my account
+          </Link>
+          <button type="button" onClick={onClose} className="btn-ghost flex-1">
+            Skip for now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function OrderDetail({ order }) {
   const stepIndex = STEPS.indexOf(order.status);
@@ -113,6 +183,7 @@ export default function OrderConfirmed() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [invite, setInvite] = useState(false);
 
   useEffect(() => {
     api.order(orderNumber, state?.email)
@@ -120,6 +191,23 @@ export default function OrderConfirmed() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [orderNumber, state?.email]);
+
+  /* Only after a payment goes through, only for a guest, and only once per
+     order — it waits a moment so the confirmation lands first rather than
+     being covered the instant it appears. */
+  const inviteKey = order ? `velvent:member-invite:${order.order_number}` : null;
+
+  const dismissInvite = useCallback(() => {
+    setInvite(false);
+    try { if (inviteKey) sessionStorage.setItem(inviteKey, '1'); } catch { /* private mode */ }
+  }, [inviteKey]);
+
+  useEffect(() => {
+    if (!state?.justPlaced || user || !order || !inviteKey) return undefined;
+    try { if (sessionStorage.getItem(inviteKey)) return undefined; } catch { /* private mode */ }
+    const t = setTimeout(() => setInvite(true), 1400);
+    return () => clearTimeout(t);
+  }, [state?.justPlaced, user, order, inviteKey]);
 
   if (loading) return <PageLoader />;
 
@@ -172,6 +260,8 @@ export default function OrderConfirmed() {
           {user && <Link to="/account" className="btn-outline"><Box size={17} /> My orders</Link>}
         </div>
       </div>
+
+      {invite && <MemberInvite email={order.email} onClose={dismissInvite} />}
     </>
   );
 }

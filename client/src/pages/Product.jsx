@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { Accordion, Alert, Breadcrumbs, PageLoader, Rating, SectionHead, Seo } from '../components/ui';
 import { SizeGuideModal } from '../components/SizeGuide';
-import { Bag, Heart, Minus, Plus, Refresh, Ruler, Shield, Truck } from '../components/Icons';
+import { Bag, Heart, Minus, Plus, Refresh, Ruler, Share, Shield, Similar, Truck } from '../components/Icons';
 import { api } from '../lib/api';
 import { bySize, deliveryEstimate, discountPct, formatDate, inr } from '../lib/format';
 import { BRAND } from '../lib/brand';
@@ -18,7 +18,48 @@ function Gallery({ images, name, activeColor }) {
   }, [images, activeColor]);
 
   const [i, setI] = useState(0);
-  useEffect(() => { setI(0); }, [activeColor]);
+  const stripRef = useRef(null);
+  // Once the shopper takes hold of the gallery it stops moving on its own:
+  // an image sliding away mid-look is worse than one that never moved.
+  const [taken, setTaken] = useState(false);
+
+  useEffect(() => {
+    setI(0);
+    stripRef.current?.scrollTo({ left: 0, behavior: 'auto' });
+  }, [activeColor]);
+
+  /* On a phone the gallery carries itself through the images, so a shopper who
+     never thinks to swipe still sees more than the first one. It only runs
+     while the strip is laid out — it is display:none above the small
+     breakpoint, where the thumbnail column does this job instead. */
+  useEffect(() => {
+    if (taken || shown.length < 2) return undefined;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
+
+    const id = setInterval(() => {
+      const el = stripRef.current;
+      if (!el || !el.clientWidth) return;
+      const next = (Math.round(el.scrollLeft / el.clientWidth) + 1) % shown.length;
+      el.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' });
+    }, 4000);
+    return () => clearInterval(id);
+  }, [taken, shown.length]);
+
+  const goTo = (n) => {
+    setTaken(true);
+    setI(n);
+    const el = stripRef.current;
+    if (el?.clientWidth) el.scrollTo({ left: n * el.clientWidth, behavior: 'smooth' });
+  };
+
+  /* The strip is the source of truth on a phone, so the bars follow it. */
+  const onStripScroll = (e) => {
+    const el = e.currentTarget;
+    if (!el.clientWidth) return;
+    const n = Math.round(el.scrollLeft / el.clientWidth);
+    if (n !== i && n >= 0 && n < shown.length) setI(n);
+  };
+
   const current = shown[Math.min(i, shown.length - 1)] || images[0];
 
   return (
@@ -42,7 +83,8 @@ function Gallery({ images, name, activeColor }) {
       )}
 
       <div className="order-2 min-w-0 flex-1">
-        <div className="aspect-[3/4] overflow-hidden bg-cream">
+        {/* Above the small breakpoint the thumbnail column picks the image. */}
+        <div className="hidden aspect-[3/4] overflow-hidden bg-cream sm:block">
           <img
             src={current?.url}
             alt={current?.alt || name}
@@ -51,13 +93,35 @@ function Gallery({ images, name, activeColor }) {
           />
         </div>
 
+        {/* On a phone it is a real strip: swipe it, or let it carry itself. */}
+        <div
+          ref={stripRef}
+          onScroll={onStripScroll}
+          onTouchStart={() => setTaken(true)}
+          onPointerDown={() => setTaken(true)}
+          className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:hidden"
+        >
+          {shown.map((img, n) => (
+            <div key={img.url + n} className="aspect-[3/4] w-full shrink-0 snap-center overflow-hidden bg-cream">
+              <img
+                src={img.url}
+                alt={img.alt || name}
+                className="h-full w-full object-cover"
+                fetchpriority={n === 0 ? 'high' : undefined}
+                loading={n === 0 ? undefined : 'lazy'}
+              />
+            </div>
+          ))}
+        </div>
+
         {shown.length > 1 && (
           <div className="mt-3 flex gap-2 sm:hidden">
             {shown.map((img, n) => (
               <button
                 key={img.url + n}
-                onClick={() => setI(n)}
+                onClick={() => goTo(n)}
                 aria-label={`View image ${n + 1}`}
+                aria-current={n === i}
                 className={`h-1.5 flex-1 transition ${n === i ? 'bg-navy' : 'bg-mist'}`}
               />
             ))}
@@ -257,6 +321,46 @@ export default function Product() {
     } catch (err) { error(err.message); }
   };
 
+  /**
+   * The phone's own share sheet where there is one — that is how a shopper
+   * sends a piece to WhatsApp, which is where most of this sharing happens.
+   * Desktop browsers mostly have no sheet, so the link goes to the clipboard
+   * instead. Dismissing the sheet is not a failure and says nothing.
+   */
+  const sharePiece = async () => {
+    const url = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: product.name, text: `${product.name} · ${inr(product.sale_price)}`, url });
+        return;
+      } catch (err) {
+        // Closing the sheet is a decision, not a failure — say nothing.
+        if (err?.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      success('Link copied — paste it anywhere.');
+      return;
+    } catch { /* the async clipboard is often refused; fall through */ }
+
+    // The old way still works where permission for the new one does not.
+    const field = document.createElement('textarea');
+    field.value = url;
+    field.setAttribute('readonly', '');
+    field.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(field);
+    field.select();
+    let copied = false;
+    try { copied = document.execCommand('copy'); } catch { copied = false; }
+    field.remove();
+
+    if (copied) success('Link copied — paste it anywhere.');
+    else error('Could not copy. Use the address in your browser bar.');
+  };
+
   return (
     <>
       <SizeGuideModal
@@ -284,7 +388,51 @@ export default function Product() {
       </div>
 
       <div className="shell grid gap-10 py-8 lg:grid-cols-2 lg:gap-16 lg:py-12">
-        <Gallery images={product.images} name={product.name} activeColor={color} />
+        {/* The shortcut to the similar pieces, sitting on the photograph where
+            a shopper is already looking. On a phone it clears the gallery's
+            position bars; the anchor scrolls smoothly on its own. */}
+        {/* self-start matters: as a grid item this column would otherwise
+            stretch to the height of the details beside it, and the chip would
+            anchor to the bottom of that empty space rather than the picture. */}
+        <div className="relative self-start">
+          <Gallery images={product.images} name={product.name} activeColor={color} />
+
+          {/* Stacked on the photograph: similar first, share under it. Share is
+              only here on a phone — on desktop it stays in the button row,
+              where there is room for it and no need to say it twice. */}
+          <div className="absolute bottom-9 right-3 flex flex-col items-end gap-2 sm:bottom-3">
+            {product.related?.length > 0 && (
+            <a
+              href="#similar"
+              onClick={(e) => {
+                const el = document.getElementById('similar');
+                if (!el) return;
+                // Scrolled here rather than left to the hash: the router owns
+                // the location and the address bar gaining a #similar it then
+                // has to carry around is worse than a plain scroll.
+                e.preventDefault();
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              data-cursor="Similar"
+              title="See similar products"
+              aria-label={`See ${product.related.length} similar ${product.related.length === 1 ? 'product' : 'products'}`}
+              className="grid h-10 w-10 place-items-center rounded-md border border-mist bg-white/95 text-navy shadow-md backdrop-blur transition hover:border-navy hover:bg-white"
+            >
+              <Similar size={19} />
+            </a>
+            )}
+
+            <button
+              type="button"
+              onClick={sharePiece}
+              data-cursor="Share"
+              aria-label={`Share ${product.name}`}
+              className="grid h-10 w-10 place-items-center rounded-md border border-mist bg-white/95 text-navy shadow-md backdrop-blur transition hover:border-navy hover:bg-white sm:hidden"
+            >
+              <Share size={19} />
+            </button>
+          </div>
+        </div>
 
         <div className="lg:max-w-lg">
           {product.category_name && (
@@ -427,6 +575,13 @@ export default function Product() {
             >
               <Heart size={19} filled={wished} />
             </button>
+            <button
+              onClick={sharePiece}
+              aria-label={`Share ${product.name}`}
+              className="btn hidden border border-mist px-4 text-navy hover:border-navy sm:inline-flex"
+            >
+              <Share size={19} />
+            </button>
           </div>
 
           <div className="mt-7 grid gap-3 border-y border-mist py-5 sm:grid-cols-3">
@@ -481,35 +636,41 @@ export default function Product() {
                     </div>
                   ),
                 },
+                {
+                  /* Reviews sit with the rest of what a shopper opens before
+                     buying, rather than as a separate block further down the
+                     page that most of them never scroll to. */
+                  title: `Reviews (${product.review_count || 0})`,
+                  body: (
+                    <div className="space-y-5">
+                      {product.reviews?.length ? (
+                        <ul className="space-y-3">
+                          {product.reviews.map((r) => (
+                            <li key={r.id} className="border border-mist bg-white p-4">
+                              <Rating value={r.rating} showCount={false} />
+                              {r.title && <h3 className="mt-2.5 text-[14px] font-semibold text-navy">{r.title}</h3>}
+                              {r.body && <p className="mt-1.5 text-[13.5px] leading-relaxed text-slate">{r.body}</p>}
+                              <p className="mt-3 text-[11px] uppercase tracking-wider2 text-slate-light">
+                                {r.author} · {formatDate(r.created_at)}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <Alert tone="info">No reviews yet — be the first to write one.</Alert>
+                      )}
+                      <ReviewForm slug={slug} onDone={load} />
+                    </div>
+                  ),
+                },
               ]}
             />
           </div>
         </div>
       </div>
 
-      <section className="shell py-12">
-        <SectionHead eyebrow={`${product.review_count} review${product.review_count === 1 ? '' : 's'}`} title="What customers say" />
-        {product.reviews?.length ? (
-          <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {product.reviews.map((r) => (
-              <li key={r.id} className="card-surface p-6">
-                <Rating value={r.rating} showCount={false} />
-                {r.title && <h3 className="mt-3 text-[14px] font-semibold text-navy">{r.title}</h3>}
-                {r.body && <p className="mt-2 text-[13.5px] leading-relaxed text-slate">{r.body}</p>}
-                <p className="mt-4 text-[11px] uppercase tracking-wider2 text-slate-light">
-                  {r.author} · {formatDate(r.created_at)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Alert tone="info">No reviews yet — be the first to write one.</Alert>
-        )}
-        <ReviewForm slug={slug} onDone={load} />
-      </section>
-
       {product.related?.length > 0 && (
-        <section className="shell py-12">
+        <section id="similar" className="shell scroll-mt-28 py-12">
           <SectionHead eyebrow="You may also like" title="Complete the look" />
           <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
             {product.related.map((p) => <ProductCard key={p.id} product={p} />)}

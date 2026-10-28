@@ -241,14 +241,43 @@ router.get('/categories', ah(async (_req, res) => {
   res.json(rows);
 }));
 
+/**
+ * Trims a size chart down to the shape the storefront reads, so a stray field
+ * from a form cannot end up stored. An empty chart is stored as NULL, which is
+ * what makes the storefront fall back to its built-in table.
+ */
+const cleanSizeChart = (v) => {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const rows = Array.isArray(v.rows)
+    ? v.rows
+      .filter((r) => Array.isArray(r) && String(r[0] ?? '').trim())
+      .map((r) => [String(r[0]).trim(), ...r.slice(1, 5).map((n) => (n === '' || n === null ? null : Number(n)))])
+    : [];
+  const howTo = Array.isArray(v.howTo)
+    ? v.howTo
+      .filter((s) => Array.isArray(s) && String(s[0] ?? '').trim() && String(s[1] ?? '').trim())
+      .map((s) => [String(s[0]).trim(), String(s[1]).trim()])
+    : [];
+  const note = String(v.note ?? '').trim();
+  if (!rows.length && !howTo.length && !note) return null;
+  return { note, rows, howTo };
+};
+
+/** jsonb wants a string or null; an empty chart must clear the column. */
+const chartParam = (v) => {
+  const chart = cleanSizeChart(v);
+  return chart ? JSON.stringify(chart) : null;
+};
+
 router.post('/categories', ah(async (req, res) => {
   const b = req.body || {};
   if (!b.name?.trim()) return res.status(400).json({ error: 'Category name is required.' });
   const { rows } = await query(
-    `INSERT INTO categories (slug, name, tagline, description, image_url, sort_order, is_active)
-     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    `INSERT INTO categories (slug, name, tagline, description, image_url, sort_order, is_active, size_chart)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb) RETURNING *`,
     [slugify(b.slug || b.name), b.name.trim(), b.tagline || null, b.description || null,
-      b.image_url || null, parseInt(b.sort_order, 10) || 0, b.is_active !== false],
+      b.image_url || null, parseInt(b.sort_order, 10) || 0, b.is_active !== false,
+      chartParam(b.size_chart)],
   );
   res.status(201).json(rows[0]);
 }));
@@ -256,10 +285,11 @@ router.post('/categories', ah(async (req, res) => {
 router.put('/categories/:id', ah(async (req, res) => {
   const b = req.body || {};
   const { rows } = await query(
-    `UPDATE categories SET name=$2, tagline=$3, description=$4, image_url=$5, sort_order=$6, is_active=$7
+    `UPDATE categories SET name=$2, tagline=$3, description=$4, image_url=$5, sort_order=$6,
+            is_active=$7, size_chart=$8::jsonb
       WHERE id=$1 RETURNING *`,
     [req.params.id, b.name, b.tagline || null, b.description || null, b.image_url || null,
-      parseInt(b.sort_order, 10) || 0, b.is_active !== false],
+      parseInt(b.sort_order, 10) || 0, b.is_active !== false, chartParam(b.size_chart)],
   );
   if (!rows[0]) return res.status(404).json({ error: 'Category not found.' });
   res.json(rows[0]);

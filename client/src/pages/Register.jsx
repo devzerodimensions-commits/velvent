@@ -11,7 +11,8 @@ export default function Register() {
   const navigate = useNavigate();
   const { state } = useLocation();
 
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' });
+  // Arriving from the order confirmation, the email is already known.
+  const [form, setForm] = useState({ name: '', email: state?.email || '', phone: '', password: '' });
   const [error, setError] = useState(null);
   const [fields, setFields] = useState({});
   const [busy, setBusy] = useState(false);

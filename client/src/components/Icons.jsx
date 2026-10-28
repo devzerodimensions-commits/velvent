@@ -52,6 +52,13 @@ export const Filter = (p) => <Svg {...p}><path d="M4 6h16M7 12h10M10 18h4" /></S
 export const Grid = (p) => (
   <Svg {...p}><rect x="4" y="4" width="7" height="7" /><rect x="13" y="4" width="7" height="7" /><rect x="4" y="13" width="7" height="7" /><rect x="13" y="13" width="7" height="7" /></Svg>
 );
+export const Share = (p) => (
+  <Svg {...p}><circle cx="18" cy="5.5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="18.5" r="2.5" /><path d="m8.2 10.8 7.6-4M8.2 13.2l7.6 4" /></Svg>
+);
+/** Find similar: the piece you are looking at, and a plus for the rest like it. */
+export const Similar = (p) => (
+  <Svg {...p}><rect x="3" y="3" width="13" height="13" rx="1.5" /><path d="M18.5 14.5v6M15.5 17.5h6" /></Svg>
+);
 export const Box = (p) => (
   <Svg {...p}><path d="M12 3 4 7v10l8 4 8-4V7l-8-4Z" /><path d="m4 7 8 4 8-4M12 11v10" /></Svg>
 );

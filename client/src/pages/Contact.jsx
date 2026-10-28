@@ -138,7 +138,7 @@ export default function Contact() {
                   ))}
                 </dl>
                 <p className="mt-3 border-t border-mist pt-3 text-[12.5px] text-slate">
-                  Monday to Saturday. Closed Sundays and public holidays.
+                  {BRAND.hoursDays} — we are open seven days a week.
                 </p>
               </div>
             </div>

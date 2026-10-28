@@ -57,7 +57,7 @@ export default function Footer() {
               <Clock size={17} className="mt-0.5 shrink-0" />
               <span>
                 {BRAND.hours.map((h) => `${h.label} ${h.value}`).join(' · ')}
-                <span className="mt-0.5 block text-cream/50">Monday to Saturday</span>
+                <span className="mt-0.5 block text-cream/50">{BRAND.hoursDays}</span>
               </span>
             </p>
           </div>

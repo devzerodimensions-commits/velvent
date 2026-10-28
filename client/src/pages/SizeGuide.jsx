@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
 import { Breadcrumbs, Seo } from '../components/ui';
-import { HowToMeasure, SIZE_TABLES, SizeTable } from '../components/SizeGuide';
+import { HowToMeasure, SizeTable, useSizeTables } from '../components/SizeGuide';
 
 /**
  * The full page. The product page shows the same charts in a popup instead, so
  * both read from SIZE_TABLES rather than keeping their own copy of the numbers.
  */
 export default function SizeGuide() {
+  const tables = useSizeTables();
+
   return (
     <>
       <Seo title="Size Guide" description="VELVENT size chart for polo t-shirts, polo shirts and oversized tees, S through 3XL." />
@@ -18,14 +20,21 @@ export default function SizeGuide() {
           either way for knitted cotton.
         </p>
 
-        <div className="mt-10 space-y-12">
-          {SIZE_TABLES.map((t) => <SizeTable key={t.name} table={t} />)}
+        {/* Each garment carries its own chart and its own measuring notes —
+            a dropped shoulder is not measured the way a set-in sleeve is. */}
+        <div className="mt-10 space-y-14">
+          {tables.map((t) => (
+            <section key={t.name}>
+              <SizeTable table={t} />
+              <div className="mt-7 border-t border-mist pt-6">
+                <HowToMeasure steps={t.howTo} collar={t.collar !== false} />
+              </div>
+            </section>
+          ))}
         </div>
 
-        <section className="mt-14 grid gap-6 border-t border-mist pt-10 lg:grid-cols-2">
-          <div><HowToMeasure /></div>
-
-          <div className="border border-mist bg-cream p-7">
+        <section className="mt-14 border-t border-mist pt-10">
+          <div className="border border-mist bg-cream p-7 lg:max-w-xl">
             <h2 className="font-display text-base font-semibold uppercase tracking-wider2 text-navy">Between two sizes?</h2>
             <p className="mt-3 text-[13.5px] leading-relaxed text-slate">
               For polos and polo shirts, take the larger size — knitted cotton sits better with a

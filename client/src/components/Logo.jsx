@@ -41,7 +41,10 @@ export default function Logo({ variant = 'row', withTagline = false, className =
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <Mark className="h-6 w-auto sm:h-7" title="Velvent" />
-      <span className="font-display text-base font-medium uppercase tracking-brand sm:text-lg">
+      {/* Below about 360px the wordmark, the menu button and the three icons
+          cannot all fit, and the row pushes the page into sideways scroll. The
+          monogram carries the brand on its own at that size. */}
+      <span className="hidden font-display text-base font-medium uppercase tracking-brand min-[360px]:inline sm:text-lg">
         Velvent
       </span>
     </span>

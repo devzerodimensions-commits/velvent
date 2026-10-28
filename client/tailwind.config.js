@@ -14,7 +14,10 @@ export default {
       fontFamily: {
         sans: ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         display: ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        heading: ['Cinzel', 'Trajan Pro', 'Georgia', 'serif'],
+        // Helvetica Neue ships with macOS and iOS only. Inter sits behind it so
+        // Windows and Android get a neo-grotesque cut from the same cloth
+        // rather than dropping all the way to Arial.
+        heading: ['Helvetica Neue', 'Inter', 'Helvetica', 'Arial', 'sans-serif'],
       },
       letterSpacing: { brand: '0.28em', wider2: '0.18em' },
       maxWidth: { shell: '1440px' },

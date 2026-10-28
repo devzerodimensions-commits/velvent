@@ -151,13 +151,22 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .reveal-img.is-revealed img { transform: none; }
 
 /* ------------------------------------------------------------ cinema ----
-   A still, full-screen hero leads into two sticky sections. Cinema.jsx writes
-   scroll position to --p (0 → 1) for those later stages only. */
+   Tall sections with a sticky, full-screen stage inside. Cinema.jsx writes
+   the scroll position through the section to --p (0 → 1), and every layer
+   below derives its motion from that one number. The motif throughout is
+   the knit stripe: bands that part, outlines that fill, a rail that runs. */
 
 .cx-outer { position: relative; background: #0F131A; }
-.cx-outer--frame { height: 100vh; height: 100svh; margin-top: calc(-1 * var(--header-h, 0px)); }
+/* Falls back to the same 96px the chapter marks assume rather than to 0: the
+   header publishes --header-h from a ResizeObserver that does not always land
+   before first paint, and a 0 fallback drops the stage a full header below the
+   fold, taking the shop link and the scroll cue with it. */
+.cx-outer--frame { height: 240vh; margin-top: calc(-1 * var(--header-h, 96px)); }
 .cx-outer--fill  { height: 260vh; }
-.cx-outer--rail  { height: 320vh; }
+/* The range is browsed with its own arrows rather than by scrolling the page
+   sideways, so this section is one screen like any other and the row inside it
+   is an ordinary scroller the buttons drive. */
+.cx-outer--rail  { height: auto; }
 
 .cx-stage {
   --p: 0;
@@ -198,58 +207,119 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cx-link:hover { border-color: #F6F2EA; letter-spacing: .3em; }
 @media (min-width: 640px) { .cx-link { font-size: 12px; } }
 
-/* 1 · frame — a still photograph and headline. */
+/* 1 · frame — a full-bleed photograph that stays edge to edge the whole way
+   through: it eases out of its opening push-in while cinematic bars close over
+   it, and the headline splits to either side of it and drops to an outline.
 
-.cx-stage--frame { position: relative; }
-.cx-stage--frame .cx-grain { animation: none; }
-.cx-stage--frame .cx-chapter {
-  top: calc(var(--header-h, 96px) + 1.5rem); right: clamp(1rem, 4vw, 2.5rem);
-  margin: 0;
+   The stage is a one-cell grid, so an absolutely positioned child is laid out
+   against that cell and not against the stage. Pinning both tracks to the
+   stage's own size is what keeps the photograph full width — without it the
+   cell takes the image's intrinsic width and the hero sits in a centre column
+   with the background showing either side of it. */
+
+.cx-stage--frame {
+  grid-template: minmax(0, 100%) / minmax(0, 100%);
+  --k: min(1, var(--p) * 1.45);
+  --iy: 10vh;   /* how far the bars close in */
+  --z: .08;     /* how far the photograph is pushed in to start with */
 }
+@media (min-width: 768px) { .cx-stage--frame { --iy: 8vh; --z: .2; } }
 
 .cx-frame {
   position: absolute; inset: 0; z-index: 1; overflow: hidden;
-  width: 100%; height: 100%; place-self: stretch;
+  /* The stage centres its children, and a centred self-alignment makes an
+     absolutely positioned box size to its content instead of to its inset —
+     which left the photograph at its own 1194px and put the stage background
+     down both sides. Stretching is what lets inset: 0 mean the whole stage. */
+  place-self: stretch;
+  clip-path: inset(calc(var(--k) * var(--iy)) 0 round calc(var(--k) * 3px));
 }
 .cx-frame img {
-  display: block; width: 100%; max-width: 1194px; height: 100%; margin-inline: auto;
-  object-fit: cover; object-position: center 26%;
-  filter: brightness(.58) saturate(.85);
+  /* Full width turns a portrait photograph into a wide crop, so hold it near
+     the top: anchored lower, the frame cut the model across the chin. */
+  width: 100%; height: 100%; object-fit: cover; object-position: center 5%;
+  /* Anchored to the top so the push-in and the drift both crop from the hem
+     upward. Scaling about the centre took the model's head off on a phone,
+     where the photograph already fits the viewport almost exactly. The resting
+     scale stays just above 1 so the drift always has slack to move into. */
+  transform-origin: center top;
+  transform: scale(calc(1.05 + var(--z) - var(--k) * var(--z))) translate3d(0, calc(var(--p) * -2vh), 0);
+  filter: brightness(calc(.46 + var(--k) * .42)) saturate(calc(.82 + var(--k) * .18));
+  will-change: transform;
 }
+/* Full width means the headline now sits over brick and daylight rather than a
+   darkened column, so the photograph carries its own vignette — strongest at
+   the start, easing off as the image brightens and settles. */
 .cx-frame::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(15,19,26,.16), transparent 38%, rgba(15,19,26,.5));
-  pointer-events: none;
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(118% 78% at 50% 36%, transparent 34%, rgba(15,19,26,.58)),
+    linear-gradient(180deg, rgba(15,19,26,.5), transparent 34%, rgba(15,19,26,.6));
+  opacity: calc(1 - var(--k) * .3);
 }
+
+/* the knit bands: on arrival they slide off alternately, like rows of a stitch */
+.cx-bands { position: absolute; inset: 0; z-index: 2; place-self: stretch; display: grid; grid-template-rows: repeat(8, 1fr); pointer-events: none; }
+/* Parked off-stage by default. The bands only ever cover the photograph as the
+   opening frames of their own animation, so if the ready flag never arrives —
+   no JavaScript, a failed intro hand-off — the hero shows rather than blacks
+   out. The keyframes name both ends for the same reason. */
+.cx-band { background: #0F131A; margin-bottom: -1px; transform: translateX(101%); }
+.cx-band:nth-child(even) { transform: translateX(-101%); }
+.is-ready .cx-band { animation: cx-band 1.15s cubic-bezier(.77,0,.18,1) both; animation-delay: calc(var(--i) * 55ms); }
+.is-ready .cx-band:nth-child(even) { animation-name: cx-band-r; }
+
+/* The click target over the photograph. Above the image and the bands, below
+   the small print, so the caption link, the shop link and the scroll cue all
+   keep their own clicks; the headline already lets the pointer through. */
+.cx-plate { position: absolute; inset: 0; z-index: 3; place-self: stretch; }
+
+/* Decorative marks — they would otherwise punch dead patches in that target. */
+.cx-side, .cx-stage--frame .cx-chapter { pointer-events: none; }
 
 .cx-headline {
   position: relative; z-index: 3;
   width: 100%; pointer-events: none;
   display: flex; flex-direction: column; align-items: center;
-  font-family: Cinzel, 'Trajan Pro', Georgia, serif; text-transform: uppercase;
-  font-size: clamp(38px, min(10.5vw, 15vh), 150px);
-  line-height: .95; letter-spacing: .01em; white-space: nowrap;
+  /* Set in the brand grotesque. A serif carries its own weight at this size;
+     Helvetica needs air, so the caps are tracked out and left at regular
+     rather than medium — the same openness the brand sheet shows. */
+  font-family: 'Helvetica Neue', Inter, Helvetica, Arial, sans-serif;
+  font-weight: 400; text-transform: uppercase;
+  font-size: clamp(36px, min(10vw, 15vh), 150px);
+  line-height: 1.02; letter-spacing: .05em; white-space: nowrap;
 }
 .cx-headline__line {
-  display: block; padding: 0 .05em;
-  color: #F6F2EA;
-  text-shadow: 0 2px 50px rgba(15,19,26,.7);
+  display: block; overflow: hidden; padding: 0 .05em;
+  color: rgba(246,242,234, calc(1 - var(--k)));
+  -webkit-text-stroke: 1px rgba(246,242,234,.85);
+  text-shadow: 0 2px 50px rgba(15,19,26, calc(.7 - var(--k) * .7));
 }
-@media (max-width: 639px) {
-  .cx-headline { font-size: clamp(27px, 8.2vw, 40px); letter-spacing: -.02em; }
-  .cx-frame img { transform: translateY(calc(var(--header-h, 96px) - 10px)); }
-}
+.cx-headline__line:first-child { transform: translateY(calc(var(--k) * -22vh)); }
+.cx-headline__line:last-child  { transform: translateY(calc(var(--k) * 22vh)); }
+.cx-headline__line > span { display: inline-block; transform: translateY(110%); }
+.is-ready .cx-headline__line > span { animation: cx-rise 1.1s cubic-bezier(.22,.61,.36,1) both; animation-delay: calc(.45s + var(--i) * 45ms); }
 
 .cx-side {
   position: absolute; z-index: 4; place-self: center start;
   margin-left: clamp(1rem, 3vw, 2rem);
   writing-mode: vertical-rl; transform: rotate(180deg);
+  opacity: calc(1 - var(--p) * 2.5);
 }
 
 .cx-caption {
-  position: absolute; z-index: 4; left: 1rem; right: 1rem;
-  bottom: clamp(8.5rem, 18vh, 11rem);
+  --cap: clamp(0, (var(--p) - .55) * 5, 1);
+  z-index: 4; place-self: end center;
+  /* Centred in the lower bar once it has closed, like a film credit — clear of
+     both the photograph and the second half of the headline. */
+  margin-bottom: calc(var(--iy) / 2 - 1.1rem);
   display: flex; flex-direction: column; align-items: center; gap: .35rem; text-align: center;
+  opacity: var(--cap);
+  transform: translateY(calc((1 - var(--cap)) * 14px));
+  /* Clipped away in step with the fade, not merely made transparent: a
+     transparent row still answers the pointer, and this one lies over the
+     photograph, which is itself a link. Clipping removes the hit area too. */
+  clip-path: inset(0 0 calc((1 - var(--cap)) * 100%) 0);
   pointer-events: none;
 }
 .cx-caption a { pointer-events: auto; }
@@ -257,9 +327,15 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cx-foot {
   position: absolute; inset: auto 0 0 0; z-index: 4;
   place-self: end stretch;
-  width: 100%;
   display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem;
   padding: 0 clamp(1rem, 4vw, 2.5rem) clamp(1.5rem, 5vh, 3rem);
+  opacity: calc(1 - var(--p) * 5);
+  /* Same reasoning as the caption: this row spans the full width of the stage
+     and fades out early, so without the clip it would spend the rest of the
+     scroll as an invisible strip swallowing clicks meant for the photograph.
+     The container never takes the pointer itself — only the controls in it. */
+  clip-path: inset(0 0 calc(clamp(0, var(--p) * 5, 1) * 100%) 0);
+  pointer-events: none;
 }
 .cx-foot > * { pointer-events: auto; }
 
@@ -268,8 +344,11 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cx-thread__line { position: relative; width: 1px; height: 46px; overflow: hidden; background: rgba(246,242,234,.18); }
 .cx-thread__line::after { content: ''; position: absolute; inset: 0; background: #F6F2EA; animation: cx-pull 2.2s cubic-bezier(.77,0,.18,1) infinite; }
 
-/* 2 · fill — a sentence set in outline fills word by word, left to right, as
-   though each word were being knitted in; two swatches slide in beside it. */
+/* 2 · fill — the statement is simply set, in one colour, start to finish. It
+   used to be drawn in outline and fill word by word as the section scrolled,
+   which meant arriving at a sentence too dark to read and waiting for it. The
+   two swatches are the section's motion now: absent to begin with, easing in
+   either side of the text as it is read. */
 
 .cx-mark {
   z-index: 0; width: min(80vh, 90vw); height: auto;
@@ -282,83 +361,90 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   position: relative; z-index: 3;
   max-width: 22ch; margin: 0 auto; padding: 0 1.25rem;
   display: flex; flex-wrap: wrap; justify-content: center; gap: .05em .3em;
-  font-family: Cinzel, 'Trajan Pro', Georgia, serif;
+  font-family: 'Helvetica Neue', Inter, Helvetica, Arial, sans-serif;
+  font-weight: 400;
   text-transform: uppercase; text-align: center;
-  font-size: clamp(26px, min(5.2vw, 7.4vh), 78px);
-  line-height: 1.12; letter-spacing: .01em;
+  font-size: clamp(24px, min(4.8vw, 6.8vh), 72px);
+  line-height: 1.2; letter-spacing: .04em;
 }
 .cx-fill__word {
-  --k: clamp(0, (var(--p) - .1 - var(--i) * .058) * 7, 1);
   position: relative; display: inline-block;
-  color: transparent;
-  -webkit-text-stroke: 1px rgba(246,242,234,.32);
-  background: linear-gradient(90deg, #F6F2EA 50%, transparent 50%) no-repeat;
-  background-size: 200% 100%;
-  background-position: calc(100% - var(--k) * 100%) 0;
-  -webkit-background-clip: text; background-clip: text;
+  color: #F6F2EA;
 }
-.cx-fill__word--em { background-image: linear-gradient(90deg, #E2D9C6 50%, transparent 50%); }
+.cx-fill__word--em { color: #E2D9C6; }
 .cx-fill__word--em::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: -.04em; height: 2px;
-  background: #E2D9C6; transform-origin: left; transform: scaleX(var(--k));
+  background: #E2D9C6;
 }
 
+/* Pinned where they are placed. Nothing here reads the scroll position: no
+   fade, no slide, no parallax inside the frame, and the tilt is a fixed angle
+   rather than one that settles. The section arriving is what reveals them, and
+   from then on they hold still while the statement is read. */
 .cx-swatch {
   position: absolute; z-index: 2; overflow: hidden;
   width: clamp(120px, 17vw, 250px); aspect-ratio: 3 / 4;
   box-shadow: 0 30px 60px -20px rgba(0,0,0,.6);
 }
-.cx-swatch img { width: 100%; height: 115%; object-fit: cover; transform: translateY(calc(var(--p) * -12%)); }
-.cx-swatch--a {
-  --s: clamp(0, (var(--p) - .18) * 4, 1);
-  place-self: start start; margin: 25vh 0 0 6vw;
-  transform: translateX(calc((1 - var(--s)) * -60vw)) rotate(calc(-6deg + var(--s) * 2deg)) translateY(calc(var(--p) * -4vh));
-}
-.cx-swatch--b {
-  --s: clamp(0, (var(--p) - .42) * 4, 1);
-  place-self: end end; margin: 0 6vw 14vh 0;
-  transform: translateX(calc((1 - var(--s)) * 60vw)) rotate(calc(5deg - var(--s) * 2deg)) translateY(calc(var(--p) * 6vh));
-}
+.cx-swatch img { width: 100%; height: 100%; object-fit: cover; }
+.cx-swatch--a { place-self: start start; margin: 25vh 0 0 6vw; transform: rotate(-4deg); }
+.cx-swatch--b { place-self: end end; margin: 0 6vw 14vh 0; transform: rotate(3deg); }
 @media (max-width: 767px) {
   .cx-swatch--a { margin: 14vh 0 0 4vw; }
   .cx-swatch--b { margin: 0 4vw 10vh 0; }
 }
 
-/* 3 · rail — the range runs past sideways while a giant outlined line slides
-   the other way behind it. */
+/* 3 · rail — two of the range at a time, with the buttons that turn to the
+   next two sitting after them. Nothing scrolls: the row is a pager that slides
+   a page at a time. The heading keeps the left of the screen, which is also
+   what leaves the row exactly wide enough for a pair of cards. */
 
-.cx-backline {
-  z-index: 0; place-self: center start;
-  white-space: nowrap;
-  font-family: Cinzel, 'Trajan Pro', Georgia, serif; text-transform: uppercase;
-  font-size: clamp(90px, 22vh, 260px); line-height: 1;
-  color: transparent; -webkit-text-stroke: 1px rgba(246,242,234,.13);
-  transform: translateX(calc(4vw - var(--p) * 55%));
+.cx-stage--rail {
+  position: relative; height: auto; min-height: 100svh;
+  display: flex; flex-direction: row; align-items: center;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  padding: calc(var(--header-h, 96px) + 2rem) clamp(1rem, 4vw, 2.5rem) clamp(1.5rem, 5vh, 3rem);
 }
+.cx-stage--rail .cx-chapter { top: 0; right: 0; }
 
 .cx-rail-head {
-  z-index: 3; place-self: start start;
-  margin: calc(var(--header-h, 96px) + 2rem) 0 0 clamp(1rem, 4vw, 2.5rem);
-  opacity: clamp(0, 1 - (var(--p) - .12) * 4, 1);
+  position: relative; z-index: 3;
+  flex: 0 0 auto; width: min(22vw, 300px); align-self: flex-start;
 }
 
+.cx-rail-row {
+  position: relative; z-index: 2;
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: clamp(1rem, 3vw, 2.5rem);
+}
+
+/* The window the pages move behind. It never scrolls — it has no scrollbar to
+   drag, no snap points and no overflow to chase; the track is simply offset by
+   whole pages, so the only way through the range is the buttons. */
+.cx-viewport { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+
 .cx-track {
-  z-index: 2; place-self: center start;
-  display: flex; align-items: center; gap: clamp(1rem, 2.4vw, 2rem);
-  padding: 0 8vw 0 4vw;
-  transform: translateX(calc((1 - var(--p)) * 38vw - var(--p) * (100% - 100vw)));
-  will-change: transform;
+  --gap: clamp(1rem, 1.6vw, 1.75rem);
+  --per: 4;                     /* products in view; the pager reads it back */
+  display: flex; align-items: center; gap: var(--gap);
+  transition: transform .7s cubic-bezier(.22,.61,.36,1);
+}
+@media (max-width: 1099px) { .cx-track { --per: 3; } }
+@media (max-width: 599px)  { .cx-track { --per: 2; } }
+
+.cx-card, .cx-end-slot {
+  flex: 0 0 calc((100% - (var(--per) - 1) * var(--gap)) / var(--per));
 }
 .cx-card {
-  position: relative; flex: none; display: block;
-  width: clamp(200px, 23vw, 330px);
+  position: relative; display: block;
   color: #F6F2EA;
 }
-.cx-card:nth-child(even) { margin-top: 12vh; }
+/* The right-hand card of every pair drops, keeping the stagger the design had. */
+.cx-track > *:nth-child(even) { margin-top: 6vh; }
 .cx-card__img { overflow: hidden; aspect-ratio: 3 / 4; background: #1E2531; }
 .cx-card__img img {
   width: 100%; height: 100%; object-fit: cover;
-  transform: scale(1.14) translateX(calc(var(--p) * -6%));
+  transform: scale(1.14);
   transition: filter .5s;
   filter: saturate(.85);
 }
@@ -367,35 +453,72 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cx-card__price { margin-top: .3rem; font-size: 12px; color: rgba(246,242,234,.6); }
 .cx-card__no { position: absolute; top: .75rem; left: .75rem; font-size: 10px; font-weight: 600; letter-spacing: .2em; color: #F6F2EA; mix-blend-mode: difference; }
 
+/* The way into the shop takes a card's place on the last page, so the circle
+   is centred in a slot the same width as a card rather than being one. */
+.cx-end-slot { display: grid; place-items: center; }
 .cx-end {
-  flex: none; display: grid; place-items: center; text-align: center;
-  width: clamp(200px, 22vw, 300px); aspect-ratio: 1;
+  display: grid; place-items: center; text-align: center;
+  width: min(100%, clamp(200px, 22vw, 300px)); aspect-ratio: 1;
   border: 1px solid rgba(246,242,234,.35); border-radius: 50%;
-  font-family: Cinzel, 'Trajan Pro', Georgia, serif; text-transform: uppercase;
-  font-size: clamp(16px, 1.6vw, 22px); letter-spacing: .08em; line-height: 1.3;
+  font-family: 'Helvetica Neue', Inter, Helvetica, Arial, sans-serif; text-transform: uppercase;
+  font-size: clamp(14px, 1.3vw, 18px); letter-spacing: .14em; line-height: 1.5;
   transition: background-color .4s, color .4s, transform .6s cubic-bezier(.22,.61,.36,1);
 }
 .cx-end:hover { background: #F6F2EA; color: #0F131A; transform: rotate(-8deg); }
 
-.cx-progress {
-  z-index: 3; place-self: end center; margin-bottom: clamp(1.5rem, 5vh, 3rem);
-  width: min(320px, 60vw); height: 1px; background: rgba(246,242,234,.18);
+/* The controls stand after the pair, where the next two will come from. */
+.cx-rail-nav {
+  flex: none; display: flex; flex-direction: column; align-items: center; gap: 1rem;
 }
-.cx-progress::after { content: ''; display: block; height: 100%; background: #F6F2EA; transform-origin: left; transform: scaleX(var(--p)); }
+.cx-arrows { display: flex; gap: .7rem; }
+.cx-arrow {
+  display: grid; place-items: center;
+  width: 54px; height: 54px; border-radius: 50%;
+  border: 1px solid rgba(246,242,234,.35);
+  color: #F6F2EA; font-size: 17px; line-height: 1;
+  transition: background-color .35s, color .35s, border-color .35s, opacity .35s, transform .35s;
+}
+.cx-arrow:hover:not(:disabled) { background: #F6F2EA; border-color: #F6F2EA; color: #0F131A; transform: scale(1.06); }
+.cx-arrow:disabled { opacity: .25; cursor: default; }
+.cx-rail-count { white-space: nowrap; }
+
+/* A column of heading beside four cards only works while the screen is wide
+   enough to give both room; below that the heading goes over the row so the
+   cards keep their size. */
+@media (max-width: 1599px) {
+  .cx-stage--rail { flex-direction: column; align-items: stretch; justify-content: center; gap: clamp(1rem, 3vh, 2rem); }
+  /* The shared stage rule centres every child, which in a column means each one
+     shrinks to its content. The row must span the stage or the cards size
+     themselves against the whole track and spill out of the viewport. */
+  .cx-stage--rail > * { align-self: stretch; }
+  .cx-rail-head { width: auto; align-self: stretch; }
+}
+
+/* Narrower still and the buttons drop below the row rather than beside it. */
+@media (max-width: 899px) {
+  .cx-rail-row { flex-direction: column; align-items: stretch; }
+  .cx-rail-nav { flex-direction: row; justify-content: center; gap: 1.25rem; }
+}
 
 /* With reduced motion the stages stop being scroll-driven: one screen each,
    frozen at the moment the copy reads best. */
 @media (prefers-reduced-motion: reduce) {
-  .cx-outer--fill, .cx-outer--rail { height: auto; }
+  .cx-outer--frame, .cx-outer--fill { height: auto; }
   .cx-stage { position: relative; }
+  /* The hero settles at its opening frame: full-bleed photograph, solid
+     headline, no bars. The caption is pinned on because its product link is
+     otherwise only reachable by the scroll that is being opted out of. */
+  .cx-stage--frame { --p: 0 !important; }
+  .cx-stage--frame .cx-caption { opacity: 1; transform: none; clip-path: none; margin-bottom: clamp(7rem, 16vh, 10rem); }
   .cx-stage--fill  { --p: 1 !important; }
-  .cx-stage--rail  { --p: 0 !important; }
-  .cx-stage--rail .cx-track { position: relative; overflow-x: auto; max-width: 100vw; transform: none; }
+  .cx-band { display: none; }
+  .cx-headline__line > span { transform: none; }
 }
 
 @keyframes cx-grain  { 0%,100% { transform: translate(0,0); } 33% { transform: translate(-2%,1%); } 66% { transform: translate(1%,-2%); } }
-@keyframes cx-band   { to { transform: translateX(101%); } }
-@keyframes cx-band-r { to { transform: translateX(-101%); } }
+@keyframes cx-band   { from { transform: translateX(0); } to { transform: translateX(101%); } }
+@keyframes cx-band-r { from { transform: translateX(0); } to { transform: translateX(-101%); } }
+@keyframes cx-rise   { from { transform: translateY(110%); } to { transform: none; } }
 @keyframes cx-pull   { 0% { transform: translateY(-100%); } 55% { transform: translateY(0); } 100% { transform: translateY(100%); } }
 
 /* ------------------------------------------------------------- intro ----
@@ -418,7 +541,7 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .intro.is-leaving .intro__body { opacity: 0; transform: scale(.96); }
 .intro__mark { animation: intro-mark 1.2s cubic-bezier(.22,.61,.36,1) both; }
 .intro__word {
-  font-family: Cinzel, 'Trajan Pro', Georgia, serif; text-transform: uppercase;
+  font-family: 'Helvetica Neue', Inter, Helvetica, Arial, sans-serif; text-transform: uppercase;
   animation: intro-track 1.6s cubic-bezier(.22,.61,.36,1) .35s both;
 }
 .intro__count { font-variant-numeric: tabular-nums; }

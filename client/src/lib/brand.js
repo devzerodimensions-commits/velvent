@@ -9,10 +9,13 @@ export const BRAND = {
   whatsapp: '917573811813',
   email: 'care@velvent.in',
 
-  hoursShort: 'Mon–Sat, 9:00 AM – 7:30 PM',
+  /* One straight shift now, seven days a week — no midday break to split. The
+     day range lives here too so the footer and the contact page stop writing
+     it out by hand and falling out of step with these hours. */
+  hoursShort: 'Every day, 9:00 AM – 9:00 PM',
+  hoursDays: 'Monday to Sunday',
   hours: [
-    { label: 'Morning', value: '9:00 AM – 1:00 PM' },
-    { label: 'Afternoon', value: '1:30 PM – 7:30 PM' },
+    { label: 'Every day', value: '9:00 AM – 9:00 PM' },
   ],
 
   social: {
