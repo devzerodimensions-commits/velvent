@@ -4,9 +4,10 @@ import { Box } from '../components/Icons';
 import { OrderDetail } from './OrderConfirmed';
 import { api } from '../lib/api';
 import { formatDateTime, STATUS_LABEL, STATUS_TONE } from '../lib/format';
-import { BRAND } from '../lib/brand';
+import { useContent } from '../store/content';
 
 export default function TrackOrder() {
+  const BRAND = useContent('brand');
   const [form, setForm] = useState({ orderNumber: '', email: '' });
   const [order, setOrder] = useState(null);
   const [error, setError] = useState(null);

@@ -10,6 +10,26 @@ export default {
         mist:  '#D6D6D6',
         ink:   '#0F131A',
         sale:  '#B23A48',
+        /* The admin panel is its own surface: a cool grey canvas under white
+           cards, rather than the storefront's warm cream. Kept apart so
+           restyling the shop never moves the panel. */
+        adm: {
+          canvas: '#F4F5F8',
+          card:   '#FFFFFF',
+          line:   '#E6E8EE',
+          soft:   '#F8F9FC',
+          ink:    '#161B26',
+          mute:   '#6B7384',
+          rail:   '#1C2230',
+          raild:  '#161B26',
+        },
+        ok:   { DEFAULT: '#0F7B55', soft: '#E7F5EF' },
+        warn: { DEFAULT: '#9A6300', soft: '#FDF3E2' },
+        info: { DEFAULT: '#1F5EA8', soft: '#EAF2FC' },
+      },
+      boxShadow: {
+        card: '0 1px 2px rgba(16, 24, 40, .04), 0 1px 3px rgba(16, 24, 40, .06)',
+        pop:  '0 10px 30px -10px rgba(16, 24, 40, .25)',
       },
       fontFamily: {
         sans: ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],

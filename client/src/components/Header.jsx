@@ -4,28 +4,15 @@ import Logo from './Logo';
 import { Bag, Close, Heart, Menu, Search, User } from './Icons';
 import { useCart } from '../store/cart';
 import { useAuth } from '../store/auth';
-import { BRAND } from '../lib/brand';
+import { useContent } from '../store/content';
 
-const NAV = [
-  { to: '/shop', label: 'Shop All' },
-  { to: '/category/polo-t-shirt', label: 'Polo T-Shirt' },
-  { to: '/category/polo-shirt', label: 'Polo Shirt' },
-  { to: '/category/oversized-t-shirt', label: 'Oversized Tee' },
-  { to: '/about', label: 'About' },
-  { to: '/contact', label: 'Contact' },
-];
 
-const TICKER = [
-  'Free shipping on every prepaid order',
-  'Flat 33% off — MRP ₹1,499 · Now ₹1,005',
-  'Easy 7-day returns',
-  'Cash on delivery available',
-];
 
-function Ticker() {
+function Ticker({ lines }) {
+  if (!lines?.length) return null;
   const strip = (
     <div className="flex shrink-0 items-center">
-      {TICKER.map((t) => (
+      {lines.map((t) => (
         <span key={t} className="flex items-center whitespace-nowrap px-6 text-[10.5px] font-medium uppercase tracking-wider2">
           {t}
           <span className="ml-6 h-1 w-1 rounded-full bg-cream/40" />
@@ -48,6 +35,8 @@ export default function Header() {
   const [onDark, setOnDark] = useState(false);
   const headerRef = useRef(null);
   const { count, openDrawer } = useCart();
+  const { ticker, nav } = useContent('header');
+  const brand = useContent('brand');
   const { user, wishlist } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -107,7 +96,7 @@ export default function Header() {
 
   return (
     <header ref={headerRef} className="sticky top-0 z-50">
-      <Ticker />
+      <Ticker lines={ticker} />
 
       <div
         className={`border-b backdrop-blur transition-[background-color,color,border-color,box-shadow] duration-500 ${
@@ -130,7 +119,7 @@ export default function Header() {
           </Link>
 
           <nav className="hidden items-center gap-7 lg:flex">
-            {NAV.map((n) => (
+            {nav.map((n) => (
               <NavLink
                 key={n.to}
                 to={n.to}
@@ -216,7 +205,7 @@ export default function Header() {
             </button>
           </div>
           <nav className="flex-1 overflow-y-auto px-5 py-3">
-            {NAV.map((n) => (
+            {nav.map((n) => (
               <NavLink
                 key={n.to}
                 to={n.to}
@@ -236,8 +225,8 @@ export default function Header() {
             </Link>
           </nav>
           <div className="border-t border-mist bg-cream px-5 py-4 text-[11px] uppercase tracking-wider2 text-slate">
-            <a href={`tel:${BRAND.phoneRaw}`} className="block font-semibold text-navy">{BRAND.phone}</a>
-            <p className="mt-1 normal-case tracking-normal">{BRAND.hoursShort}</p>
+            <a href={`tel:${brand.phoneRaw}`} className="block font-semibold text-navy">{brand.phone}</a>
+            <p className="mt-1 normal-case tracking-normal">{brand.hoursShort}</p>
           </div>
         </div>
       </div>

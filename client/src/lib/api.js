@@ -56,6 +56,8 @@ const qs = (params) => {
 export const api = {
   health: () => request('/health'),
 
+  content: () => request('/content'),
+
   categories: () => request('/categories'),
   products: (params) => request(`/products${qs(params)}`),
   filters: () => request('/products/filters'),
@@ -115,6 +117,17 @@ export const api = {
     coupons: () => request('/admin/coupons'),
     saveCoupon: (body) => request('/admin/coupons', { method: 'POST', body }),
     deleteCoupon: (id) => request(`/admin/coupons/${id}`, { method: 'DELETE' }),
+
+    content: () => request('/admin/content'),
+    saveContent: (key, value) => request(`/admin/content/${key}`, { method: 'PUT', body: { value } }),
+    resetContent: (key) => request(`/admin/content/${key}`, { method: 'DELETE' }),
+
+    customers: (q) => request(`/admin/customers${qs({ q })}`),
+    customer: (id) => request(`/admin/customers/${id}`),
+    updateCustomer: (id, body) => request(`/admin/customers/${id}`, { method: 'PUT', body }),
+
+    media: () => request('/admin/media'),
+    deleteMedia: (id) => request(`/admin/media/${id}`, { method: 'DELETE' }),
 
     upload: (file) => {
       const fd = new FormData();

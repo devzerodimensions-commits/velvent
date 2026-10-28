@@ -6,7 +6,7 @@ import { useCart } from '../store/cart';
 import { useToast } from '../store/toast';
 import { api } from '../lib/api';
 import { inr } from '../lib/format';
-import { BRAND } from '../lib/brand';
+import { useContent } from '../store/content';
 
 function CouponBox() {
   const { couponCode, setCouponCode, totals } = useCart();
@@ -82,6 +82,7 @@ function CouponBox() {
 }
 
 export default function Cart() {
+  const BRAND = useContent('brand');
   const { items, lines, totals, pricing, priceError, setQty, remove, count } = useCart();
 
   const rows = lines?.length ? lines : items.map((i) => ({

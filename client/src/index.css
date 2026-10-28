@@ -79,35 +79,53 @@
 
   .skeleton { @apply animate-pulse bg-cream-dark; }
 
-  /* ---------------------------------------------------------- admin (wp) --
-     The admin panel is laid out like WooCommerce, so its controls are smaller
-     and squarer than the storefront's. Kept separate so restyling the shop
-     never moves the admin, and the other way round. */
+  /* -------------------------------------------------------------- admin --
+     The panel is its own product: a cool grey canvas, white rounded cards and
+     a soft shadow, rather than the storefront's warm cream and square edges.
+     Kept apart so restyling the shop never moves the panel, or the reverse. */
 
-  .wp-btn {
-    @apply inline-flex items-center justify-center gap-1.5 whitespace-nowrap border
-           px-3 py-1.5 text-[12.5px] font-medium transition-colors
+  .ad-btn {
+    @apply inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border
+           px-3.5 py-2 text-[13px] font-semibold leading-none transition
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/25
            disabled:cursor-not-allowed disabled:opacity-50;
   }
-  .wp-btn-primary   { @apply wp-btn border-navy bg-navy text-cream hover:bg-navy-deep; }
-  .wp-btn-secondary { @apply wp-btn border-mist bg-white text-navy hover:border-navy hover:bg-cream/50; }
-  .wp-btn-danger    { @apply wp-btn border-sale bg-white text-sale hover:bg-sale hover:text-white; }
+  .ad-btn-primary { @apply ad-btn border-transparent bg-navy text-white shadow-sm hover:bg-navy-deep; }
+  .ad-btn-ghost   { @apply ad-btn border-adm-line bg-white text-adm-ink hover:border-slate-light hover:bg-adm-soft; }
+  .ad-btn-quiet   { @apply ad-btn border-transparent bg-transparent text-adm-mute hover:bg-adm-soft hover:text-adm-ink; }
+  .ad-btn-danger  { @apply ad-btn border-transparent bg-sale text-white hover:brightness-110; }
+  .ad-btn-sm      { @apply px-2.5 py-1.5 text-[12px]; }
 
-  .wp-input {
-    @apply w-full border border-mist bg-white px-2.5 py-1.5 text-[13px] text-navy
-           transition-colors placeholder:text-slate-light
-           focus:border-navy focus:outline-none focus:ring-0;
+  .ad-input {
+    @apply w-full rounded-lg border border-adm-line bg-white px-3 py-2 text-[13.5px] text-adm-ink
+           transition placeholder:text-slate-light
+           focus:border-navy focus:outline-none focus:ring-4 focus:ring-navy/10;
   }
-  .wp-select { @apply wp-input w-auto pr-7; }
-  .wp-textarea { @apply wp-input leading-relaxed; }
+  .ad-select   { @apply ad-input w-auto pr-8; }
+  .ad-textarea { @apply ad-input leading-relaxed; }
+  .ad-label    { @apply block text-[12.5px] font-semibold text-adm-ink; }
 
-  .wp-page-btn {
-    @apply inline-flex h-7 w-7 items-center justify-center border border-mist bg-white
-           text-navy transition-colors hover:border-navy hover:bg-cream/50;
+  .ad-card { @apply rounded-xl border border-adm-line bg-adm-card shadow-card; }
+
+  .ad-chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1
+           text-[11px] font-semibold leading-none;
   }
 
-  /* The admin sits on a tinted field so white panels read as panels. */
-  .wp-screen { @apply min-h-screen bg-cream/40; }
+  .ad-page-btn {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-lg border border-adm-line
+           bg-white text-adm-ink transition hover:border-slate-light hover:bg-adm-soft;
+  }
+
+  .ad-screen { @apply min-h-screen bg-adm-canvas; }
+
+  /* The rail's active item: a rounded pill rather than a full-bleed band. */
+  .ad-nav {
+    @apply relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px]
+           font-medium transition;
+  }
+  .ad-nav-on  { @apply bg-white/10 font-semibold text-white; }
+  .ad-nav-off { @apply text-white/60 hover:bg-white/5 hover:text-white; }
 }
 
 @layer utilities {

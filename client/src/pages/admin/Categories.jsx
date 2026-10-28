@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Seo } from '../../components/ui';
-import { Cell, ListTable, Notice, RowActions, ScreenHeader } from '../../components/wp';
+import { Cell, ListTable, Notice, RowActions, ScreenHeader } from '../../components/adminUi';
 import { api } from '../../lib/api';
 import { useToast } from '../../store/toast';
 
@@ -40,7 +40,7 @@ function SizeChartFields({ value, onChange }) {
           value={chart.note || ''}
           onChange={(e) => onChange({ ...chart, note: e.target.value })}
           placeholder="Regular fit with a set-in sleeve. Take your usual size."
-          className="wp-input"
+          className="ad-input"
         />
       </div>
 
@@ -48,9 +48,9 @@ function SizeChartFields({ value, onChange }) {
         <table className="w-full min-w-[420px] border-collapse text-[12.5px]">
           <thead>
             <tr>
-              <th className="pb-1.5 pr-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate">Size</th>
+              <th className="pb-1.5 pr-2 text-left text-[11px] font-semibold uppercase tracking-wider text-adm-mute">Size</th>
               {MEASURE_COLS.map((h) => (
-                <th key={h} className="pb-1.5 pr-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate">{h} (in)</th>
+                <th key={h} className="pb-1.5 pr-2 text-left text-[11px] font-semibold uppercase tracking-wider text-adm-mute">{h} (in)</th>
               ))}
             </tr>
           </thead>
@@ -62,7 +62,7 @@ function SizeChartFields({ value, onChange }) {
                     value={r[0] ?? ''}
                     onChange={edit('rows', i, 0)}
                     aria-label={`Size name, row ${i + 1}`}
-                    className="wp-input w-20"
+                    className="ad-input w-20"
                   />
                 </td>
                 {[1, 2, 3, 4].map((j) => (
@@ -73,7 +73,7 @@ function SizeChartFields({ value, onChange }) {
                       value={r[j] ?? ''}
                       onChange={edit('rows', i, j)}
                       aria-label={`${MEASURE_COLS[j - 1]} for ${r[0] || `row ${i + 1}`}`}
-                      className="wp-input w-20"
+                      className="ad-input w-20"
                     />
                   </td>
                 ))}
@@ -85,7 +85,7 @@ function SizeChartFields({ value, onChange }) {
 
       <div>
         <p className="mb-1.5 text-[12.5px] font-semibold text-navy">How to measure</p>
-        <p className="mb-2.5 text-[11.5px] text-slate">
+        <p className="mb-2.5 text-[11.5px] text-adm-mute">
           Shown beside this chart. Written per category, so a dropped shoulder can be explained
           differently from a set-in sleeve.
         </p>
@@ -96,21 +96,21 @@ function SizeChartFields({ value, onChange }) {
                 value={s[0] ?? ''}
                 onChange={edit('howTo', i, 0)}
                 aria-label={`Measurement name ${i + 1}`}
-                className="wp-input w-28 shrink-0"
+                className="ad-input w-28 shrink-0"
               />
               <input
                 value={s[1] ?? ''}
                 onChange={edit('howTo', i, 1)}
                 placeholder="How to take this measurement"
                 aria-label={`How to measure ${s[0] || i + 1}`}
-                className="wp-input"
+                className="ad-input"
               />
             </div>
           ))}
         </div>
       </div>
 
-      <button type="button" onClick={() => onChange(null)} className="wp-btn-secondary">
+      <button type="button" onClick={() => onChange(null)} className="ad-btn-ghost">
         Clear chart
       </button>
     </div>
@@ -184,8 +184,8 @@ export default function AdminCategories() {
 
       {/* WordPress puts the add form on the left and the list on the right. */}
       <div className="grid items-start gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <form onSubmit={save} className="border border-mist bg-white">
-          <header className="border-b border-mist px-4 py-2.5">
+        <form onSubmit={save} className="ad-card">
+          <header className="border-b border-adm-line px-4 py-2.5">
             <h2 className="text-[13px] font-semibold text-navy">
               {form.id ? `Edit "${form.name}"` : 'Add new category'}
             </h2>
@@ -193,42 +193,42 @@ export default function AdminCategories() {
           <div className="space-y-3 p-4">
             <div>
               <label htmlFor="cat-name" className="mb-1 block text-[12.5px] font-semibold text-navy">Name</label>
-              <input id="cat-name" value={form.name} onChange={set('name')} required className="wp-input" />
-              <p className="mt-1 text-[11.5px] text-slate">The name as it appears on your site.</p>
+              <input id="cat-name" value={form.name} onChange={set('name')} required className="ad-input" />
+              <p className="mt-1 text-[11.5px] text-adm-mute">The name as it appears on your site.</p>
             </div>
             <div>
               <label htmlFor="cat-slug" className="mb-1 block text-[12.5px] font-semibold text-navy">Slug</label>
-              <input id="cat-slug" value={form.slug || ''} onChange={set('slug')} placeholder="auto from name" className="wp-input" />
-              <p className="mt-1 text-[11.5px] text-slate">The URL-friendly version. Lowercase, letters, numbers and hyphens.</p>
+              <input id="cat-slug" value={form.slug || ''} onChange={set('slug')} placeholder="auto from name" className="ad-input" />
+              <p className="mt-1 text-[11.5px] text-adm-mute">The URL-friendly version. Lowercase, letters, numbers and hyphens.</p>
             </div>
             <div>
               <label htmlFor="cat-tagline" className="mb-1 block text-[12.5px] font-semibold text-navy">Tagline</label>
-              <input id="cat-tagline" value={form.tagline || ''} onChange={set('tagline')} className="wp-input" />
+              <input id="cat-tagline" value={form.tagline || ''} onChange={set('tagline')} className="ad-input" />
             </div>
             <div>
               <label htmlFor="cat-desc" className="mb-1 block text-[12.5px] font-semibold text-navy">Description</label>
-              <textarea id="cat-desc" rows={3} value={form.description || ''} onChange={set('description')} className="wp-textarea" />
+              <textarea id="cat-desc" rows={3} value={form.description || ''} onChange={set('description')} className="ad-textarea" />
             </div>
             <div>
               <label htmlFor="cat-image" className="mb-1 block text-[12.5px] font-semibold text-navy">Image URL</label>
-              <input id="cat-image" value={form.image_url || ''} onChange={set('image_url')} className="wp-input" />
+              <input id="cat-image" value={form.image_url || ''} onChange={set('image_url')} className="ad-input" />
             </div>
             <div>
               <label htmlFor="cat-order" className="mb-1 block text-[12.5px] font-semibold text-navy">Order</label>
-              <input id="cat-order" type="number" value={form.sort_order ?? 0} onChange={set('sort_order')} className="wp-input w-24" />
+              <input id="cat-order" type="number" value={form.sort_order ?? 0} onChange={set('sort_order')} className="ad-input w-24" />
             </div>
             <label className="flex items-center gap-2 text-[12.5px] text-navy">
               <input type="checkbox" checked={form.is_active !== false} onChange={set('is_active')} /> Visible on the storefront
             </label>
 
-            <details className="border border-mist bg-cream/40">
+            <details className="border border-adm-line bg-adm-soft">
               <summary className="cursor-pointer px-3 py-2.5 text-[12.5px] font-semibold text-navy">
                 Size guide
-                <span className="ml-2 font-normal text-slate">
+                <span className="ml-2 font-normal text-adm-mute">
                   {form.size_chart?.rows?.length ? 'set for this category' : 'using the built-in chart'}
                 </span>
               </summary>
-              <div className="border-t border-mist p-3">
+              <div className="border-t border-adm-line p-3">
                 <SizeChartFields
                   value={form.size_chart}
                   onChange={(v) => setForm((f) => ({ ...f, size_chart: v }))}
@@ -236,12 +236,12 @@ export default function AdminCategories() {
               </div>
             </details>
           </div>
-          <footer className="flex items-center gap-2 border-t border-mist bg-cream/40 px-4 py-3">
-            <button type="submit" disabled={busy} className="wp-btn-primary">
+          <footer className="flex items-center gap-2 border-t border-adm-line bg-adm-soft px-4 py-3">
+            <button type="submit" disabled={busy} className="ad-btn-primary">
               {busy ? 'Saving…' : form.id ? 'Update' : 'Add new category'}
             </button>
             {form.id && (
-              <button type="button" onClick={() => setForm(BLANK)} className="wp-btn-secondary">Cancel</button>
+              <button type="button" onClick={() => setForm(BLANK)} className="ad-btn-ghost">Cancel</button>
             )}
           </footer>
         </form>
@@ -260,7 +260,7 @@ export default function AdminCategories() {
                 <button type="button" onClick={() => setForm(c)} className="font-semibold text-navy hover:underline">
                   {c.name}
                 </button>
-                {!c.is_active && <span className="ml-1.5 text-[12px] text-slate">— Hidden</span>}
+                {!c.is_active && <span className="ml-1.5 text-[12px] text-adm-mute">— Hidden</span>}
                 <RowActions
                   actions={[
                     { label: 'Edit', onClick: () => setForm(c) },

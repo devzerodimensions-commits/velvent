@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useContent } from '../store/content';
 import { Mark } from './Logo';
 import { inr } from '../lib/format';
 
@@ -90,18 +91,6 @@ function Rise({ text, offset = 0 }) {
   ));
 }
 
-/* The garment the opening stage is shot in. The photograph, the caption and the
-   click target over the whole stage all read from here so they cannot drift
-   apart and send someone to a different product than the one on show. */
-const HERO = {
-  slug: 'rugby-stripe-knitted-polo',
-  name: 'Rugby Stripe Knitted Polo',
-  photo: '/products/rugby-stripe-polo-1.jpg',
-};
-
-const STATEMENT = 'Velvent is knitted cotton for people who dress with intent.';
-const EMPHASIS = new Set(['knitted', 'cotton', 'intent.']);
-
 const RAIL_FALLBACK = [
   { id: 'a', slug: '', name: 'Cable Knit Contrast Polo', img: '/products/cable-knit-polo-green-1.jpg' },
   { id: 'b', slug: '', name: 'Coastal Stripe Polo', img: '/products/coastal-stripe-polo-1.jpg' },
@@ -128,6 +117,7 @@ const toRailItem = (p) => ({
  * into view — the buttons simply drive it, and the bar shows how far along it is.
  */
 function RailStage({ rail }) {
+  const c = useContent('home');
   const viewportRef = useRef(null);
   const trackRef = useRef(null);
   const [page, setPage] = useState(0);
@@ -181,10 +171,10 @@ function RailStage({ rail }) {
   const hidden = (i) => (onPage(i) ? undefined : { tabIndex: -1, 'aria-hidden': 'true' });
 
   return (
-    <Stage kind="rail" label="The range" scrollDriven={false}>
+    <Stage kind="rail" label={c.railEyebrow} scrollDriven={false}>
       <div className="cx-rail-head">
-        <p className="cx-meta">The range</p>
-        <h2 className="h-display mt-3 text-[28px] sm:text-[40px]">Made to be<br />worn often</h2>
+        <p className="cx-meta">{c.railEyebrow}</p>
+        <h2 className="h-display mt-3 text-[28px] sm:text-[40px]">{c.railTitle}</h2>
       </div>
       <span className="cx-chapter cx-meta" aria-hidden>03 / 03</span>
 
@@ -245,12 +235,21 @@ function RailStage({ rail }) {
 
 export function Cinema({ products = [] }) {
   const ready = useIntroDone();
+  const c = useContent('home');
+  const HERO = c.hero;
+  const STATEMENT = c.statement || '';
+  const headline = [HERO.headline1, HERO.headline2].filter(Boolean).join(' ');
+  /* The words to pick out are written as a comma-separated list in the admin,
+     matched case-insensitively against the sentence. */
+  const EMPHASIS = new Set(
+    String(c.statementEmphasis || '').split(',').map((w) => w.trim().toLowerCase()).filter(Boolean),
+  );
   const rail = products.length ? products.slice(0, 6).map(toRailItem) : RAIL_FALLBACK;
 
   return (
     <>
       {/* 1 — a full-bleed photo eases back behind closing bars; the headline splits around it */}
-      <Stage kind="frame" label="Crafted for confidence" className={ready ? 'is-ready' : ''}>
+      <Stage kind="frame" label={headline} className={ready ? 'is-ready' : ''}>
         <div className="cx-frame">
           <img src={HERO.photo} alt="" fetchpriority="high" />
         </div>
@@ -271,28 +270,28 @@ export function Cinema({ products = [] }) {
           tabIndex={-1}
         />
 
-        <h1 className="cx-headline" aria-label="Crafted for confidence">
-          <span className="cx-headline__line" aria-hidden><Rise text="Crafted for" /></span>
-          <span className="cx-headline__line" aria-hidden><Rise text="Confidence" offset={4} /></span>
+        <h1 className="cx-headline" aria-label={headline}>
+          <span className="cx-headline__line" aria-hidden><Rise text={HERO.headline1} /></span>
+          <span className="cx-headline__line" aria-hidden><Rise text={HERO.headline2} offset={(HERO.headline1 || '').length} /></span>
         </h1>
 
-        <span className="cx-side cx-meta hidden md:block" aria-hidden>Autumn knitwear — 01</span>
+        <span className="cx-side cx-meta hidden md:block" aria-hidden>{HERO.side}</span>
         <span className="cx-chapter cx-meta" aria-hidden>01 / 03</span>
 
         <div className="cx-caption">
-          <span className="cx-meta">Shown here</span>
+          <span className="cx-meta">{HERO.captionLabel}</span>
           <Link to={`/product/${HERO.slug}`} className="cx-link" data-cursor="View">
             {HERO.name}
           </Link>
         </div>
 
         <div className="cx-foot">
-          <Link to="/shop" className="cx-link" data-cursor="Shop">Shop the collection <span aria-hidden>→</span></Link>
+          <Link to="/shop" className="cx-link" data-cursor="Shop">{HERO.shopLabel} <span aria-hidden>→</span></Link>
           <span className="cx-thread" aria-hidden>
             <span className="cx-meta">Scroll</span>
             <span className="cx-thread__line" />
           </span>
-          <span className="cx-meta hidden sm:block">Sizes S – 3XL</span>
+          <span className="cx-meta hidden sm:block">{HERO.note}</span>
         </div>
       </Stage>
 
@@ -300,10 +299,10 @@ export function Cinema({ products = [] }) {
       <Stage kind="fill" label={STATEMENT}>
         <Mark className="cx-mark" />
         <figure className="cx-swatch cx-swatch--a" aria-hidden>
-          <img src="/products/anatomy-cable.jpg" alt="" loading="lazy" />
+          <img src={c.statementImageA} alt="" loading="lazy" />
         </figure>
         <figure className="cx-swatch cx-swatch--b" aria-hidden>
-          <img src="/products/anatomy-collar.jpg" alt="" loading="lazy" />
+          <img src={c.statementImageB} alt="" loading="lazy" />
         </figure>
         <p className="cx-fill" aria-label={STATEMENT}>
           {STATEMENT.split(' ').map((w, i) => (

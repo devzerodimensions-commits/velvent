@@ -4,7 +4,7 @@ import { Seo } from '../../components/ui';
 import { Star } from '../../components/Icons';
 import {
   Cell, Field, ListTable, Notice, RowActions, ScreenHeader, SubsubsubNav,
-} from '../../components/wp';
+} from '../../components/adminUi';
 import { api } from '../../lib/api';
 import { formatDate, inr } from '../../lib/format';
 import { useToast } from '../../store/toast';
@@ -51,18 +51,18 @@ function QuickEdit({ product, onCancel, onSaved }) {
   };
 
   return (
-    <tr className="border-b border-mist bg-cream/50">
+    <tr className="border-b border-adm-line bg-adm-soft">
       <td colSpan={COLUMNS.length + 1} className="p-4">
-        <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-slate">Quick Edit</p>
+        <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-adm-mute">Quick Edit</p>
         <div className="grid gap-3 lg:max-w-2xl">
           <Field label="Name" htmlFor={`qe-name-${product.id}`}>
-            <input id={`qe-name-${product.id}`} value={form.name} onChange={set('name')} className="wp-input" />
+            <input id={`qe-name-${product.id}`} value={form.name} onChange={set('name')} className="ad-input" />
           </Field>
           <Field label="Regular price" htmlFor={`qe-mrp-${product.id}`}>
-            <input id={`qe-mrp-${product.id}`} type="number" min="0" step="1" value={form.mrp} onChange={set('mrp')} className="wp-input sm:w-40" />
+            <input id={`qe-mrp-${product.id}`} type="number" min="0" step="1" value={form.mrp} onChange={set('mrp')} className="ad-input sm:w-40" />
           </Field>
           <Field label="Sale price" htmlFor={`qe-sale-${product.id}`}>
-            <input id={`qe-sale-${product.id}`} type="number" min="0" step="1" value={form.sale_price} onChange={set('sale_price')} className="wp-input sm:w-40" />
+            <input id={`qe-sale-${product.id}`} type="number" min="0" step="1" value={form.sale_price} onChange={set('sale_price')} className="ad-input sm:w-40" />
           </Field>
           <Field label="Status">
             <div className="flex flex-wrap gap-4 pt-1.5">
@@ -76,10 +76,10 @@ function QuickEdit({ product, onCancel, onSaved }) {
           </Field>
         </div>
         <div className="mt-4 flex items-center gap-2">
-          <button type="button" onClick={save} disabled={saving} className="wp-btn-primary">
+          <button type="button" onClick={save} disabled={saving} className="ad-btn-primary">
             {saving ? 'Updating…' : 'Update'}
           </button>
-          <button type="button" onClick={onCancel} className="wp-btn-secondary">Cancel</button>
+          <button type="button" onClick={onCancel} className="ad-btn-ghost">Cancel</button>
         </div>
       </td>
     </tr>
@@ -193,7 +193,7 @@ export default function AdminProducts() {
               id="cat-filter"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="wp-select"
+              className="ad-select"
             >
               <option value="">All categories</option>
               {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -206,7 +206,7 @@ export default function AdminProducts() {
               <img
                 src={p.image_url}
                 alt=""
-                className="h-11 w-9 bg-cream object-cover"
+                className="h-11 w-9 bg-adm-soft object-cover"
                 loading="lazy"
               />
             </Cell>
@@ -214,7 +214,7 @@ export default function AdminProducts() {
               <Link to={`/admin/products/${p.id}`} className="font-semibold text-navy hover:underline">
                 {p.name}
               </Link>
-              {!p.is_active && <span className="ml-1.5 text-[12px] font-semibold text-slate">— Draft</span>}
+              {!p.is_active && <span className="ml-1.5 text-[12px] font-semibold text-adm-mute">— Draft</span>}
               <RowActions
                 actions={[
                   { label: `ID: ${p.id}`, onClick: () => {} },
@@ -234,12 +234,12 @@ export default function AdminProducts() {
               ) : (
                 <>
                   <span className={p.stock <= 10 ? 'font-semibold text-amber-700' : 'text-emerald-700'}>In stock</span>
-                  <span className="block text-[11.5px] text-slate">{p.stock} total</span>
+                  <span className="block text-[11.5px] text-adm-mute">{p.stock} total</span>
                 </>
               )}
             </Cell>
             <Cell>
-              <span className="text-slate line-through">{inr(p.mrp)}</span>{' '}
+              <span className="text-adm-mute line-through">{inr(p.mrp)}</span>{' '}
               <span className="font-semibold text-navy">{inr(p.sale_price)}</span>
             </Cell>
             <Cell className="hidden lg:table-cell">{p.category_name || '—'}</Cell>
@@ -249,7 +249,7 @@ export default function AdminProducts() {
                 onClick={() => toggleFeatured(p)}
                 aria-label={p.is_featured ? `Remove ${p.name} from featured` : `Mark ${p.name} featured`}
                 aria-pressed={p.is_featured}
-                className={`transition ${p.is_featured ? 'text-navy' : 'text-mist hover:text-slate'}`}
+                className={`transition ${p.is_featured ? 'text-navy' : 'text-mist hover:text-adm-mute'}`}
               >
                 <Star size={15} filled={p.is_featured} />
               </button>
@@ -263,7 +263,7 @@ export default function AdminProducts() {
 
       {/* Quick Edit renders as a full-width row under the table it belongs to. */}
       {quickEdit && (
-        <table className="w-full border border-t-0 border-mist">
+        <table className="w-full border border-t-0 border-adm-line">
           <tbody>
             <QuickEdit
               product={all.find((p) => p.id === quickEdit)}

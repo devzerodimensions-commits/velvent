@@ -1,7 +1,5 @@
 import { money } from './helpers.js';
-
-export const FREE_SHIPPING_ABOVE = 999;
-export const SHIPPING_FEE = 79;
+import { getShipping } from './content.js';
 
 /**
  * Re-prices a client cart from the database so the browser can never dictate
@@ -76,7 +74,11 @@ export async function priceCart(client, items, coupon = null) {
   }
 
   const afterDiscount = money(subtotal - discount);
-  const shipping = afterDiscount >= FREE_SHIPPING_ABOVE || afterDiscount === 0 ? 0 : SHIPPING_FEE;
+  /* The threshold and the fee are whatever the admin last saved, so the price
+     the shopper was quoted and the price the order is written at come from
+     the same place. */
+  const rules = await getShipping();
+  const shipping = afterDiscount >= rules.freeAbove || afterDiscount === 0 ? 0 : rules.fee;
   const total = money(afterDiscount + shipping);
   const mrpTotal = money(lines.reduce((s, l) => s + l.mrp * l.quantity, 0));
 

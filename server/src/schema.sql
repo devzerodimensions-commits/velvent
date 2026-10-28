@@ -185,6 +185,17 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+/* Every piece of standing copy the admin can edit — the header ticker, the
+   footer columns, the brand's phone and hours, each static page's text and
+   images. One row per area, the shape of the value decided by the editor that
+   writes it, so a new field is a client change and never a migration. The
+   client ships defaults for all of it, so an empty table renders the store. */
+CREATE TABLE IF NOT EXISTS site_content (
+  key        TEXT PRIMARY KEY,
+  value      JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 /* ---------------------------------------------------------------- migrations
    CREATE TABLE IF NOT EXISTS leaves an existing table alone, so a column added
    after a database was first built needs saying again here. Each one is

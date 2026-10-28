@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import Newsletter from '../components/Newsletter';
@@ -6,17 +6,16 @@ import { Mark } from '../components/Logo';
 import { Accordion, MaskHeading, Reveal, SectionHead, Seo } from '../components/ui';
 import { Cinema, Intro } from '../components/Cinema';
 import { SizeGuideModal } from '../components/SizeGuide';
-import { Bag, Refresh, Ruler, Rupee, Shield, Truck } from '../components/Icons';
+import { Bag, Box, Check, Heart, Refresh, Ruler, Rupee, Shield, Tag, Truck } from '../components/Icons';
 import { api } from '../lib/api';
-import { BRAND } from '../lib/brand';
+import { useContent } from '../store/content';
+import { Rich } from '../components/RichText';
 import { SIZE_ORDER, inr } from '../lib/format';
 
-const PROMISES = [
-  { Icon: Truck, title: 'Free shipping', body: `On prepaid orders above ₹${BRAND.shipping.freeAbove}` },
-  { Icon: Refresh, title: `${BRAND.shipping.returnDays}-day returns`, body: 'Free exchange on size and fit' },
-  { Icon: Rupee, title: 'Cash on delivery', body: 'Pay when the parcel reaches you' },
-  { Icon: Shield, title: 'Secure checkout', body: 'UPI, cards and net banking' },
-];
+/* Promises name their icon in the admin; this is the only place that turns a
+   name back into a component, so an unknown one degrades to a parcel rather
+   than taking the homepage down. */
+const PROMISE_ICONS = { Truck, Refresh, Rupee, Shield, Box, Tag, Check, Heart };
 
 /**
  * The Oversized Tee range has not been photographed yet, so its images are flat
@@ -31,16 +30,21 @@ const isPhotographed = (item) => {
 };
 
 function Promises() {
+  const { promises = [] } = useContent('home');
+
   return (
     <section className="border-y border-cream-deep bg-cream">
       <div className="shell grid grid-cols-2 gap-x-6 gap-y-8 py-10 lg:grid-cols-4 lg:py-12">
-        {PROMISES.map(({ Icon, title, body }, i) => (
-          <Reveal key={title} delay={i * 90} className="flex flex-col items-center text-center">
+        {promises.map(({ icon, title, body }, i) => {
+          const Icon = PROMISE_ICONS[icon] || Box;
+          return (
+          <Reveal key={title || i} delay={i * 90} className="flex flex-col items-center text-center">
             <Icon size={24} className="text-navy" />
             <p className="mt-4 font-heading text-[13px] font-semibold uppercase tracking-[0.12em] text-navy">{title}</p>
             <p className="mt-1.5 text-[12px] leading-relaxed text-slate">{body}</p>
           </Reveal>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -118,9 +122,9 @@ function Collection({ categories, loading }) {
 
 /* ------------------------------------------------------------- marquee band */
 
-const MARQUEE_WORDS = ['Simple', 'Timeless', 'Premium', 'Knitted Cotton'];
-
 function Marquee() {
+  const { marquee: MARQUEE_WORDS = [] } = useContent('home');
+
   const strip = (
     <div className="flex shrink-0 items-center" aria-hidden>
       {MARQUEE_WORDS.map((word) => (
@@ -150,50 +154,13 @@ function Marquee() {
 /* Every marker below sits on one real garment — the Cable Knit Contrast Polo — and each
    close-up is cropped from that same photograph, so a marker always points at the thing
    it describes. x/y are percentages of the photo. */
-const GARMENT = {
-  slug: 'cable-knit-contrast-polo',
-  name: 'Cable Knit Contrast Polo',
-  photo: '/products/cable-knit-polo-green-1.jpg',
-};
-
-const POINTS = [
-  {
-    x: 38.5,
-    y: 30,
-    crop: '/products/anatomy-collar.jpg',
-    label: 'Collar',
-    title: 'Knitted in, not stitched on',
-    body: 'The contrast collar and its white tipping are knitted as part of the garment rather than sewn on afterwards, so the edge stays flat instead of curling away after a few washes.',
-  },
-  {
-    x: 49.5,
-    y: 40,
-    crop: '/products/anatomy-placket.jpg',
-    label: 'Placket',
-    title: 'Three buttons, set to sit flat',
-    body: 'A reinforced placket with the buttons spaced so the opening lies closed without pulling. It is the difference between a polo that hangs cleanly and one that gapes at the chest.',
-  },
-  {
-    x: 36,
-    y: 58.5,
-    crop: '/products/anatomy-cable.jpg',
-    label: 'Cable panel',
-    title: 'Texture that catches the light',
-    body: 'Vertical cables run the full length of the body. Slower on the machine and hungrier for yarn than a flat knit — which is precisely why it reads the way it does in daylight.',
-  },
-  {
-    x: 47,
-    y: 76.5,
-    crop: '/products/anatomy-hem.jpg',
-    label: 'Hem',
-    title: 'Ribbed to hold its shape',
-    body: 'A ribbed hem band grips lightly at the waist so the body keeps its line instead of flaring out. The same rib finishes both sleeve openings.',
-  },
-];
-
 function Anatomy() {
+  const c = useContent('home').anatomy;
+  const GARMENT = c.garment;
+  const POINTS = c.points || [];
+
   const [active, setActive] = useState(0);
-  const point = POINTS[active];
+  const point = POINTS[active] || POINTS[0];
 
   // The magnifier, on the close-up itself.
   const frameRef = useRef(null);
@@ -228,11 +195,10 @@ function Anatomy() {
     <section className="border-y border-mist bg-cream">
       <div className="shell py-20 sm:py-28 lg:py-32">
         <div className="max-w-2xl">
-          <Reveal as="p" variant="fade" className="eyebrow">Why it costs what it costs</Reveal>
-          <MaskHeading lines={['Anatomy', 'of a polo']} className="h-section mt-3" delay={80} />
+          <Reveal as="p" variant="fade" className="eyebrow">{c.eyebrow}</Reveal>
+          <MaskHeading lines={[c.headline1, c.headline2].filter(Boolean)} className="h-section mt-3" delay={80} />
           <Reveal as="p" delay={200} className="mt-5 text-[15px] leading-relaxed text-slate">
-            Most of what you pay for is invisible from two metres away. Tap a point on the{' '}
-            {GARMENT.name} to see it from twenty centimetres.
+            {String(c.lead || '').replace('{garment}', GARMENT.name || '')}
           </Reveal>
         </div>
 
@@ -344,7 +310,7 @@ function Anatomy() {
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link to={`/product/${GARMENT.slug}`} className="btn-primary">
-                <Bag size={17} /> Shop this polo
+                <Bag size={17} /> {c.ctaLabel}
               </Link>
               <Link to="/shop" className="btn-outline">See the range</Link>
             </div>
@@ -492,33 +458,25 @@ function Rail({ eyebrow, title, products, loading, action, actionTo }) {
 }
 
 function StoryBand() {
+  const c = useContent('home').story;
+
   return (
     <section className="border-y border-mist bg-cream">
       <div className="grid lg:grid-cols-2">
         <div className="order-2 flex items-center px-6 py-16 sm:px-12 lg:order-1 lg:py-24 lg:pl-[max(2.5rem,calc((100vw-1440px)/2+2.5rem))]">
           <div className="max-w-md">
             <Reveal variant="fade"><Mark className="h-11 w-auto text-navy" /></Reveal>
-            <Reveal as="p" variant="fade" delay={80} className="eyebrow mt-7">The brand</Reveal>
-            <MaskHeading lines={['Nothing loud.', 'Nothing disposable.']} className="h-section mt-3" delay={140} />
-            <p className="mt-6 text-[15px] leading-relaxed text-slate">
-              VELVENT is built on one fabric done properly: knitted cotton. Every polo, shirt
-              and tee starts from the same question — will this still look right after fifty washes?
-            </p>
-            <p className="mt-4 text-[15px] leading-relaxed text-slate">
-              Collars that hold their shape. Stripes that line up at the seam. Colour that settles
-              instead of fading. Nothing loud, nothing disposable.
-            </p>
-            <Link to="/about" className="btn-primary mt-9">Read our story</Link>
+            <Reveal as="p" variant="fade" delay={80} className="eyebrow mt-7">{c.eyebrow}</Reveal>
+            <MaskHeading lines={[c.headline1, c.headline2].filter(Boolean)} className="h-section mt-3" delay={140} />
+            {(c.paragraphs || []).map((para, i) => (
+              <p key={i} className={`${i === 0 ? 'mt-6' : 'mt-4'} text-[15px] leading-relaxed text-slate`}>{para}</p>
+            ))}
+            <Link to={c.ctaTo} className="btn-primary mt-9">{c.ctaLabel}</Link>
           </div>
         </div>
 
         <div className="order-1 grid grid-cols-2 gap-px bg-mist lg:order-2">
-          {[
-            '/products/cable-knit-polo-green-1.jpg',
-            '/products/vertical-stripe-shirt-olive-1.jpg',
-            '/products/coastal-stripe-polo-1.jpg',
-            '/products/cable-knit-polo-burgundy-1.jpg',
-          ].map((src) => (
+          {(c.images || []).map((src) => (
             <Reveal key={src} variant="img" className="overflow-hidden">
               <img src={src} alt="" loading="lazy" className="aspect-square w-full object-cover" />
             </Reveal>
@@ -531,84 +489,48 @@ function StoryBand() {
 
 /* -------------------------------------------------------------------- faq */
 
-const HOME_FAQ = [
-  {
-    title: 'How long will my order take?',
-    body: (
-      <p>
-        We dispatch within {BRAND.shipping.dispatchDays} and delivery usually takes{' '}
-        {BRAND.shipping.deliveryDays}, depending on your PIN code. You can follow it on the{' '}
-        <Link to="/track-order" className="underline">Track Order</Link> page with just your order
-        number and email.
-      </p>
-    ),
-  },
-  {
-    title: 'What if the size is wrong?',
-    body: (
-      <p>
-        Size exchanges are free within {BRAND.shipping.returnDays} days of delivery, subject to
-        stock. Call or message us and we will arrange the pickup and send the replacement.
-      </p>
-    ),
-  },
-  {
-    title: 'Can I pay cash on delivery?',
-    body: <p>Yes, nationwide and at no extra charge. Prepaid orders above {inr(BRAND.shipping.freeAbove)} also ship free.</p>,
-  },
-  {
-    title: 'Will knitted cotton shrink or lose shape?',
-    body: (
-      <p>
-        Not meaningfully, if you wash cold and tumble dry low. Hot washes are what shrink cotton
-        knits and stretch out collars — the care label is short for a reason.
-      </p>
-    ),
-  },
-  {
-    title: 'Do you ship outside India?',
-    body: <p>Not yet. We ship across India only at the moment.</p>,
-  },
-];
-
 function Faqs() {
+  const c = useContent('home').faq;
+  /* Answers are admin-written text; each is wrapped once here rather than on
+     every open and close of the accordion. */
+  const items = useMemo(
+    () => (c.items || []).map((item) => ({ title: item.title, body: <p><Rich>{item.body}</Rich></p> })),
+    [c.items],
+  );
+
   return (
     <section className="shell py-20 sm:py-28 lg:py-32">
       <div className="grid gap-10 lg:grid-cols-[320px_1fr] lg:gap-20">
         <div>
-          <Reveal as="p" variant="fade" className="eyebrow">Good to know</Reveal>
-          <MaskHeading lines={['Before', 'you order']} className="h-section mt-3" delay={80} />
-          <p className="mt-5 text-[14px] leading-relaxed text-slate">
-            The five we get asked most. There are more on the FAQ page, and a real person on the
-            phone during business hours.
-          </p>
+          <Reveal as="p" variant="fade" className="eyebrow">{c.eyebrow}</Reveal>
+          <MaskHeading lines={[c.headline1, c.headline2].filter(Boolean)} className="h-section mt-3" delay={80} />
+          <p className="mt-5 text-[14px] leading-relaxed text-slate">{c.body}</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link to="/faq" className="btn-outline btn-sm">All FAQs</Link>
             <Link to="/contact" className="btn-ghost btn-sm">Contact us</Link>
           </div>
         </div>
 
-        <Reveal delay={150}><Accordion items={HOME_FAQ} defaultOpen={0} /></Reveal>
+        <Reveal delay={150}><Accordion items={items} defaultOpen={0} /></Reveal>
       </div>
     </section>
   );
 }
 
 function SignupBand() {
+  const c = useContent('home').signup;
+
   return (
     <section data-flush className="bg-ink text-cream">
       <div className="shell flex flex-col items-center gap-8 py-16 text-center sm:py-20">
         <Mark className="h-10 w-auto text-cream/80" />
         <div>
-          <Reveal as="p" variant="fade" className="eyebrow text-cream-deep">First access</Reveal>
-          <MaskHeading lines={['Know before', 'it sells out']} className="h-section mt-3 !text-cream" delay={80} />
-          <p className="mx-auto mt-4 max-w-md text-[14.5px] leading-relaxed text-cream/70">
-            New colourways and restocks go to the list first. We make short runs, so the good sizes
-            do not hang around.
-          </p>
+          <Reveal as="p" variant="fade" className="eyebrow text-cream-deep">{c.eyebrow}</Reveal>
+          <MaskHeading lines={[c.headline1, c.headline2].filter(Boolean)} className="h-section mt-3 !text-cream" delay={80} />
+          <p className="mx-auto mt-4 max-w-md text-[14.5px] leading-relaxed text-cream/70">{c.body}</p>
         </div>
         <div className="w-full max-w-md">
-          <Newsletter id="home-newsletter" label={null} note="No spam, unsubscribe any time." />
+          <Newsletter id="home-newsletter" label={null} note={c.note} />
         </div>
       </div>
     </section>

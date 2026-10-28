@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Seo } from '../../components/ui';
-import { Cell, ListTable, Notice, RowActions, ScreenHeader, SubsubsubNav } from '../../components/wp';
+import { Cell, ListTable, Notice, RowActions, ScreenHeader, SubsubsubNav } from '../../components/adminUi';
 import { api } from '../../lib/api';
 import { formatDate, formatDateTime } from '../../lib/format';
 import { useToast } from '../../store/toast';
@@ -96,7 +96,7 @@ export default function Inbox() {
               <Cell primary>
                 <span className={m.is_read ? 'text-navy' : 'font-semibold text-navy'}>{m.name}</span>
                 {!m.is_read && <span className="ml-2 bg-sale px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">New</span>}
-                <span className="block text-[11.5px] text-slate">{m.email}{m.phone ? ` · ${m.phone}` : ''}</span>
+                <span className="block text-[11.5px] text-adm-mute">{m.email}{m.phone ? ` · ${m.phone}` : ''}</span>
                 <RowActions
                   actions={[
                     { label: open === m.id ? 'Hide' : 'Read', onClick: () => setOpen(open === m.id ? null : m.id) },

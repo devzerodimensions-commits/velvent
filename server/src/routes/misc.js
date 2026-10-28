@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { ah, isEmail } from '../lib/helpers.js';
 import { findCoupon } from '../lib/pricing.js';
+import { getContent } from '../lib/content.js';
 
 const router = Router();
 
@@ -68,6 +69,19 @@ router.get('/offers', ah(async (_req, res) => {
       ORDER BY min_order LIMIT 6`,
   );
   res.json(rows);
+}));
+
+/**
+ * GET /api/content - every piece of copy the admin has edited.
+ *
+ * Only overrides come back; the storefront merges them over its own defaults,
+ * so a fresh database still renders a complete store and a field nobody has
+ * touched costs nothing to serve.
+ */
+router.get('/content', ah(async (_req, res) => {
+  const content = await getContent();
+  res.set('Cache-Control', 'public, max-age=30');
+  res.json(content);
 }));
 
 export default router;

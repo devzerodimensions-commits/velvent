@@ -4,7 +4,7 @@ import { Alert, PageLoader, Seo } from '../components/ui';
 import { Box, Check, Close, Truck } from '../components/Icons';
 import { api } from '../lib/api';
 import { formatDateTime, inr, STATUS_LABEL, STATUS_TONE, TRACKING_STEPS } from '../lib/format';
-import { BRAND } from '../lib/brand';
+import { useContent } from '../store/content';
 import { useAuth } from '../store/auth';
 
 const STEPS = TRACKING_STEPS;
@@ -80,6 +80,7 @@ function MemberInvite({ email, onClose }) {
 }
 
 export function OrderDetail({ order }) {
+  const BRAND = useContent('brand');
   const stepIndex = STEPS.indexOf(order.status);
   const address = order.shipping_address || {};
 

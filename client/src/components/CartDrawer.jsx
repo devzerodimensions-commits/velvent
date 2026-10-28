@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { Bag, Close, Minus, Plus, Trash } from './Icons';
 import { useCart } from '../store/cart';
 import { inr } from '../lib/format';
-import { BRAND } from '../lib/brand';
+import { useContent } from '../store/content';
 
 export default function CartDrawer() {
+  const BRAND = useContent('brand');
   const { items, lines, totals, pricing, priceError, drawerOpen, closeDrawer, setQty, remove, count } = useCart();
 
   useEffect(() => {

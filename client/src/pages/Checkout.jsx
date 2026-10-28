@@ -7,7 +7,7 @@ import { useAuth } from '../store/auth';
 import { useToast } from '../store/toast';
 import { api } from '../lib/api';
 import { inr } from '../lib/format';
-import { BRAND } from '../lib/brand';
+import { useContent } from '../store/content';
 
 const STATES = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
   'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra',
@@ -34,6 +34,7 @@ function loadRazorpay() {
 }
 
 export default function Checkout() {
+  const BRAND = useContent('brand');
   const navigate = useNavigate();
   const { items, lines, totals, pricing, priceError, couponCode, clear } = useCart();
   const { user } = useAuth();

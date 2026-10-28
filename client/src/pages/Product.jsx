@@ -6,7 +6,7 @@ import { SizeGuideModal } from '../components/SizeGuide';
 import { Bag, Heart, Minus, Plus, Refresh, Ruler, Share, Shield, Similar, Truck } from '../components/Icons';
 import { api } from '../lib/api';
 import { bySize, deliveryEstimate, discountPct, formatDate, inr } from '../lib/format';
-import { BRAND } from '../lib/brand';
+import { useContent } from '../store/content';
 import { useCart } from '../store/cart';
 import { useAuth } from '../store/auth';
 import { useToast } from '../store/toast';
@@ -200,6 +200,7 @@ function ReviewForm({ slug, onDone }) {
 }
 
 export default function Product() {
+  const BRAND = useContent('brand');
   const { slug } = useParams();
   const navigate = useNavigate();
   const { add } = useCart();

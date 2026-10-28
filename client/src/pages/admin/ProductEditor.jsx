@@ -4,7 +4,7 @@ import { Seo, Spinner } from '../../components/ui';
 import { Box, Grid, Plus, Ruler, Tag, Trash, Upload } from '../../components/Icons';
 import {
   EditLayout, Field, MetaBox, Notice, PublishBox, ScreenHeader, TabbedMetaBox,
-} from '../../components/wp';
+} from '../../components/adminUi';
 import { api } from '../../lib/api';
 import { bySize, inr, SIZE_ORDER } from '../../lib/format';
 import { useToast } from '../../store/toast';
@@ -172,7 +172,7 @@ export default function ProductEditor() {
         main={(
           <>
             {/* The WordPress title field and permalink line. */}
-            <div className="border border-mist bg-white p-4">
+            <div className="ad-card p-4">
               <label htmlFor="p-name" className="sr-only">Product name</label>
               <input
                 id="p-name"
@@ -182,7 +182,7 @@ export default function ProductEditor() {
                 className="w-full border border-transparent px-0 py-1 font-display text-[21px] text-navy placeholder:text-slate-light focus:border-transparent focus:outline-none focus:ring-0"
               />
               {form.slug && (
-                <p className="mt-1 text-[12px] text-slate">
+                <p className="mt-1 text-[12px] text-adm-mute">
                   Permalink: <Link to={`/product/${form.slug}`} className="text-navy underline">/product/{form.slug}</Link>
                 </p>
               )}
@@ -196,7 +196,7 @@ export default function ProductEditor() {
                 value={form.description || ''}
                 onChange={set('description')}
                 placeholder="The full description shown on the product page."
-                className="wp-textarea"
+                className="ad-textarea"
               />
             </MetaBox>
 
@@ -206,10 +206,10 @@ export default function ProductEditor() {
                   {tab === 'general' && (
                     <div className="space-y-4">
                       <Field label="Regular price" htmlFor="p-mrp" hint="The struck-through price. WooCommerce calls this the regular price; your brand sheet calls it MRP.">
-                        <input id="p-mrp" type="number" min="0" step="1" value={form.mrp} onChange={set('mrp')} className="wp-input sm:w-44" />
+                        <input id="p-mrp" type="number" min="0" step="1" value={form.mrp} onChange={set('mrp')} className="ad-input sm:w-44" />
                       </Field>
                       <Field label="Sale price" htmlFor="p-sale" hint="What the customer actually pays.">
-                        <input id="p-sale" type="number" min="0" step="1" value={form.sale_price} onChange={set('sale_price')} className="wp-input sm:w-44" />
+                        <input id="p-sale" type="number" min="0" step="1" value={form.sale_price} onChange={set('sale_price')} className="ad-input sm:w-44" />
                       </Field>
                       {Number(form.sale_price) > 0 && Number(form.mrp) > Number(form.sale_price) && (
                         <p className="text-[12.5px] text-emerald-700">
@@ -236,69 +236,69 @@ export default function ProductEditor() {
 
                   {tab === 'shipping' && (
                     <Field label="Weight (g)" htmlFor="p-weight" hint="Used on the product page's details list.">
-                      <input id="p-weight" type="number" min="0" value={form.weight_grams || ''} onChange={set('weight_grams')} className="wp-input sm:w-40" />
+                      <input id="p-weight" type="number" min="0" value={form.weight_grams || ''} onChange={set('weight_grams')} className="ad-input sm:w-40" />
                     </Field>
                   )}
 
                   {tab === 'attributes' && (
                     <div className="space-y-4">
                       <Field label="Fabric" htmlFor="p-fabric">
-                        <input id="p-fabric" value={form.fabric || ''} onChange={set('fabric')} className="wp-input" />
+                        <input id="p-fabric" value={form.fabric || ''} onChange={set('fabric')} className="ad-input" />
                       </Field>
                       <Field label="Fit" htmlFor="p-fit">
-                        <input id="p-fit" value={form.fit || ''} onChange={set('fit')} className="wp-input" />
+                        <input id="p-fit" value={form.fit || ''} onChange={set('fit')} className="ad-input" />
                       </Field>
                       <Field label="Sleeve" htmlFor="p-sleeve">
-                        <input id="p-sleeve" value={form.sleeve || ''} onChange={set('sleeve')} className="wp-input" />
+                        <input id="p-sleeve" value={form.sleeve || ''} onChange={set('sleeve')} className="ad-input" />
                       </Field>
                       <Field label="Collar" htmlFor="p-collar">
-                        <input id="p-collar" value={form.collar || ''} onChange={set('collar')} className="wp-input" />
+                        <input id="p-collar" value={form.collar || ''} onChange={set('collar')} className="ad-input" />
                       </Field>
                       <Field label="Wash care" htmlFor="p-wash">
-                        <textarea id="p-wash" rows={2} value={form.wash_care || ''} onChange={set('wash_care')} className="wp-textarea" />
+                        <textarea id="p-wash" rows={2} value={form.wash_care || ''} onChange={set('wash_care')} className="ad-textarea" />
                       </Field>
                     </div>
                   )}
 
                   {tab === 'variations' && (
                     <div className="space-y-5">
-                      <div className="border border-mist bg-cream/40 p-3">
+                      <div className="border border-adm-line bg-adm-soft p-3">
                         <p className="mb-2 text-[12.5px] font-semibold text-navy">Add all six sizes for a colour</p>
                         <div className="flex flex-wrap items-end gap-2">
                           <div>
-                            <label htmlFor="b-colour" className="mb-1 block text-[11.5px] text-slate">Colour name</label>
-                            <input id="b-colour" value={bulk.color} onChange={(e) => setBulk((b) => ({ ...b, color: e.target.value }))} placeholder="Navy" className="wp-input w-36" />
+                            <label htmlFor="b-colour" className="mb-1 block text-[11.5px] text-adm-mute">Colour name</label>
+                            <input id="b-colour" value={bulk.color} onChange={(e) => setBulk((b) => ({ ...b, color: e.target.value }))} placeholder="Navy" className="ad-input w-36" />
                           </div>
                           <div>
-                            <label htmlFor="b-hex" className="mb-1 block text-[11.5px] text-slate">Swatch</label>
-                            <input id="b-hex" type="color" value={bulk.hex} onChange={(e) => setBulk((b) => ({ ...b, hex: e.target.value }))} className="h-[34px] w-14 border border-mist bg-white p-1" />
+                            <label htmlFor="b-hex" className="mb-1 block text-[11.5px] text-adm-mute">Swatch</label>
+                            <input id="b-hex" type="color" value={bulk.hex} onChange={(e) => setBulk((b) => ({ ...b, hex: e.target.value }))} className="h-[38px] w-14 rounded-lg border border-adm-line bg-white p-1" />
                           </div>
                           <div>
-                            <label htmlFor="b-stock" className="mb-1 block text-[11.5px] text-slate">Stock each</label>
-                            <input id="b-stock" type="number" min="0" value={bulk.stock} onChange={(e) => setBulk((b) => ({ ...b, stock: e.target.value }))} className="wp-input w-24" />
+                            <label htmlFor="b-stock" className="mb-1 block text-[11.5px] text-adm-mute">Stock each</label>
+                            <input id="b-stock" type="number" min="0" value={bulk.stock} onChange={(e) => setBulk((b) => ({ ...b, stock: e.target.value }))} className="ad-input w-24" />
                           </div>
-                          <button type="button" onClick={addColourRun} className="wp-btn-secondary"><Plus size={14} /> Add S–3XL</button>
+                          <button type="button" onClick={addColourRun} className="ad-btn-ghost"><Plus size={14} /> Add S–3XL</button>
                         </div>
                       </div>
 
                       {colours.length === 0 && (
-                        <p className="text-[13px] text-slate">No variations yet. Add a colour above and all six sizes appear.</p>
+                        <p className="text-[13px] text-adm-mute">No variations yet. Add a colour above and all six sizes appear.</p>
                       )}
 
                       {colours.map((colour) => {
                         const rows = form.variants.filter((v) => v.color === colour).sort((a, b) => bySize(a.size, b.size));
                         return (
-                          <div key={colour} className="border border-mist">
-                            <header className="flex items-center justify-between gap-3 border-b border-mist bg-cream/40 px-3 py-2">
+                          <div key={colour} className="border border-adm-line">
+                            <header className="flex items-center justify-between gap-3 border-b border-adm-line bg-adm-soft px-3 py-2">
                               <span className="flex items-center gap-2 text-[13px] font-semibold text-navy">
-                                <span className="h-4 w-4 border border-mist" style={{ background: rows[0]?.color_hex || '#ccc' }} />
+                                <span className="h-4 w-4 border border-adm-line" style={{ background: rows[0]?.color_hex || '#ccc' }} />
                                 {colour}
                               </span>
                               <button type="button" onClick={() => removeColour(colour)} className="text-[12px] text-sale transition hover:underline">
                                 Remove colour
                               </button>
                             </header>
-                            <div className="grid grid-cols-2 gap-px bg-mist sm:grid-cols-3 lg:grid-cols-6">
+                            <div className="grid grid-cols-2 gap-px bg-adm-line sm:grid-cols-3 lg:grid-cols-6">
                               {rows.map((v) => (
                                 <label key={v.size} className="bg-white p-2.5">
                                   <span className="block text-[11.5px] font-semibold text-navy">{v.size}</span>
@@ -308,7 +308,7 @@ export default function ProductEditor() {
                                     value={v.stock}
                                     onChange={(e) => patchVariant(`${v.color}|${v.size}`, { stock: e.target.value })}
                                     aria-label={`Stock for ${colour} ${v.size}`}
-                                    className="wp-input mt-1"
+                                    className="ad-input mt-1"
                                   />
                                 </label>
                               ))}
@@ -330,7 +330,7 @@ export default function ProductEditor() {
                 value={form.short_desc || ''}
                 onChange={set('short_desc')}
                 placeholder="One or two lines, used on cards and in search results."
-                className="wp-textarea"
+                className="ad-textarea"
               />
             </MetaBox>
           </>
@@ -355,17 +355,17 @@ export default function ProductEditor() {
               </label>
               <div>
                 <label htmlFor="p-order" className="mb-1 block text-[12.5px] text-navy">Menu order</label>
-                <input id="p-order" type="number" value={form.sort_order ?? 0} onChange={set('sort_order')} className="wp-input w-20" />
+                <input id="p-order" type="number" value={form.sort_order ?? 0} onChange={set('sort_order')} className="ad-input w-20" />
               </div>
             </PublishBox>
 
             <MetaBox title="Product categories">
               <label htmlFor="p-cat" className="sr-only">Category</label>
-              <select id="p-cat" value={form.category_id} onChange={set('category_id')} className="wp-input">
+              <select id="p-cat" value={form.category_id} onChange={set('category_id')} className="ad-input">
                 <option value="">Uncategorised</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              <Link to="/admin/categories" className="mt-2 inline-block text-[12px] text-slate transition hover:text-navy hover:underline">
+              <Link to="/admin/categories" className="mt-2 inline-block text-[12px] text-adm-mute transition hover:text-navy hover:underline">
                 + Add new category
               </Link>
             </MetaBox>
@@ -373,28 +373,28 @@ export default function ProductEditor() {
             <MetaBox
               title="Product image"
               actions={(
-                <span className="text-[11.5px] text-slate">{form.images.length} total</span>
+                <span className="text-[11.5px] text-adm-mute">{form.images.length} total</span>
               )}
             >
               {form.images[0] ? (
                 <div>
-                  <img src={form.images[0].url} alt="" className="aspect-[3/4] w-full bg-cream object-cover" />
+                  <img src={form.images[0].url} alt="" className="aspect-[3/4] w-full bg-adm-soft object-cover" />
                   <button type="button" onClick={() => removeImage(0)} className="mt-2 text-[12px] text-sale transition hover:underline">
                     Remove product image
                   </button>
                 </div>
               ) : (
-                <p className="text-[12.5px] text-slate">No image set. Upload one below.</p>
+                <p className="text-[12.5px] text-adm-mute">No image set. Upload one below.</p>
               )}
 
               <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="wp-btn-secondary">
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="ad-btn-ghost">
                   <Upload size={14} /> {uploading ? 'Uploading…' : 'Upload'}
                 </button>
-                <button type="button" onClick={addImageUrl} className="wp-btn-secondary">Add by URL</button>
+                <button type="button" onClick={addImageUrl} className="ad-btn-ghost">Add by URL</button>
                 <input ref={fileRef} type="file" accept="image/*" multiple onChange={upload} className="hidden" />
               </div>
-              <p className="mt-2 text-[11.5px] text-slate">
+              <p className="mt-2 text-[11.5px] text-adm-mute">
                 JPG, PNG, WEBP or AVIF, up to 3&nbsp;MB. Uploads are stored in the database, so they survive a deploy.
               </p>
             </MetaBox>
@@ -405,8 +405,8 @@ export default function ProductEditor() {
                   {form.images.slice(1).map((img, n) => {
                     const i = n + 1;
                     return (
-                      <li key={`${img.url}-${i}`} className="flex gap-2.5 border border-mist p-2">
-                        <img src={img.url} alt="" className="h-16 w-12 shrink-0 bg-cream object-cover" />
+                      <li key={`${img.url}-${i}`} className="flex gap-2.5 border border-adm-line p-2">
+                        <img src={img.url} alt="" className="h-16 w-12 shrink-0 bg-adm-soft object-cover" />
                         <div className="min-w-0 flex-1">
                           <label className="sr-only" htmlFor={`img-colour-${i}`}>Colour for image {i + 1}</label>
                           <input
@@ -414,10 +414,10 @@ export default function ProductEditor() {
                             value={img.color || ''}
                             onChange={(e) => patchImage(i, { color: e.target.value })}
                             placeholder="Colour (optional)"
-                            className="wp-input text-[12px]"
+                            className="ad-input text-[12px]"
                           />
                           <div className="mt-1.5 flex gap-2 text-[11.5px]">
-                            <button type="button" onClick={() => makePrimary(i)} className="text-slate transition hover:text-navy hover:underline">
+                            <button type="button" onClick={() => makePrimary(i)} className="text-adm-mute transition hover:text-navy hover:underline">
                               Make primary
                             </button>
                             <button type="button" onClick={() => removeImage(i)} className="text-sale transition hover:underline">
@@ -429,7 +429,7 @@ export default function ProductEditor() {
                     );
                   })}
                 </ul>
-                <p className="mt-2 text-[11.5px] leading-relaxed text-slate">
+                <p className="mt-2 text-[11.5px] leading-relaxed text-adm-mute">
                   Tagging a gallery image with a colour makes the product page swap to it when a shopper picks that colour.
                 </p>
               </MetaBox>

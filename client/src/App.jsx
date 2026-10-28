@@ -9,6 +9,7 @@ import { PageLoader, ScrollToTop } from './components/ui';
 import { AuthProvider, useAuth } from './store/auth';
 import { CartProvider } from './store/cart';
 import { ToastProvider } from './store/toast';
+import { ContentProvider } from './store/content';
 
 import Home from './pages/Home';
 import Shop from './pages/Shop';
@@ -38,6 +39,11 @@ const AdminOrders = lazy(() => import('./pages/admin/Orders'));
 const AdminCategories = lazy(() => import('./pages/admin/Categories'));
 const AdminCoupons = lazy(() => import('./pages/admin/Coupons'));
 const AdminInbox = lazy(() => import('./pages/admin/Inbox'));
+const AdminContentIndex = lazy(() => import('./pages/admin/Content').then((m) => ({ default: m.ContentIndex })));
+const AdminContentEditor = lazy(() => import('./pages/admin/Content'));
+const AdminCustomers = lazy(() => import('./pages/admin/Customers').then((m) => ({ default: m.CustomersList })));
+const AdminCustomerDetail = lazy(() => import('./pages/admin/Customers'));
+const AdminMedia = lazy(() => import('./pages/admin/Media'));
 
 function RequireAuth({ children, admin = false }) {
   const { user, ready, isAdmin } = useAuth();
@@ -66,6 +72,11 @@ function Storefront() {
             <Route path="categories" element={<AdminCategories />} />
             <Route path="coupons" element={<AdminCoupons />} />
             <Route path="inbox" element={<AdminInbox />} />
+            <Route path="content" element={<AdminContentIndex />} />
+            <Route path="content/:key" element={<AdminContentEditor />} />
+            <Route path="customers" element={<AdminCustomers />} />
+            <Route path="customers/:id" element={<AdminCustomerDetail />} />
+            <Route path="media" element={<AdminMedia />} />
           </Route>
         </Routes>
       </Suspense>
@@ -115,12 +126,14 @@ function Storefront() {
 export default function App() {
   return (
     <ToastProvider>
-      <AuthProvider>
-        <CartProvider>
-          <ScrollToTop />
-          <Storefront />
-        </CartProvider>
-      </AuthProvider>
+      <ContentProvider>
+        <AuthProvider>
+          <CartProvider>
+            <ScrollToTop />
+            <Storefront />
+          </CartProvider>
+        </AuthProvider>
+      </ContentProvider>
     </ToastProvider>
   );
 }

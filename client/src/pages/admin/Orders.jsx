@@ -3,7 +3,7 @@ import { Seo } from '../../components/ui';
 import { Close, Search } from '../../components/Icons';
 import {
   Cell, ListTable, Notice, RowActions, ScreenHeader, SubsubsubNav,
-} from '../../components/wp';
+} from '../../components/adminUi';
 import { api } from '../../lib/api';
 import { ADMIN_STATUS_LABEL, formatDate, formatDateTime, inr, ORDER_STATUS_KEYS } from '../../lib/format';
 import { useToast } from '../../store/toast';
@@ -28,10 +28,10 @@ function Preview({ order, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-navy-deep/50 p-4 sm:p-8">
       <button className="fixed inset-0 cursor-default" aria-label="Close preview" onClick={onClose} />
-      <div role="dialog" aria-modal="true" aria-label={`Order ${order.order_number}`} className="relative w-full max-w-2xl border border-mist bg-white">
-        <header className="flex items-center justify-between border-b border-mist px-5 py-3">
+      <div role="dialog" aria-modal="true" aria-label={`Order ${order.order_number}`} className="relative w-full max-w-2xl ad-card">
+        <header className="flex items-center justify-between border-b border-adm-line px-5 py-3">
           <h2 className="text-[14px] font-semibold text-navy">Order {order.order_number}</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1 text-slate transition hover:text-navy">
+          <button onClick={onClose} aria-label="Close" className="p-1 text-adm-mute transition hover:text-navy">
             <Close size={18} />
           </button>
         </header>
@@ -39,16 +39,16 @@ function Preview({ order, onClose }) {
         <div className="max-h-[70vh] overflow-y-auto p-5">
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate">Billing</h3>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-adm-mute">Billing</h3>
               <p className="mt-2 text-[13px] leading-relaxed text-navy">
                 {a.full_name}<br />{order.email}<br />{order.phone}
               </p>
-              <p className="mt-2 text-[12px] text-slate">
+              <p className="mt-2 text-[12px] text-adm-mute">
                 Payment: {order.payment_method === 'cod' ? 'Cash on delivery' : 'Online'} · {order.payment_status}
               </p>
             </div>
             <div>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate">Ship to</h3>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-adm-mute">Ship to</h3>
               <p className="mt-2 text-[13px] leading-relaxed text-navy">
                 {a.full_name}<br />{a.line1}{a.line2 ? <>, {a.line2}</> : null}<br />
                 {a.city}, {a.state} {a.pincode}
@@ -57,14 +57,14 @@ function Preview({ order, onClose }) {
           </div>
 
           {order.notes && (
-            <p className="mt-4 border-l-2 border-mist bg-cream/40 px-3 py-2 text-[12.5px] text-slate">
+            <p className="mt-4 border-l-2 border-adm-line bg-adm-soft px-3 py-2 text-[12.5px] text-adm-mute">
               <span className="font-semibold text-navy">Customer note:</span> {order.notes}
             </p>
           )}
 
-          <table className="mt-5 w-full border border-mist text-left text-[13px]">
+          <table className="mt-5 w-full border border-adm-line text-left text-[13px]">
             <thead>
-              <tr className="border-b border-mist bg-cream/50 text-[12px] text-navy">
+              <tr className="border-b border-adm-line bg-adm-soft text-[12px] text-navy">
                 <th scope="col" className="px-3 py-2 font-semibold">Item</th>
                 <th scope="col" className="px-3 py-2 font-semibold">Qty</th>
                 <th scope="col" className="px-3 py-2 text-right font-semibold">Total</th>
@@ -72,22 +72,22 @@ function Preview({ order, onClose }) {
             </thead>
             <tbody>
               {(order.items || []).map((i) => (
-                <tr key={i.id} className="border-b border-mist/70 last:border-0">
+                <tr key={i.id} className="border-b border-adm-line last:border-0">
                   <td className="px-3 py-2">
                     <span className="font-medium text-navy">{i.name}</span>
-                    <span className="block text-[11.5px] text-slate">{i.color} / {i.size}</span>
+                    <span className="block text-[11.5px] text-adm-mute">{i.color} / {i.size}</span>
                   </td>
-                  <td className="px-3 py-2 text-slate">× {i.quantity}</td>
+                  <td className="px-3 py-2 text-adm-mute">× {i.quantity}</td>
                   <td className="px-3 py-2 text-right font-medium text-navy">{inr(i.unit_price * i.quantity)}</td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="border-t border-mist bg-cream/30 text-[12.5px]">
-              <tr><td className="px-3 py-1.5 text-slate" colSpan={2}>Subtotal</td><td className="px-3 py-1.5 text-right">{inr(order.subtotal)}</td></tr>
+            <tfoot className="border-t border-adm-line bg-adm-soft text-[12.5px]">
+              <tr><td className="px-3 py-1.5 text-adm-mute" colSpan={2}>Subtotal</td><td className="px-3 py-1.5 text-right">{inr(order.subtotal)}</td></tr>
               {Number(order.discount) > 0 && (
-                <tr><td className="px-3 py-1.5 text-slate" colSpan={2}>Discount {order.coupon_code && `(${order.coupon_code})`}</td><td className="px-3 py-1.5 text-right text-sale">−{inr(order.discount)}</td></tr>
+                <tr><td className="px-3 py-1.5 text-adm-mute" colSpan={2}>Discount {order.coupon_code && `(${order.coupon_code})`}</td><td className="px-3 py-1.5 text-right text-sale">−{inr(order.discount)}</td></tr>
               )}
-              <tr><td className="px-3 py-1.5 text-slate" colSpan={2}>Shipping</td><td className="px-3 py-1.5 text-right">{Number(order.shipping) === 0 ? 'Free' : inr(order.shipping)}</td></tr>
+              <tr><td className="px-3 py-1.5 text-adm-mute" colSpan={2}>Shipping</td><td className="px-3 py-1.5 text-right">{Number(order.shipping) === 0 ? 'Free' : inr(order.shipping)}</td></tr>
               <tr className="font-semibold text-navy"><td className="px-3 py-2" colSpan={2}>Total</td><td className="px-3 py-2 text-right">{inr(order.total)}</td></tr>
             </tfoot>
           </table>
@@ -181,7 +181,7 @@ export default function AdminOrders() {
               >
                 {o.order_number}
               </button>
-              <span className="text-slate"> — {o.shipping_address?.full_name || o.email}</span>
+              <span className="text-adm-mute"> — {o.shipping_address?.full_name || o.email}</span>
               <RowActions
                 actions={[
                   { label: 'Preview', onClick: () => setPreview(o) },
@@ -199,7 +199,7 @@ export default function AdminOrders() {
                 id={`st-${o.id}`}
                 value={o.status}
                 onChange={(e) => setStatus(o, e.target.value)}
-                className="wp-select w-full text-[12px]"
+                className="ad-select w-full text-[12px]"
               >
                 {ORDER_STATUS_KEYS.map((s) => (
                   <option key={s} value={s}>{ADMIN_STATUS_LABEL[s]}</option>
@@ -213,7 +213,7 @@ export default function AdminOrders() {
             </Cell>
             <Cell>
               <span className="font-semibold text-navy">{inr(o.total)}</span>
-              <span className="block text-[11.5px] text-slate">
+              <span className="block text-[11.5px] text-adm-mute">
                 {o.payment_method === 'cod' ? 'COD' : 'Online'} · {o.payment_status}
               </span>
             </Cell>
@@ -222,7 +222,7 @@ export default function AdminOrders() {
                 type="button"
                 onClick={() => setPreview(o)}
                 aria-label={`Preview ${o.order_number}`}
-                className="wp-page-btn"
+                className="ad-page-btn"
               >
                 <Search size={14} />
               </button>

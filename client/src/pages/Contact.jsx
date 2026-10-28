@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { Alert, Breadcrumbs, Seo, Spinner } from '../components/ui';
 import { Clock, Mail, Phone, Whatsapp } from '../components/Icons';
 import { api } from '../lib/api';
-import { BRAND } from '../lib/brand';
+import { useContent } from '../store/content';
+import { Rich } from '../components/RichText';
 import { useToast } from '../store/toast';
 
-const SUBJECTS = ['General enquiry', 'Order status', 'Returns or exchange', 'Size and fit', 'Bulk or corporate order', 'Feedback'];
-
 export default function Contact() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', subject: SUBJECTS[0], message: '' });
+  const BRAND = useContent('brand');
+  const c = useContent('contact');
+  const subjects = c.subjects?.length ? c.subjects : ['General enquiry'];
+
+  const [form, setForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
   const [sent, setSent] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -21,10 +24,11 @@ export default function Contact() {
     setBusy(true);
     setError(null);
     try {
-      const res = await api.contact(form);
+      // The select shows the first subject before it is touched; send that.
+      const res = await api.contact({ ...form, subject: form.subject || subjects[0] });
       setSent(res.message);
       success(res.message);
-      setForm({ name: '', email: '', phone: '', subject: SUBJECTS[0], message: '' });
+      setForm({ name: '', email: '', phone: '', subject: '', message: '' });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -37,15 +41,14 @@ export default function Contact() {
       <Seo title="Contact Us" description={`Call VELVENT on ${BRAND.phone} or send us a message — we reply within one business day.`} />
       <div className="shell py-8 sm:py-11">
         <Breadcrumbs items={[{ label: 'Contact' }]} />
-        <h1 className="h-section mt-4">Contact Us</h1>
+        <h1 className="h-section mt-4">{c.title}</h1>
         <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-slate">
-          Questions about sizing, an order, or a bulk enquiry — we are a small team and we answer
-          every message ourselves.
+          <Rich>{c.intro}</Rich>
         </p>
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_380px] lg:gap-16">
           <form onSubmit={submit} className="card-surface p-6 sm:p-8">
-            <h2 className="text-[12px] font-semibold uppercase tracking-wider2">Send a message</h2>
+            <h2 className="text-[12px] font-semibold uppercase tracking-wider2">{c.formTitle}</h2>
 
             {sent && <div className="mt-5"><Alert tone="success">{sent}</Alert></div>}
             {error && <div className="mt-5"><Alert>{error}</Alert></div>}
@@ -65,8 +68,8 @@ export default function Contact() {
               </div>
               <div>
                 <label className="label" htmlFor="ct-subject">Subject</label>
-                <select id="ct-subject" value={form.subject} onChange={set('subject')} className="field">
-                  {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
+                <select id="ct-subject" value={form.subject || subjects[0]} onChange={set('subject')} className="field">
+                  {subjects.map((o) => <option key={o}>{o}</option>)}
                 </select>
               </div>
               <div className="sm:col-span-2">

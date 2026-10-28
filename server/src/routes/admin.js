@@ -4,6 +4,7 @@ import { query, withTransaction } from '../db.js';
 import { ah, slugify } from '../lib/helpers.js';
 import { requireAdmin } from '../lib/auth.js';
 import { ORDER_STATUS_KEYS, NEEDS_ACTION, STOCK_ALREADY_RETURNED } from '../lib/orderStatus.js';
+import { deleteContent, saveContent } from '../lib/content.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -408,6 +409,128 @@ router.post('/coupons', ah(async (req, res) => {
 
 router.delete('/coupons/:id', ah(async (req, res) => {
   await query('DELETE FROM coupons WHERE id = $1', [req.params.id]);
+  res.json({ ok: true });
+}));
+
+/* -------------------------------------------------------------- site content
+   The storefront holds the defaults; these rows hold only what the admin has
+   changed. Any shape is accepted because the editor on the client decides it —
+   the one rule is that a key stores a JSON object, never a bare string, so a
+   half-saved field can never collapse a whole section. */
+
+const CONTENT_KEYS = new Set([
+  'brand', 'header', 'footer', 'home', 'about', 'contact', 'faq',
+  'sizeGuide', 'shipping', 'returns', 'privacy', 'terms',
+]);
+
+router.get('/content', ah(async (_req, res) => {
+  const { rows } = await query('SELECT key, value, updated_at FROM site_content ORDER BY key');
+  res.json(rows);
+}));
+
+router.put('/content/:key', ah(async (req, res) => {
+  const key = String(req.params.key || '');
+  if (!CONTENT_KEYS.has(key)) return res.status(400).json({ error: 'Unknown content section.' });
+
+  const value = req.body?.value;
+  if (value === null || typeof value !== 'object') {
+    return res.status(400).json({ error: 'Content must be sent as an object.' });
+  }
+  if (JSON.stringify(value).length > 400000) {
+    return res.status(413).json({ error: 'That section is too large to save.' });
+  }
+
+  res.json(await saveContent(key, value));
+}));
+
+/** Drops the overrides for one section, so the built-in copy shows again. */
+router.delete('/content/:key', ah(async (req, res) => {
+  if (!CONTENT_KEYS.has(String(req.params.key || ''))) {
+    return res.status(400).json({ error: 'Unknown content section.' });
+  }
+  await deleteContent(req.params.key);
+  res.json({ ok: true });
+}));
+
+/* ------------------------------------------------------------------ customers */
+
+router.get('/customers', ah(async (req, res) => {
+  const q = (req.query.q || '').trim();
+  const params = [];
+  let where = "WHERE u.role = 'customer'";
+  if (q) {
+    params.push(`%${q}%`);
+    where += ' AND (u.name ILIKE $1 OR u.email ILIKE $1 OR u.phone ILIKE $1)';
+  }
+  const { rows } = await query(
+    `SELECT u.id, u.name, u.email, u.phone, u.created_at,
+            COUNT(o.id)::int                   AS orders,
+            COALESCE(SUM(o.total), 0)::numeric AS spent,
+            MAX(o.created_at)                  AS last_order_at
+       FROM users u
+       LEFT JOIN orders o ON o.user_id = u.id AND o.status <> 'cancelled'
+       ${where}
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
+      LIMIT 500`,
+    params,
+  );
+  res.json(rows);
+}));
+
+router.get('/customers/:id', ah(async (req, res) => {
+  const { rows } = await query(
+    'SELECT id, name, email, phone, role, created_at FROM users WHERE id = $1',
+    [req.params.id],
+  );
+  const customer = rows[0];
+  if (!customer) return res.status(404).json({ error: 'Customer not found.' });
+
+  const [{ rows: addresses }, { rows: orders }, { rows: wishlist }] = await Promise.all([
+    query('SELECT * FROM addresses WHERE user_id = $1 ORDER BY id DESC', [customer.id]),
+    query(
+      `SELECT id, order_number, status, payment_method, payment_status, total, created_at
+         FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100`,
+      [customer.id],
+    ),
+    query(
+      `SELECT p.id, p.name, p.slug FROM wishlist w
+         JOIN products p ON p.id = w.product_id
+        WHERE w.user_id = $1 ORDER BY w.id DESC LIMIT 50`,
+      [customer.id],
+    ),
+  ]);
+
+  res.json({ ...customer, addresses, orders, wishlist });
+}));
+
+/** Contact details only. An admin never sets or sees a customer's password. */
+router.put('/customers/:id', ah(async (req, res) => {
+  const { name, phone } = req.body || {};
+  if (!String(name || '').trim()) return res.status(400).json({ error: 'Name cannot be empty.' });
+
+  const { rows } = await query(
+    `UPDATE users SET name = $1, phone = $2
+      WHERE id = $3 AND role = 'customer'
+      RETURNING id, name, email, phone, role, created_at`,
+    [String(name).trim(), phone ? String(phone).trim() : null, req.params.id],
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Customer not found.' });
+  res.json(rows[0]);
+}));
+
+/* ------------------------------------------------------------- media library */
+
+router.get('/media', ah(async (_req, res) => {
+  const { rows } = await query(
+    `SELECT id, filename, mime, OCTET_LENGTH(bytes) AS bytes, created_at
+       FROM media ORDER BY id DESC LIMIT 300`,
+  );
+  res.json(rows.map((r) => ({ ...r, bytes: Number(r.bytes), url: `/api/media/${r.id}` })));
+}));
+
+router.delete('/media/:id', ah(async (req, res) => {
+  await query('DELETE FROM media WHERE id = $1', [req.params.id]);
   res.json({ ok: true });
 }));
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Seo } from '../../components/ui';
-import { Cell, Field, ListTable, MetaBox, Notice, RowActions, ScreenHeader } from '../../components/wp';
+import { Cell, Field, ListTable, MetaBox, Notice, RowActions, ScreenHeader } from '../../components/adminUi';
 import { api } from '../../lib/api';
 import { formatDate, inr } from '../../lib/format';
 import { useToast } from '../../store/toast';
@@ -80,7 +80,7 @@ export default function AdminCoupons() {
 
         <form onSubmit={save} className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div className="space-y-4">
-            <div className="border border-mist bg-white p-4">
+            <div className="ad-card p-4">
               <label htmlFor="c-code" className="sr-only">Coupon code</label>
               <input
                 id="c-code"
@@ -95,14 +95,14 @@ export default function AdminCoupons() {
                 onChange={set('description')}
                 placeholder="Description (optional) — only you see this"
                 aria-label="Coupon description"
-                className="mt-2 w-full border-0 px-0 py-1 text-[13px] text-slate placeholder:text-slate-light focus:outline-none focus:ring-0"
+                className="mt-2 w-full border-0 px-0 py-1 text-[13px] text-adm-mute placeholder:text-slate-light focus:outline-none focus:ring-0"
               />
             </div>
 
             <MetaBox title="Coupon data">
               <div className="space-y-4">
                 <Field label="Discount type" htmlFor="c-kind">
-                  <select id="c-kind" value={form.kind} onChange={set('kind')} className="wp-select">
+                  <select id="c-kind" value={form.kind} onChange={set('kind')} className="ad-select">
                     <option value="percent">Percentage discount</option>
                     <option value="flat">Fixed cart discount</option>
                   </select>
@@ -112,14 +112,14 @@ export default function AdminCoupons() {
                   htmlFor="c-value"
                   hint={form.kind === 'percent' ? 'A percentage of the cart subtotal.' : 'A flat rupee amount off the cart.'}
                 >
-                  <input id="c-value" type="number" min="0" step="1" value={form.value} onChange={set('value')} required className="wp-input sm:w-40" />
+                  <input id="c-value" type="number" min="0" step="1" value={form.value} onChange={set('value')} required className="ad-input sm:w-40" />
                 </Field>
                 <Field label="Minimum spend" htmlFor="c-min" hint="The cart subtotal must reach this before the coupon applies.">
-                  <input id="c-min" type="number" min="0" step="1" value={form.min_order} onChange={set('min_order')} className="wp-input sm:w-40" />
+                  <input id="c-min" type="number" min="0" step="1" value={form.min_order} onChange={set('min_order')} className="ad-input sm:w-40" />
                 </Field>
                 {form.kind === 'percent' && (
                   <Field label="Maximum discount" htmlFor="c-max" hint="Caps a percentage coupon. Leave blank for no cap.">
-                    <input id="c-max" type="number" min="0" step="1" value={form.max_discount ?? ''} onChange={set('max_discount')} className="wp-input sm:w-40" />
+                    <input id="c-max" type="number" min="0" step="1" value={form.max_discount ?? ''} onChange={set('max_discount')} className="ad-input sm:w-40" />
                   </Field>
                 )}
                 <Field label="Expiry date" htmlFor="c-exp" hint="Leave blank and the coupon never expires.">
@@ -128,7 +128,7 @@ export default function AdminCoupons() {
                     type="date"
                     value={form.expires_at ? String(form.expires_at).slice(0, 10) : ''}
                     onChange={set('expires_at')}
-                    className="wp-input sm:w-52"
+                    className="ad-input sm:w-52"
                   />
                 </Field>
               </div>
@@ -136,21 +136,21 @@ export default function AdminCoupons() {
           </div>
 
           <div className="space-y-4">
-            <section className="border border-mist bg-white">
-              <header className="border-b border-mist px-4 py-2.5">
+            <section className="ad-card">
+              <header className="border-b border-adm-line px-4 py-2.5">
                 <h2 className="text-[13px] font-semibold text-navy">Publish</h2>
               </header>
-              <div className="border-b border-mist p-4">
+              <div className="border-b border-adm-line p-4">
                 <label className="flex items-center gap-2 text-[12.5px] text-navy">
                   <input type="checkbox" checked={form.is_active !== false} onChange={set('is_active')} /> Active
                 </label>
-                <p className="mt-1.5 text-[11.5px] text-slate">Inactive coupons are rejected at checkout.</p>
+                <p className="mt-1.5 text-[11.5px] text-adm-mute">Inactive coupons are rejected at checkout.</p>
               </div>
-              <footer className="flex items-center justify-between gap-3 bg-cream/40 px-4 py-3">
-                <button type="button" onClick={() => setForm(null)} className="text-[12px] text-slate transition hover:text-navy">
+              <footer className="flex items-center justify-between gap-3 bg-adm-soft px-4 py-3">
+                <button type="button" onClick={() => setForm(null)} className="text-[12px] text-adm-mute transition hover:text-navy">
                   Cancel
                 </button>
-                <button type="submit" disabled={busy} className="wp-btn-primary">
+                <button type="submit" disabled={busy} className="ad-btn-primary">
                   {busy ? 'Saving…' : form.id ? 'Update' : 'Publish'}
                 </button>
               </footer>
@@ -182,14 +182,14 @@ export default function AdminCoupons() {
               <button type="button" onClick={() => setForm(c)} className="font-semibold uppercase tracking-wider text-navy hover:underline">
                 {c.code}
               </button>
-              {!c.is_active && <span className="ml-1.5 text-[12px] text-slate">— Inactive</span>}
+              {!c.is_active && <span className="ml-1.5 text-[12px] text-adm-mute">— Inactive</span>}
               <RowActions
                 actions={[
                   { label: 'Edit', onClick: () => setForm(c) },
                   { label: 'Delete', onClick: () => remove(c), danger: true },
                 ]}
               />
-              {c.description && <span className="block text-[11.5px] text-slate">{c.description}</span>}
+              {c.description && <span className="block text-[11.5px] text-adm-mute">{c.description}</span>}
             </Cell>
             <Cell className="hidden md:table-cell">
               {c.kind === 'percent' ? 'Percentage discount' : 'Fixed cart discount'}
@@ -198,7 +198,7 @@ export default function AdminCoupons() {
               <span className="font-semibold text-navy">
                 {c.kind === 'percent' ? `${Number(c.value)}%` : inr(c.value)}
               </span>
-              {c.max_discount && <span className="block text-[11px] text-slate">max {inr(c.max_discount)}</span>}
+              {c.max_discount && <span className="block text-[11px] text-adm-mute">max {inr(c.max_discount)}</span>}
             </Cell>
             <Cell className="hidden lg:table-cell">{Number(c.min_order) ? inr(c.min_order) : '—'}</Cell>
             <Cell>{c.expires_at ? formatDate(c.expires_at) : '—'}</Cell>
