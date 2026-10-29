@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DROP = `
 DROP TABLE IF EXISTS order_items, orders, wishlist, reviews, addresses,
   product_variants, product_images, products, categories, coupons,
-  media, newsletter, contact_messages, users CASCADE;
+  media, newsletter, contact_messages, site_content, users CASCADE;
 `;
 
 /** Rupee signs in the catalog need UTF8. Neon always is; a local cluster may not be. */

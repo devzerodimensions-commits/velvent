@@ -5,7 +5,13 @@ services:
     plan: free
     region: singapore
     branch: main
-    buildCommand: npm run build
+    # The schema is applied on every deploy, not by hand. schema.sql is made of
+    # CREATE TABLE IF NOT EXISTS and ADD COLUMN IF NOT EXISTS, so running it
+    # against a live database is a no-op until something has actually changed.
+    # It runs in the build rather than at startup: a migration that fails
+    # should fail the deploy and leave the running version serving, not take
+    # the site down after it has already gone live.
+    buildCommand: npm run build && npm run db:setup
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
