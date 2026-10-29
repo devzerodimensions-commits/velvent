@@ -8,6 +8,7 @@ import { useContent } from '../store/content';
 
 export default function TrackOrder() {
   const BRAND = useContent('brand');
+  const c = useContent('account').track;
   const [form, setForm] = useState({ orderNumber: '', email: '' });
   const [order, setOrder] = useState(null);
   const [error, setError] = useState(null);
@@ -29,10 +30,10 @@ export default function TrackOrder() {
 
   return (
     <>
-      <Seo title="Track Your Order" description="Enter your VELVENT order number and email to see where your parcel is." />
+      <Seo title={c.title} description={c.seoDescription} />
       <div className="shell py-8 sm:py-11">
         <Breadcrumbs items={[{ label: 'Track Order' }]} />
-        <h1 className="h-section mt-4">Track Your Order</h1>
+        <h1 className="h-section mt-4">{c.title}</h1>
         <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-slate">
           Enter the order number from your confirmation email, along with the email address
           you used at checkout.
@@ -41,7 +42,7 @@ export default function TrackOrder() {
         <form onSubmit={submit} className="card-surface mt-8 max-w-xl p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="label" htmlFor="tr-num">Order number</label>
+              <label className="label" htmlFor="tr-num">{c.numberLabel}</label>
               <input
                 id="tr-num"
                 required
@@ -52,7 +53,7 @@ export default function TrackOrder() {
               />
             </div>
             <div>
-              <label className="label" htmlFor="tr-email">Email address</label>
+              <label className="label" htmlFor="tr-email">{c.emailLabel}</label>
               <input
                 id="tr-email"
                 type="email"

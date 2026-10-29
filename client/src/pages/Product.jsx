@@ -3,13 +3,18 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { Accordion, Alert, Breadcrumbs, PageLoader, Rating, SectionHead, Seo } from '../components/ui';
 import { SizeGuideModal } from '../components/SizeGuide';
-import { Bag, Heart, Minus, Plus, Refresh, Ruler, Share, Shield, Similar, Truck } from '../components/Icons';
+import { Bag, Box, Check, Heart, Minus, Plus, Refresh, Ruler, Rupee, Share, Shield, Similar, Tag, Truck } from '../components/Icons';
 import { api } from '../lib/api';
 import { bySize, deliveryEstimate, discountPct, formatDate, inr } from '../lib/format';
+import { Rich } from '../components/RichText';
 import { useContent } from '../store/content';
 import { useCart } from '../store/cart';
 import { useAuth } from '../store/auth';
 import { useToast } from '../store/toast';
+
+/* The reassurance strip names its icons in the admin; this turns a name back
+   into a component, falling back rather than breaking the page. */
+const TRUST_ICONS = { Truck, Refresh, Shield, Box, Rupee, Check, Tag };
 
 function Gallery({ images, name, activeColor }) {
   const shown = useMemo(() => {
@@ -201,6 +206,7 @@ function ReviewForm({ slug, onDone }) {
 
 export default function Product() {
   const BRAND = useContent('brand');
+  const c = useContent('product');
   const { slug } = useParams();
   const navigate = useNavigate();
   const { add } = useCart();
@@ -427,7 +433,7 @@ export default function Product() {
               type="button"
               onClick={sharePiece}
               data-cursor="Share"
-              aria-label={`Share ${product.name}`}
+              aria-label={`${c.shareLabel} ${product.name}`}
               className="grid h-10 w-10 place-items-center rounded-md border border-mist bg-white/95 text-navy shadow-md backdrop-blur transition hover:border-navy hover:bg-white sm:hidden"
             >
               <Share size={19} />
@@ -501,7 +507,7 @@ export default function Product() {
                 onClick={() => setSizeGuide(true)}
                 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider2 text-navy hover:underline"
               >
-                <Ruler size={15} /> Size guide
+                <Ruler size={15} /> {c.sizeGuideLabel}
               </button>
             </div>
 
@@ -563,7 +569,7 @@ export default function Product() {
 
           <div className="mt-7 flex flex-col gap-2.5 sm:flex-row">
             <button onClick={() => addToBag()} disabled={totalStock === 0} className="btn-primary flex-1">
-              <Bag size={17} /> Add to bag
+              <Bag size={17} /> {c.addToBagLabel}
             </button>
             <button onClick={() => addToBag({ buyNow: true })} disabled={totalStock === 0} className="btn-outline flex-1">
               Buy it now
@@ -586,22 +592,24 @@ export default function Product() {
           </div>
 
           <div className="mt-7 grid gap-3 border-y border-mist py-5 sm:grid-cols-3">
-            {[
-              { Icon: Truck, text: `Delivery by ${deliveryEstimate()}` },
-              { Icon: Refresh, text: `${BRAND.shipping.returnDays}-day easy returns` },
-              { Icon: Shield, text: 'Secure payment & COD' },
-            ].map(({ Icon, text }) => (
-              <div key={text} className="flex items-center gap-2.5 text-[12px] text-slate">
-                <Icon size={19} className="shrink-0 text-navy" /> {text}
-              </div>
-            ))}
+            {(c.trust || []).map(({ icon, text }) => {
+              const Icon = TRUST_ICONS[icon] || Truck;
+              const filled = String(text || '')
+                .replace('{delivery}', deliveryEstimate())
+                .replace('{returnDays}', BRAND.shipping.returnDays);
+              return (
+                <div key={filled} className="flex items-center gap-2.5 text-[12px] text-slate">
+                  <Icon size={19} className="shrink-0 text-navy" /> {filled}
+                </div>
+              );
+            })}
           </div>
 
           <div className="mt-8">
             <Accordion
               items={[
                 {
-                  title: 'Product details',
+                  title: c.detailsTitle,
                   body: (
                     <div className="space-y-4">
                       <p>{product.description}</p>
@@ -623,17 +631,12 @@ export default function Product() {
                     </div>
                   ),
                 },
-                product.wash_care && { title: 'Wash care', body: <p>{product.wash_care}</p> },
+                product.wash_care && { title: c.washCareTitle, body: <p>{product.wash_care}</p> },
                 {
-                  title: 'Shipping & returns',
+                  title: c.shippingTitle,
                   body: (
                     <div className="space-y-2.5">
-                      <p>Dispatched within {BRAND.shipping.dispatchDays}. Delivery typically takes {BRAND.shipping.deliveryDays}.</p>
-                      <p>Free shipping on prepaid orders above {inr(BRAND.shipping.freeAbove)}. Cash on delivery available nationwide.</p>
-                      <p>
-                        Return or exchange within {BRAND.shipping.returnDays} days of delivery — see{' '}
-                        <Link to="/returns" className="underline">our returns policy</Link>.
-                      </p>
+                      {(c.shippingLines || []).map((line, i) => <p key={i}><Rich>{line}</Rich></p>)}
                     </div>
                   ),
                 },
@@ -641,7 +644,7 @@ export default function Product() {
                   /* Reviews sit with the rest of what a shopper opens before
                      buying, rather than as a separate block further down the
                      page that most of them never scroll to. */
-                  title: `Reviews (${product.review_count || 0})`,
+                  title: `${c.reviewsTitle} (${product.review_count || 0})`,
                   body: (
                     <div className="space-y-5">
                       {product.reviews?.length ? (
@@ -658,7 +661,7 @@ export default function Product() {
                           ))}
                         </ul>
                       ) : (
-                        <Alert tone="info">No reviews yet — be the first to write one.</Alert>
+                        <Alert tone="info">{c.reviewsEmpty}</Alert>
                       )}
                       <ReviewForm slug={slug} onDone={load} />
                     </div>
@@ -672,7 +675,7 @@ export default function Product() {
 
       {product.related?.length > 0 && (
         <section id="similar" className="shell scroll-mt-28 py-12">
-          <SectionHead eyebrow="You may also like" title="Complete the look" />
+          <SectionHead eyebrow={c.similarTitle} title="Complete the look" />
           <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
             {product.related.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>

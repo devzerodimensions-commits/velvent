@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
 import { Breadcrumbs, EmptyState, Seo } from '../components/ui';
+import { useContent } from '../store/content';
 import { Heart, Trash } from '../components/Icons';
 import { useAuth } from '../store/auth';
 import { useToast } from '../store/toast';
 import { inr } from '../lib/format';
 
 export default function Wishlist() {
+  const c = useContent('account').wishlist;
   const { wishlist, toggleWishlist } = useAuth();
   const { success, error } = useToast();
 
@@ -19,14 +21,14 @@ export default function Wishlist() {
       <Seo title="Wishlist" noindex />
       <div className="shell py-8 sm:py-11">
         <Breadcrumbs items={[{ to: '/account', label: 'Account' }, { label: 'Wishlist' }]} />
-        <h1 className="h-section mt-4">Wishlist <span className="text-slate">({wishlist.length})</span></h1>
+        <h1 className="h-section mt-4">{c.title} <span className="text-slate">({wishlist.length})</span></h1>
 
         {wishlist.length === 0 ? (
           <EmptyState
             icon={Heart}
-            title="Nothing saved yet"
-            body="Tap the heart on any product to keep it here for later."
-            action={<Link to="/shop" className="btn-primary">Browse the collection</Link>}
+            title={c.emptyTitle}
+            body={c.emptyBody}
+            action={<Link to="/shop" className="btn-primary">{c.emptyCtaLabel}</Link>}
           />
         ) : (
           <div className="mt-9 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">

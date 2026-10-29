@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import { Breadcrumbs, EmptyState, Pagination, Seo } from '../components/ui';
+import { useContent } from '../store/content';
 import { Search as SearchIcon } from '../components/Icons';
 import { api } from '../lib/api';
 
 export default function Search() {
+  const c = useContent('shop').search;
   const [params, setParams] = useSearchParams();
   const q = params.get('q') || '';
   const page = Number(params.get('page')) || 1;
@@ -43,7 +45,7 @@ export default function Search() {
           <input
             value={term}
             onChange={(e) => setTerm(e.target.value)}
-            placeholder="Try ‘polo’, ‘oversized’ or ‘navy’"
+            placeholder={c.placeholder}
             aria-label="Search products"
             className="field flex-1"
           />
@@ -64,15 +66,15 @@ export default function Search() {
           ) : !q ? (
             <EmptyState
               icon={SearchIcon}
-              title="What are you looking for?"
-              body="Search by product name, category or colour."
-              action={<Link to="/shop" className="btn-primary">Browse everything</Link>}
+              title={c.idleTitle}
+              body={c.idleBody}
+              action={<Link to="/shop" className="btn-primary">{c.idleCtaLabel}</Link>}
             />
           ) : data.products.length === 0 ? (
             <EmptyState
               icon={SearchIcon}
               title={`No matches for “${q}”`}
-              body="Check the spelling, or browse the full collection instead."
+              body={c.emptyBody}
               action={<Link to="/shop" className="btn-primary">Shop all</Link>}
             />
           ) : (

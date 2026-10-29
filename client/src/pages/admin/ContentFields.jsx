@@ -374,6 +374,27 @@ function Control({ field, value, onChange, id, path }) {
           {(field.options || []).map((o) => <option key={o}>{o}</option>)}
         </select>
       );
+    case 'toggle': {
+      /* The knob is a grandchild of the input, which `peer-checked:` cannot
+         reach — it only matches siblings. So the position is driven from the
+         value rather than from CSS. */
+      const on = value !== false;
+      return (
+        <label className="inline-flex cursor-pointer items-center gap-2.5">
+          <input
+            id={id}
+            type="checkbox"
+            checked={on}
+            onChange={(e) => onChange(e.target.checked)}
+            className="peer sr-only"
+          />
+          <span className={`relative h-5 w-9 rounded-full transition peer-focus-visible:ring-4 peer-focus-visible:ring-navy/20 ${on ? 'bg-navy' : 'bg-adm-line'}`}>
+            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${on ? 'left-[18px]' : 'left-0.5'}`} />
+          </span>
+          <span className="text-[12.5px] text-adm-mute">{on ? 'On' : 'Off'}</span>
+        </label>
+      );
+    }
     case 'url':
     case 'text':
     default:

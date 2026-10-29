@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Breadcrumbs, EmptyState, Seo, Spinner } from '../components/ui';
+import { useContent } from '../store/content';
 import { Box, Heart, Logout, Pin, Plus, Trash, User } from '../components/Icons';
 import { api } from '../lib/api';
 import { CANCELLABLE, formatDate, inr, STATUS_LABEL, STATUS_TONE } from '../lib/format';
@@ -12,6 +13,7 @@ const STATES = ['Andhra Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Delhi', 'Go
   'Punjab', 'Rajasthan', 'Tamil Nadu', 'Telangana', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'];
 
 function Orders() {
+  const c = useContent('account').account;
   const [orders, setOrders] = useState(null);
   const { success, error } = useToast();
 
@@ -32,8 +34,8 @@ function Orders() {
     return (
       <EmptyState
         icon={Box}
-        title="No orders yet"
-        body="When you place an order it will show up here, with live status."
+        title={c.ordersEmptyTitle}
+        body={c.ordersEmptyBody}
         action={<Link to="/shop" className="btn-primary">Start shopping</Link>}
       />
     );
@@ -79,6 +81,7 @@ function Orders() {
 }
 
 function Addresses() {
+  const c = useContent('account').account;
   const [list, setList] = useState(null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -135,8 +138,8 @@ function Addresses() {
       {list.length === 0 && !open ? (
         <EmptyState
           icon={Pin}
-          title="No saved addresses"
-          body="Save an address to skip typing it at checkout."
+          title={c.addressesEmptyTitle}
+          body={c.addressesEmptyBody}
           action={<button onClick={() => setOpen(true)} className="btn-primary"><Plus size={16} /> Add address</button>}
         />
       ) : (
@@ -217,6 +220,7 @@ function Addresses() {
 }
 
 function Profile() {
+  const c = useContent('account').account;
   const { user, refresh } = useAuth();
   const { success, error } = useToast();
   const [form, setForm] = useState({ name: user.name, phone: user.phone || '' });
@@ -245,7 +249,7 @@ function Profile() {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <form onSubmit={saveProfile} className="card-surface p-6">
-        <h3 className="text-[12px] font-semibold uppercase tracking-wider2">Your details</h3>
+        <h3 className="text-[12px] font-semibold uppercase tracking-wider2">{c.detailsTitle}</h3>
         <div className="mt-5 space-y-4">
           <div>
             <label className="label" htmlFor="pf-name">Full name</label>
@@ -264,7 +268,7 @@ function Profile() {
       </form>
 
       <form onSubmit={savePassword} className="card-surface p-6">
-        <h3 className="text-[12px] font-semibold uppercase tracking-wider2">Change password</h3>
+        <h3 className="text-[12px] font-semibold uppercase tracking-wider2">{c.passwordTitle}</h3>
         <div className="mt-5 space-y-4">
           <div>
             <label className="label" htmlFor="pf-cur">Current password</label>

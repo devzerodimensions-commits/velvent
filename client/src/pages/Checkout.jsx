@@ -35,6 +35,7 @@ function loadRazorpay() {
 
 export default function Checkout() {
   const BRAND = useContent('brand');
+  const c = useContent('checkout');
   const navigate = useNavigate();
   const { items, lines, totals, pricing, priceError, couponCode, clear } = useCart();
   const { user } = useAuth();
@@ -166,7 +167,7 @@ export default function Checkout() {
       <Seo title="Checkout" noindex />
       <div className="shell py-8 sm:py-11">
         <Breadcrumbs items={[{ to: '/cart', label: 'Bag' }, { label: 'Checkout' }]} />
-        <h1 className="h-section mt-4">Checkout</h1>
+        <h1 className="h-section mt-4">{c.title}</h1>
 
         {!user && (
           <p className="mt-5 border border-mist bg-cream px-4 py-3 text-[13px] text-navy">
@@ -182,7 +183,7 @@ export default function Checkout() {
           <div className="space-y-10">
             {savedAddresses.length > 0 && (
               <section>
-                <h2 className="text-[12px] font-semibold uppercase tracking-wider2">Saved addresses</h2>
+                <h2 className="text-[12px] font-semibold uppercase tracking-wider2">{c.savedAddressesTitle}</h2>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {savedAddresses.map((a) => (
                     <button
@@ -211,7 +212,7 @@ export default function Checkout() {
             </section>
 
             <section>
-              <h2 className="text-[12px] font-semibold uppercase tracking-wider2">Shipping address</h2>
+              <h2 className="text-[12px] font-semibold uppercase tracking-wider2">{c.addressTitle}</h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {input('full_name', 'Full name', { required: true, autoComplete: 'name', wide: true })}
                 {input('line1', 'Address', { required: true, autoComplete: 'address-line1', placeholder: 'House / flat, street', wide: true })}
@@ -236,7 +237,7 @@ export default function Checkout() {
                 {input('pincode', 'PIN code', { required: true, inputMode: 'numeric', maxLength: 6, autoComplete: 'postal-code' })}
 
                 <div className="sm:col-span-2">
-                  <label className="label" htmlFor="co-notes">Delivery notes (optional)</label>
+                  <label className="label" htmlFor="co-notes">{c.notesLabel}</label>
                   <textarea
                     id="co-notes"
                     rows={3}
@@ -340,7 +341,7 @@ export default function Checkout() {
               </button>
 
               <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate">
-                <Check size={14} /> Taxes included · {BRAND.shipping.returnDays}-day returns
+                <Check size={14} /> {String(c.reassurance || '').replace('{returnDays}', BRAND.shipping.returnDays)}
               </p>
             </div>
           </aside>

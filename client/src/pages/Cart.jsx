@@ -83,6 +83,7 @@ function CouponBox() {
 
 export default function Cart() {
   const BRAND = useContent('brand');
+  const c = useContent('cart');
   const { items, lines, totals, pricing, priceError, setQty, remove, count } = useCart();
 
   const rows = lines?.length ? lines : items.map((i) => ({
@@ -99,9 +100,9 @@ export default function Cart() {
           <Breadcrumbs items={[{ label: 'Bag' }]} />
           <EmptyState
             icon={Bag}
-            title="Your bag is empty"
-            body="Nothing here yet. Browse knitted polos, button-through shirts and oversized tees."
-            action={<Link to="/shop" className="btn-primary">Start shopping</Link>}
+            title={c.emptyTitle}
+            body={c.emptyBody}
+            action={<Link to="/shop" className="btn-primary">{c.emptyCtaLabel}</Link>}
           />
         </div>
       </>
@@ -116,7 +117,7 @@ export default function Cart() {
       <Seo title="Your Bag" noindex />
       <div className="shell py-8 sm:py-11">
         <Breadcrumbs items={[{ label: 'Bag' }]} />
-        <h1 className="h-section mt-4">Your Bag <span className="text-slate">({count})</span></h1>
+        <h1 className="h-section mt-4">{c.title} <span className="text-slate">({count})</span></h1>
 
         {priceError && <div className="mt-6"><Alert>{priceError}</Alert></div>}
 
@@ -195,7 +196,7 @@ export default function Cart() {
 
           <aside className="lg:sticky lg:top-[calc(var(--nav-h)+40px)] lg:h-fit">
             <div className="card-surface p-6">
-              <h2 className="text-[12px] font-semibold uppercase tracking-wider2">Order summary</h2>
+              <h2 className="text-[12px] font-semibold uppercase tracking-wider2">{c.summaryTitle}</h2>
 
               <div className="mt-5"><CouponBox /></div>
 
@@ -234,8 +235,8 @@ export default function Cart() {
                 </p>
               )}
 
-              <Link to="/checkout" className="btn-primary mt-6 w-full">Proceed to checkout</Link>
-              <p className="mt-3 text-center text-[11px] text-slate">Taxes included · Secure checkout</p>
+              <Link to="/checkout" className="btn-primary mt-6 w-full">{c.checkoutLabel}</Link>
+              <p className="mt-3 text-center text-[11px] text-slate">{c.reassurance}</p>
             </div>
           </aside>
         </div>

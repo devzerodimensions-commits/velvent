@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Alert, safeReturnPath, Seo, Spinner } from '../components/ui';
+import { useContent } from '../store/content';
 import Logo from '../components/Logo';
 import { useAuth } from '../store/auth';
 import { useToast } from '../store/toast';
 
 export default function Login() {
+  const c = useContent('account').login;
   const { user, login, ready } = useAuth();
   const { success } = useToast();
   const navigate = useNavigate();
@@ -40,8 +42,8 @@ export default function Login() {
         <div className="w-full max-w-md">
           <div className="flex flex-col items-center text-center">
             <Logo variant="stacked" withTagline className="text-navy" />
-            <h1 className="mt-9 font-display text-xl font-semibold uppercase tracking-wider2">Sign in</h1>
-            <p className="mt-2 text-[13.5px] text-slate">Track orders, save addresses and keep a wishlist.</p>
+            <h1 className="mt-9 font-display text-xl font-semibold uppercase tracking-wider2">{c.title}</h1>
+            <p className="mt-2 text-[13.5px] text-slate">{c.body}</p>
           </div>
 
           <form onSubmit={submit} className="mt-9 space-y-4">
@@ -73,17 +75,17 @@ export default function Login() {
             </div>
 
             <button type="submit" disabled={busy} className="btn-primary w-full">
-              {busy ? <><Spinner size={16} /> Signing in…</> : 'Sign in'}
+              {busy ? <><Spinner size={16} /> Signing in…</> : c.submitLabel}
             </button>
           </form>
 
           <p className="mt-7 text-center text-[13.5px] text-slate">
-            New here?{' '}
-            <Link to="/register" state={state} className="font-semibold text-navy underline">Create an account</Link>
+            {c.registerPrompt}{' '}
+            <Link to="/register" state={state} className="font-semibold text-navy underline">{c.registerLabel}</Link>
           </p>
           <p className="mt-3 text-center text-[13px] text-slate">
-            Just want to check an order?{' '}
-            <Link to="/track-order" className="font-semibold text-navy underline">Track it without signing in</Link>
+            {c.guestPrompt}{' '}
+            <Link to="/track-order" className="font-semibold text-navy underline">{c.guestLabel}</Link>
           </p>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import { Breadcrumbs, EmptyState, Pagination, Seo } from '../components/ui';
+import { useContent } from '../store/content';
 import { Close, Filter, Grid } from '../components/Icons';
 import { api } from '../lib/api';
 import { inr } from '../lib/format';
@@ -93,6 +94,7 @@ function FilterPanel({ facets, selected, onToggle, onPrice, onClear, activeCount
 export default function Shop() {
   const { slug } = useParams();
   const [params, setParams] = useSearchParams();
+  const c = useContent('shop');
 
   const [data, setData] = useState({ products: [], page: 1, pages: 1, total: 0 });
   const [facets, setFacets] = useState({ sizes: [], colors: [], price: { min: 0, max: 0 } });
@@ -211,7 +213,7 @@ export default function Shop() {
                 </button>
 
                 <label className="flex items-center gap-2">
-                  <span className="sr-only">Sort products</span>
+                  <span className="sr-only">{c.sortLabel}</span>
                   <select
                     value={selected.sort}
                     onChange={(e) => update({ sort: e.target.value })}
@@ -230,11 +232,11 @@ export default function Shop() {
             ) : data.products.length === 0 ? (
               <EmptyState
                 icon={Grid}
-                title="Nothing matches those filters"
-                body="Try widening your selection, or browse the full collection."
+                title={c.emptyTitle}
+                body={c.emptyBody}
                 action={
                   activeCount > 0
-                    ? <button onClick={() => update({ size: '', color: '', maxPrice: '' })} className="btn-primary">Clear filters</button>
+                    ? <button onClick={() => update({ size: '', color: '', maxPrice: '' })} className="btn-primary">{c.clearLabel}</button>
                     : <Link to="/shop" className="btn-primary">Shop all</Link>
                 }
               />

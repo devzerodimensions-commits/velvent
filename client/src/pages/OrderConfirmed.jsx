@@ -5,6 +5,7 @@ import { Box, Check, Close, Truck } from '../components/Icons';
 import { api } from '../lib/api';
 import { formatDateTime, inr, STATUS_LABEL, STATUS_TONE, TRACKING_STEPS } from '../lib/format';
 import { useContent } from '../store/content';
+import { Rich } from '../components/RichText';
 import { useAuth } from '../store/auth';
 
 const STEPS = TRACKING_STEPS;
@@ -15,7 +16,7 @@ const STEPS = TRACKING_STEPS;
  * needs. Skip and close both mean no, and the answer is remembered against the
  * order number so a refresh does not ask again.
  */
-function MemberInvite({ email, onClose }) {
+function MemberInvite({ email, copy, onClose }) {
   const panelRef = useRef(null);
 
   useEffect(() => {
@@ -56,22 +57,20 @@ function MemberInvite({ email, onClose }) {
           <Close size={19} />
         </button>
 
-        <p className="eyebrow">One last thing</p>
+        <p className="eyebrow">{copy.eyebrow}</p>
         <h2 id="member-invite-title" className="mt-2 font-display text-lg font-semibold uppercase tracking-wider2 text-navy">
-          Become a member
+          {copy.title}
         </h2>
         <p className="mt-3 text-[13.5px] leading-relaxed text-slate">
-          Keep your orders and addresses in one place, save pieces to a wishlist, and get first
-          access to drops and restocks. We will use <strong className="text-navy">{email}</strong> —
-          you only need to pick a password.
+          <Rich>{String(copy.body || '').replace('{email}', email)}</Rich>
         </p>
 
         <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
           <Link to="/register" state={{ email }} onClick={onClose} className="btn-primary flex-1">
-            Create my account
+            {copy.acceptLabel}
           </Link>
           <button type="button" onClick={onClose} className="btn-ghost flex-1">
-            Skip for now
+            {copy.skipLabel}
           </button>
         </div>
       </div>
@@ -81,6 +80,9 @@ function MemberInvite({ email, onClose }) {
 
 export function OrderDetail({ order }) {
   const BRAND = useContent('brand');
+  const checkoutCopy = useContent('checkout');
+  const c = checkoutCopy.confirmed;
+  const member = checkoutCopy.memberInvite;
   const stepIndex = STEPS.indexOf(order.status);
   const address = order.shipping_address || {};
 
@@ -167,8 +169,7 @@ export function OrderDetail({ order }) {
         <div className="card-surface flex items-start gap-3 p-6">
           <Truck size={20} className="mt-0.5 shrink-0 text-navy" />
           <p className="text-[12.5px] leading-relaxed text-slate">
-            Dispatched within {BRAND.shipping.dispatchDays}; delivery usually takes {BRAND.shipping.deliveryDays}.
-            Questions? Call <a href={`tel:${BRAND.phoneRaw}`} className="font-semibold text-navy underline">{BRAND.phone}</a>.
+            <Rich>{c.dispatchNote}</Rich>
           </p>
         </div>
       </aside>
@@ -205,10 +206,11 @@ export default function OrderConfirmed() {
 
   useEffect(() => {
     if (!state?.justPlaced || user || !order || !inviteKey) return undefined;
+    if (member?.enabled === false) return undefined;
     try { if (sessionStorage.getItem(inviteKey)) return undefined; } catch { /* private mode */ }
     const t = setTimeout(() => setInvite(true), 1400);
     return () => clearTimeout(t);
-  }, [state?.justPlaced, user, order, inviteKey]);
+  }, [state?.justPlaced, user, order, inviteKey, member?.enabled]);
 
   if (loading) return <PageLoader />;
 
@@ -234,11 +236,10 @@ export default function OrderConfirmed() {
               <Check size={28} />
             </span>
             <h1 className="mt-5 font-display text-xl font-semibold uppercase tracking-wider2 text-emerald-900">
-              Thank you — your order is in
+              {c.title}
             </h1>
             <p className="mt-2.5 max-w-md text-[13.5px] leading-relaxed text-emerald-800">
-              We have emailed a confirmation to <strong>{order.email}</strong>.
-              Keep your order number handy to track it any time.
+              <Rich>{String(c.body || '').replace('{email}', order.email)}</Rich>
             </p>
           </div>
         )}
@@ -257,12 +258,12 @@ export default function OrderConfirmed() {
         <div className="pt-10"><OrderDetail order={order} /></div>
 
         <div className="mt-12 flex flex-wrap gap-3">
-          <Link to="/shop" className="btn-primary">Continue shopping</Link>
-          {user && <Link to="/account" className="btn-outline"><Box size={17} /> My orders</Link>}
+          <Link to="/shop" className="btn-primary">{c.continueLabel}</Link>
+          {user && <Link to="/account" className="btn-outline"><Box size={17} /> {c.ordersLabel}</Link>}
         </div>
       </div>
 
-      {invite && <MemberInvite email={order.email} onClose={dismissInvite} />}
+      {invite && <MemberInvite email={order.email} copy={member} onClose={dismissInvite} />}
     </>
   );
 }

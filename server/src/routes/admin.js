@@ -419,8 +419,10 @@ router.delete('/coupons/:id', ah(async (req, res) => {
    half-saved field can never collapse a whole section. */
 
 const CONTENT_KEYS = new Set([
-  'brand', 'header', 'footer', 'home', 'about', 'contact', 'faq',
-  'sizeGuide', 'shipping', 'returns', 'privacy', 'terms',
+  'brand', 'header', 'footer',
+  'home', 'about', 'contact', 'faq', 'sizeGuide', 'notFound',
+  'shop', 'product', 'cart', 'checkout', 'account',
+  'shipping', 'returns', 'privacy', 'terms',
 ]);
 
 router.get('/content', ah(async (_req, res) => {

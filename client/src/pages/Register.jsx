@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Alert, safeReturnPath, Seo, Spinner } from '../components/ui';
+import { useContent } from '../store/content';
 import Logo from '../components/Logo';
 import { useAuth } from '../store/auth';
 import { useToast } from '../store/toast';
 
 export default function Register() {
+  const c = useContent('account').register;
   const { user, register, ready } = useAuth();
   const { success } = useToast();
   const navigate = useNavigate();
@@ -64,8 +66,8 @@ export default function Register() {
         <div className="w-full max-w-md">
           <div className="flex flex-col items-center text-center">
             <Logo variant="stacked" withTagline className="text-navy" />
-            <h1 className="mt-9 font-display text-xl font-semibold uppercase tracking-wider2">Create account</h1>
-            <p className="mt-2 text-[13.5px] text-slate">Faster checkout, order history and a saved wishlist.</p>
+            <h1 className="mt-9 font-display text-xl font-semibold uppercase tracking-wider2">{c.title}</h1>
+            <p className="mt-2 text-[13.5px] text-slate">{c.body}</p>
           </div>
 
           <form onSubmit={submit} className="mt-9 space-y-4">
@@ -77,7 +79,7 @@ export default function Register() {
             {field('password', 'Password', {
               type: 'password', required: true, minLength: 6, autoComplete: 'new-password',
             })}
-            <p className="-mt-2 text-[11.5px] text-slate">At least 6 characters.</p>
+            <p className="-mt-2 text-[11.5px] text-slate">{c.passwordHint}</p>
 
             <button type="submit" disabled={busy} className="btn-primary w-full">
               {busy ? <><Spinner size={16} /> Creating…</> : 'Create account'}
