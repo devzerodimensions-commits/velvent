@@ -5,13 +5,12 @@ services:
     plan: free
     region: singapore
     branch: main
-    # The schema is applied on every deploy, not by hand. schema.sql is made of
-    # CREATE TABLE IF NOT EXISTS and ADD COLUMN IF NOT EXISTS, so running it
-    # against a live database is a no-op until something has actually changed.
-    # It runs in the build rather than at startup: a migration that fails
-    # should fail the deploy and leave the running version serving, not take
-    # the site down after it has already gone live.
-    buildCommand: npm run build && npm run db:setup
+    # The schema is applied on every deploy, but by the server as it boots
+    # (see src/lib/migrate.js) rather than here. The build runs in a sandbox
+    # that need not have the database reachable; the running server always
+    # does. A migration that fails stops the server starting, the health check
+    # below fails, and Render keeps serving the previous version.
+    buildCommand: npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true

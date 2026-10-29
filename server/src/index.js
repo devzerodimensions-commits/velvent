@@ -9,6 +9,7 @@ import rateLimit from 'express-rate-limit';
 dotenv.config();
 
 import { optionalAuth } from './lib/auth.js';
+import { migrateOnBoot } from './lib/migrate.js';
 import catalogRoutes from './routes/catalog.js';
 import authRoutes from './routes/auth.js';
 import orderRoutes from './routes/orders.js';
@@ -110,6 +111,10 @@ app.use((err, _req, res, _next) => {
     error: status >= 500 ? 'Something went wrong on our side. Please try again.' : err.message,
   });
 });
+
+// The schema is brought up to date before the first request, not during the
+// build: the running server is the one place DATABASE_URL is guaranteed.
+await migrateOnBoot();
 
 app.listen(PORT, () => {
   console.log(`[velvent] API listening on http://localhost:${PORT}`);
