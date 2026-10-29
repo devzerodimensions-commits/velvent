@@ -1,8 +1,9 @@
 /** Bits both media screens need. */
 
-export const UPLOAD_MAX_BYTES = 3 * 1024 * 1024;
+/** Matches the server's own limit. Reached only when conversion could not run. */
+export const UPLOAD_MAX_BYTES = 12 * 1024 * 1024;
 export const UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
-export const UPLOAD_HINT = 'JPG, PNG, WEBP or AVIF, up to 3 MB each.';
+export const UPLOAD_HINT = 'JPG, PNG, WEBP or AVIF. Images are converted to WebP automatically.';
 
 export const fileSize = (bytes) => (bytes >= 1024 * 1024
   ? `${(bytes / 1024 / 1024).toFixed(1)} MB`

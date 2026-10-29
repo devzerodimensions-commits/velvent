@@ -5,7 +5,7 @@ import { Seo } from '../../components/ui';
 import { Check, Close, Upload } from '../../components/Icons';
 import { api } from '../../lib/api';
 import { useToast } from '../../store/toast';
-import { UPLOAD_MAX_BYTES, UPLOAD_TYPES, fileSize } from './media/shared';
+import { UPLOAD_HINT, UPLOAD_TYPES, fileSize } from './media/shared';
 
 /**
  * Uploading, on a page of its own.
@@ -24,11 +24,12 @@ export default function MediaUpload() {
   const navigate = useNavigate();
   const { success } = useToast();
 
-  const reject = (file) => {
-    if (!UPLOAD_TYPES.includes(file.type)) return 'Not a JPG, PNG, WEBP or AVIF';
-    if (file.size > UPLOAD_MAX_BYTES) return `Too large (${fileSize(file.size)} — the limit is 3 MB)`;
-    return null;
-  };
+  /* Only the type is worth refusing before converting. A 20 MB PNG becomes a
+     few hundred kilobytes of WebP, so judging the original size here would
+     turn away files that upload perfectly well. */
+  const reject = (file) => (
+    UPLOAD_TYPES.includes(file.type) ? null : 'Not a JPG, PNG, WEBP or AVIF'
+  );
 
   const send = async (files) => {
     const list = [...files];
@@ -125,7 +126,7 @@ export default function MediaUpload() {
         </button>
         <input ref={fileRef} type="file" accept="image/*" multiple onChange={pick} className="hidden" />
         <p className="text-[12px] text-adm-mute">
-          Maximum upload file size: 3 MB. JPG, PNG, WEBP or AVIF.
+          {UPLOAD_HINT}
         </p>
       </div>
 
@@ -176,8 +177,7 @@ export default function MediaUpload() {
       {failed > 0 && (
         <div className="mt-4">
           <Notice tone="warning">
-            Some files were not uploaded. Images must be JPG, PNG, WEBP or AVIF and under 3 MB —
-            a photo straight off a camera is usually far larger, so resize or export it first.
+            Some files were not uploaded. Images must be JPG, PNG, WEBP or AVIF.
           </Notice>
         </div>
       )}

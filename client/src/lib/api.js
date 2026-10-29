@@ -1,3 +1,5 @@
+import { toWebp } from './image';
+
 const BASE = import.meta.env.VITE_API_URL || '/api';
 const TOKEN_KEY = 'velvent.token';
 
@@ -129,9 +131,14 @@ export const api = {
     media: () => request('/admin/media'),
     deleteMedia: (id) => request(`/admin/media/${id}`, { method: 'DELETE' }),
 
-    upload: (file) => {
+    /**
+     * Every upload in the admin goes through here, so the conversion to WebP
+     * happens once rather than at each place that happens to take a file.
+     */
+    upload: async (file) => {
+      const web = await toWebp(file);
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', web);
       return request('/admin/media', { method: 'POST', body: fd, raw: true });
     },
   },

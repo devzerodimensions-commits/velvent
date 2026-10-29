@@ -9,14 +9,43 @@ import { deleteContent, saveContent } from '../lib/content.js';
 const router = Router();
 router.use(requireAdmin);
 
+/**
+ * The admin converts images to WebP before sending them, so what arrives here
+ * is normally a few hundred kilobytes. The limit is generous because the
+ * original is only ever sent when that conversion could not run — an old
+ * browser, or a file the canvas would not decode — and refusing it then would
+ * strand someone with no way to upload at all.
+ */
+const UPLOAD_LIMIT_BYTES = 12 * 1024 * 1024;
+const UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 3 * 1024 * 1024 },
+  limits: { fileSize: UPLOAD_LIMIT_BYTES },
   fileFilter: (_req, file, cb) => {
-    const ok = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.mimetype);
+    const ok = UPLOAD_TYPES.includes(file.mimetype);
     cb(ok ? null : new Error('Only JPG, PNG, WEBP or AVIF images are allowed.'), ok);
   },
 });
+
+/**
+ * Multer reports a rejected upload by throwing, and without this it reaches
+ * the generic handler as "Something went wrong on our side" — which tells
+ * someone staring at a file picker precisely nothing. Each case says what to
+ * do instead.
+ */
+const handleUploadErrors = (err, _req, res, next) => {
+  if (!err) return next();
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      error: `That image is larger than ${Math.round(UPLOAD_LIMIT_BYTES / 1024 / 1024)} MB. Resize it and try again.`,
+    });
+  }
+  if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return res.status(400).json({ error: 'Send one image at a time.' });
+  }
+  return res.status(400).json({ error: err.message || 'That upload was refused.' });
+};
 
 /* ---------------------------------------------------------------- dashboard */
 
@@ -361,7 +390,7 @@ router.put('/orders/:id/status', ah(async (req, res) => {
 /* ---------------------------------------------------------- media + inbox */
 
 /** Stores uploads in Postgres so images survive Render's ephemeral filesystem. */
-router.post('/media', upload.single('file'), ah(async (req, res) => {
+router.post('/media', upload.single('file'), handleUploadErrors, ah(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Choose an image to upload.' });
   const { rows } = await query(
     'INSERT INTO media (filename, mime, bytes) VALUES ($1,$2,$3) RETURNING id',
