@@ -44,6 +44,7 @@ const AdminContentEditor = lazy(() => import('./pages/admin/Content'));
 const AdminCustomers = lazy(() => import('./pages/admin/Customers').then((m) => ({ default: m.CustomersList })));
 const AdminCustomerDetail = lazy(() => import('./pages/admin/Customers'));
 const AdminMedia = lazy(() => import('./pages/admin/Media'));
+const AdminMediaUpload = lazy(() => import('./pages/admin/MediaUpload'));
 
 function RequireAuth({ children, admin = false }) {
   const { user, ready, isAdmin } = useAuth();
@@ -77,6 +78,7 @@ function Storefront() {
             <Route path="customers" element={<AdminCustomers />} />
             <Route path="customers/:id" element={<AdminCustomerDetail />} />
             <Route path="media" element={<AdminMedia />} />
+            <Route path="media/new" element={<AdminMediaUpload />} />
           </Route>
         </Routes>
       </Suspense>

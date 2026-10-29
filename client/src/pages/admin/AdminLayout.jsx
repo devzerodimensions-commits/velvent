@@ -60,7 +60,15 @@ const MENU = [
           { to: '/admin/content/brand', label: 'Brand & contact' },
         ],
       },
-      { to: '/admin/media', label: 'Media', Icon: Upload },
+      {
+        to: '/admin/media',
+        label: 'Media',
+        Icon: Upload,
+        children: [
+          { to: '/admin/media', end: true, label: 'Library' },
+          { to: '/admin/media/new', label: 'Add Media File' },
+        ],
+      },
     ],
   },
 ];
