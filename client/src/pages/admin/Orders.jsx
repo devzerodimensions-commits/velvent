@@ -22,7 +22,7 @@ const BULK = ORDER_STATUS_KEYS.map((s) => ({
   label: `Change status to ${ADMIN_STATUS_LABEL[s].toLowerCase()}`,
 }));
 
-/** WooCommerce's order preview — the modal behind the eye icon. */
+/** The order preview — the modal behind the eye icon. */
 function Preview({ order, onClose }) {
   const a = order.shipping_address || {};
   return (

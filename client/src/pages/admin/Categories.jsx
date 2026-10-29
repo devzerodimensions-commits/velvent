@@ -182,7 +182,7 @@ export default function AdminCategories() {
         {notice && <Notice tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Notice>}
       </ScreenHeader>
 
-      {/* WordPress puts the add form on the left and the list on the right. */}
+      {/* The add form sits on the left, the list on the right. */}
       <div className="grid items-start gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
         <form onSubmit={save} className="ad-card">
           <header className="border-b border-adm-line px-4 py-2.5">
@@ -221,8 +221,8 @@ export default function AdminCategories() {
               <input type="checkbox" checked={form.is_active !== false} onChange={set('is_active')} /> Visible on the storefront
             </label>
 
-            <details className="border border-adm-line bg-adm-soft">
-              <summary className="cursor-pointer px-3 py-2.5 text-[12.5px] font-semibold text-navy">
+            <details className="overflow-hidden rounded-lg border border-adm-line bg-adm-soft">
+              <summary className="cursor-pointer px-3 py-2.5 text-[12.5px] font-semibold text-adm-ink">
                 Size guide
                 <span className="ml-2 font-normal text-adm-mute">
                   {form.size_chart?.rows?.length ? 'set for this category' : 'using the built-in chart'}

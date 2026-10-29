@@ -25,10 +25,10 @@ const BULK = [
   { value: 'draft', label: 'Switch to draft' },
   { value: 'feature', label: 'Mark featured' },
   { value: 'unfeature', label: 'Remove featured' },
-  { value: 'trash', label: 'Move to Trash' },
+  { value: 'trash', label: 'Delete' },
 ];
 
-/** WooCommerce's inline editor, opened from a row's "Quick Edit" link. */
+/** The inline editor, opened from a row's "Quick Edit" link. */
 function QuickEdit({ product, onCancel, onSaved }) {
   const [form, setForm] = useState({
     name: product.name,
@@ -221,7 +221,7 @@ export default function AdminProducts() {
                   { label: 'Edit', to: `/admin/products/${p.id}` },
                   { label: 'Quick Edit', onClick: () => setQuickEdit(quickEdit === p.id ? null : p.id) },
                   { label: 'View', to: `/product/${p.slug}` },
-                  { label: 'Trash', onClick: () => remove(p), danger: true },
+                  { label: 'Delete', onClick: () => remove(p), danger: true },
                 ]}
               />
             </Cell>

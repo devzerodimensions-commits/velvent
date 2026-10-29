@@ -52,6 +52,7 @@ export const fields = [
     label: 'Opening hours (footer rows)',
     type: 'list',
     itemLabel: 'Row',
+    titleKey: 'label',
     fields: [
       { name: 'label', label: 'Days', type: 'text' },
       { name: 'value', label: 'Hours', type: 'text' },

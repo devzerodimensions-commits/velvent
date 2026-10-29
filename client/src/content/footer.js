@@ -50,6 +50,7 @@ export const fields = [
         label: 'Links',
         type: 'list',
         itemLabel: 'Link',
+        titleKey: 'label',
         fields: [
           { name: 'label', label: 'Label', type: 'text' },
           { name: 'to', label: 'Links to', type: 'text', help: 'A path on this site, e.g. /returns' },

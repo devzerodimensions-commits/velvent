@@ -29,6 +29,7 @@ const pageFields = [
     label: 'Related links',
     type: 'list',
     itemLabel: 'Link',
+    titleKey: 'label',
     fields: [
       { name: 'label', label: 'Label', type: 'text' },
       { name: 'to', label: 'Links to', type: 'text' },

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Close, Plus, Search, Upload } from '../../components/Icons';
+import { ChevronDown, Close, Plus, Search, Upload } from '../../components/Icons';
 import { Field } from '../../components/adminUi';
 import { api } from '../../lib/api';
 import { useToast } from '../../store/toast';
@@ -300,7 +300,13 @@ function GroupList({ field, value, onChange, path }) {
                 <span className="truncate text-[12.5px] font-semibold text-adm-ink">
                   {(field.titleKey && item?.[field.titleKey]) || `${itemLabel} ${i + 1}`}
                 </span>
-                <span className="ml-auto shrink-0 text-[10px] text-adm-mute">{isOpen ? '▲' : '▼'}</span>
+                {/* A chevron, not another triangle — the reorder arrows sit
+                    right beside it and three arrows in a row read as one
+                    control rather than three. */}
+                <ChevronDown
+                  size={15}
+                  className={`ml-auto shrink-0 text-adm-mute transition-transform ${isOpen ? '' : '-rotate-90'}`}
+                />
               </button>
               <Reorder index={i} total={list.length} onMove={move} />
               <RemoveButton label={itemLabel} onClick={() => remove(i)} />

@@ -171,7 +171,7 @@ export default function ProductEditor() {
       <EditLayout
         main={(
           <>
-            {/* The WordPress title field and permalink line. */}
+            {/* The title field and the URL line under it. */}
             <div className="ad-card p-4">
               <label htmlFor="p-name" className="sr-only">Product name</label>
               <input
@@ -205,7 +205,7 @@ export default function ProductEditor() {
                 <>
                   {tab === 'general' && (
                     <div className="space-y-4">
-                      <Field label="Regular price" htmlFor="p-mrp" hint="The struck-through price. WooCommerce calls this the regular price; your brand sheet calls it MRP.">
+                      <Field label="Regular price" htmlFor="p-mrp" hint="The struck-through price — the MRP on your brand sheet.">
                         <input id="p-mrp" type="number" min="0" step="1" value={form.mrp} onChange={set('mrp')} className="ad-input sm:w-44" />
                       </Field>
                       <Field label="Sale price" htmlFor="p-sale" hint="What the customer actually pays.">
