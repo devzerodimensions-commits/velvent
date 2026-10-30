@@ -3,6 +3,7 @@ import { query } from '../db.js';
 import { ah, isEmail } from '../lib/helpers.js';
 import { findCoupon } from '../lib/pricing.js';
 import { getContent } from '../lib/content.js';
+import { getMediaStore } from '../lib/media/index.js';
 
 const router = Router();
 
@@ -17,13 +18,13 @@ router.get('/health', ah(async (_req, res) => {
   res.json({ status: 'ok', db: 'connected', time: rows[0].now, counts: counts[0] });
 }));
 
-/** Serves admin-uploaded images straight out of Postgres. */
+/** Serves an admin-uploaded image, from wherever this deployment keeps them. */
 router.get('/media/:id', ah(async (req, res) => {
-  const { rows } = await query('SELECT mime, bytes FROM media WHERE id = $1', [req.params.id]);
-  if (!rows[0]) return res.status(404).end();
-  res.set('Content-Type', rows[0].mime);
+  const found = await getMediaStore().get(req.params.id);
+  if (!found) return res.status(404).end();
+  res.set('Content-Type', found.mime);
   res.set('Cache-Control', 'public, max-age=31536000, immutable');
-  res.send(rows[0].bytes);
+  res.send(found.bytes);
 }));
 
 router.post('/newsletter', ah(async (req, res) => {

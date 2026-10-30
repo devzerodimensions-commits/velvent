@@ -1,0 +1,63 @@
+# The store and its database, on your own server.
+#
+#   cp .env.docker.example .env
+#   docker compose up -d --build
+#
+# That is the whole migration off a managed platform, give or take copying the
+# data across. The schema applies itself when the API boots.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-velvent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-velvent}
+      # The catalogue has rupee signs in it; the database has to be UTF8 or
+      # they will not survive being saved.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-velvent} -d ${POSTGRES_DB:-velvent}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Not published by default: the API reaches it over the compose network,
+    # and a database on the open internet is how shops lose their data.
+    # Uncomment to connect a client from your own machine.
+    # ports:
+    #   - "127.0.0.1:5432:5432"
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 10000
+      DATABASE_URL: postgres://${POSTGRES_USER:-velvent}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-velvent}
+      # Same machine, private network — nothing to encrypt against.
+      DATABASE_SSL: "off"
+      # A real disk exists here, so images do not belong in the database.
+      MEDIA_STORE: disk
+      MEDIA_DIR: /app/uploads
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+    ports:
+      - "${APP_PORT:-10000}:10000"
+    volumes:
+      # Uploads outlive the container. Without this they go on every rebuild,
+      # which is the problem the database store exists to work around.
+      - media:/app/uploads
+
+volumes:
+  db-data:
+  media:

@@ -232,5 +232,14 @@ ALTER TABLE reviews ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'appro
 ALTER TABLE reviews ALTER COLUMN status SET DEFAULT 'pending';
 
 /* The shop answering a review in public, under the review it answers. */
+/* Media can live in this table or on the server's disk — see lib/media.
+   storage_key names the file when it is on disk, and bytes is then empty, so
+   the column can no longer be NOT NULL. size_bytes records the size either
+   way, because OCTET_LENGTH(bytes) has nothing to measure once the bytes are
+   somewhere else. */
+ALTER TABLE media ADD COLUMN IF NOT EXISTS storage_key TEXT;
+ALTER TABLE media ADD COLUMN IF NOT EXISTS size_bytes  INT;
+ALTER TABLE media ALTER COLUMN bytes DROP NOT NULL;
+
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reply      TEXT;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS replied_at TIMESTAMPTZ;

@@ -12,7 +12,8 @@
     "db:setup": "node src/scripts/setup.js",
     "db:seed": "node src/scripts/seed.js",
     "db:reset": "node src/scripts/setup.js --drop && node src/scripts/seed.js",
-    "smoke": "node src/scripts/smoke.js"
+    "smoke": "node src/scripts/smoke.js",
+    "media:move": "node src/scripts/media-move.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

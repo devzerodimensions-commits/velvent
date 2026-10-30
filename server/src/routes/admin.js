@@ -6,6 +6,7 @@ import { hashPassword, requireAdmin } from '../lib/auth.js';
 import { ORDER_STATUS_KEYS, NEEDS_ACTION, STOCK_ALREADY_RETURNED } from '../lib/orderStatus.js';
 import { deleteContent, getContent, saveContent } from '../lib/content.js';
 import { getProvider, listProviders, normaliseShipment } from '../lib/shipping/index.js';
+import { getMediaStore } from '../lib/media/index.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -399,11 +400,30 @@ router.put('/orders/:id/status', ah(async (req, res) => {
 /** Stores uploads in Postgres so images survive Render's ephemeral filesystem. */
 router.post('/media', upload.single('file'), handleUploadErrors, ah(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Choose an image to upload.' });
+
+  const store = getMediaStore();
+
+  /* The row is written first so there is an id to report, then filled in with
+     whatever the store called the thing it wrote. */
   const { rows } = await query(
-    'INSERT INTO media (filename, mime, bytes) VALUES ($1,$2,$3) RETURNING id',
-    [req.file.originalname, req.file.mimetype, req.file.buffer],
+    'INSERT INTO media (filename, mime, size_bytes) VALUES ($1,$2,$3) RETURNING id',
+    [req.file.originalname, req.file.mimetype, req.file.size],
   );
-  res.status(201).json({ id: rows[0].id, url: `/api/media/${rows[0].id}` });
+  const id = rows[0].id;
+
+  try {
+    const stored = await store.put(req.file);
+    await query(
+      'UPDATE media SET storage_key = $2, bytes = $3 WHERE id = $1',
+      [id, stored.key, store.id === 'database' ? req.file.buffer : null],
+    );
+  } catch (err) {
+    // A row pointing at a file that was never written is worse than no row.
+    await query('DELETE FROM media WHERE id = $1', [id]);
+    throw err;
+  }
+
+  res.status(201).json({ id, url: `/api/media/${id}` });
 }));
 
 router.get('/messages', ah(async (_req, res) => {
@@ -562,14 +582,18 @@ router.put('/customers/:id', ah(async (req, res) => {
 
 router.get('/media', ah(async (_req, res) => {
   const { rows } = await query(
-    `SELECT id, filename, mime, OCTET_LENGTH(bytes) AS bytes, created_at
+    `SELECT id, filename, mime, created_at,
+            COALESCE(size_bytes, OCTET_LENGTH(bytes)) AS bytes
        FROM media ORDER BY id DESC LIMIT 300`,
   );
   res.json(rows.map((r) => ({ ...r, bytes: Number(r.bytes), url: `/api/media/${r.id}` })));
 }));
 
 router.delete('/media/:id', ah(async (req, res) => {
+  const { rows } = await query('SELECT storage_key FROM media WHERE id = $1', [req.params.id]);
   await query('DELETE FROM media WHERE id = $1', [req.params.id]);
+  // The row is the record; a file left behind would be invisible litter.
+  await getMediaStore().remove(rows[0]?.storage_key);
   res.json({ ok: true });
 }));
 

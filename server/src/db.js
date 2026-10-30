@@ -11,12 +11,40 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// Neon always needs TLS; a local postgres usually does not.
-const isLocal = /localhost|127\.0\.0\.1/.test(connectionString);
+/**
+ * Whether to speak TLS to Postgres.
+ *
+ * DATABASE_SSL says it outright: "off" for a database on the same machine or
+ * a private network, "on" to encrypt without checking the certificate, and
+ * "verify" to check it as well — which is what you want over the open
+ * internet and what a managed provider's certificate supports.
+ *
+ * Left unset, it guesses the way it always did: a host that looks local gets
+ * no TLS, anything else gets TLS without verification. That guess is right
+ * for Neon and for a laptop, and wrong in the interesting case — a Postgres
+ * on your own server reached across a network — which is exactly why moving
+ * host should not mean editing this file.
+ */
+function sslSetting() {
+  switch ((process.env.DATABASE_SSL || '').toLowerCase()) {
+    case 'off':
+    case 'false':
+      return false;
+    case 'verify':
+      return { rejectUnauthorized: true };
+    case 'on':
+    case 'true':
+      return { rejectUnauthorized: false };
+    default:
+      return /localhost|127\.0\.0\.1|::1/.test(connectionString)
+        ? false
+        : { rejectUnauthorized: false };
+  }
+}
 
 export const pool = new Pool({
   connectionString,
-  ssl: isLocal ? false : { rejectUnauthorized: false },
+  ssl: sslSetting(),
   max: 10,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 15_000,
