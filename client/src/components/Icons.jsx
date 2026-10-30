@@ -98,6 +98,33 @@ export const Whatsapp = (p) => (
 export const Instagram = (p) => (
   <Svg {...p}><rect x="4" y="4" width="16" height="16" rx="4.5" /><circle cx="12" cy="12" r="3.4" /><circle cx="17" cy="7" r=".9" fill="currentColor" /></Svg>
 );
+export const Youtube = (p) => (
+  <Svg {...p}><rect x="2.5" y="6" width="19" height="12" rx="3.5" /><path d="m10.5 9.5 4.5 2.5-4.5 2.5Z" /></Svg>
+);
+export const Twitter = (p) => (
+  <Svg {...p}><path d="m4 4 7.2 9.1L4.4 20h2l5.8-5.9L16.6 20H20l-7.5-9.5L19.3 4h-2l-5.3 5.4L7.4 4Z" /></Svg>
+);
+export const Linkedin = (p) => (
+  <Svg {...p}>
+    <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+    <path d="M8 10.5V17M8 7.4v.1M12 17v-3.6a2 2 0 0 1 4 0V17" />
+  </Svg>
+);
+export const Pinterest = (p) => (
+  <Svg {...p}><circle cx="12" cy="12" r="8.5" /><path d="M9.5 19.5 12 10m0 0a2.6 2.6 0 1 1 2.4 1.6c-1 0-1.8-.6-2.4-1.6Z" /></Svg>
+);
+export const Snapchat = (p) => (
+  <Svg {...p}>
+    <path d="M12 3.5c2.6 0 4 1.9 4 4.3 0 1 .1 1.9.4 2.3.3.4 1 .3 1.4.5.5.3.2 1-.6 1.4-.6.3-1 .4-1 .8 0 .9 2 2.6 3.3 3 .4.2.3.7-.2.9-.7.3-1.6.3-1.9.6-.2.3-.1.9-.5 1-.5.2-1.5-.3-2.6-.3-1 0-1.6 1-2.3 1s-1.3-1-2.3-1c-1.1 0-2.1.5-2.6.3-.4-.1-.3-.7-.5-1-.3-.3-1.2-.3-1.9-.6-.5-.2-.6-.7-.2-.9 1.3-.4 3.3-2.1 3.3-3 0-.4-.4-.5-1-.8-.8-.4-1.1-1.1-.6-1.4.4-.2 1.1-.1 1.4-.5.3-.4.4-1.3.4-2.3C8 5.4 9.4 3.5 12 3.5Z" />
+  </Svg>
+);
+/** The fallback for a platform we have no mark for — still a working link. */
+export const Globe = (p) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M3.5 12h17M12 3.5c2.2 2.3 3.3 5.2 3.3 8.5S14.2 18.2 12 20.5c-2.2-2.3-3.3-5.2-3.3-8.5S9.8 5.8 12 3.5Z" />
+  </Svg>
+);
 export const Facebook = (p) => (
   <Svg {...p}><path d="M14.5 8.5h2.3V5.2h-2.4c-2.3 0-3.6 1.4-3.6 3.7v1.6H8.5v3.3h2.3V21h3.4v-7.2h2.4l.4-3.3h-2.8V9.4c0-.6.2-.9.9-.9Z" /></Svg>
 );

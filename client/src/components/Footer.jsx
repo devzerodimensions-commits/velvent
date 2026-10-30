@@ -1,8 +1,60 @@
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import Newsletter from './Newsletter';
-import { Clock, Facebook, Instagram, Mail, Phone, Whatsapp } from './Icons';
+import {
+  Clock, Facebook, Globe, Instagram, Linkedin, Mail, Phone, Pinterest,
+  Snapchat, Twitter, Whatsapp, Youtube,
+} from './Icons';
 import { useContent } from '../store/content';
+
+/** A platform name from the admin, mapped to the mark we draw for it. */
+const SOCIAL_ICONS = {
+  instagram: Instagram,
+  facebook: Facebook,
+  youtube: Youtube,
+  x: Twitter,
+  twitter: Twitter,
+  linkedin: Linkedin,
+  pinterest: Pinterest,
+  snapchat: Snapchat,
+};
+
+/**
+ * The row of icons under the contact details.
+ *
+ * WhatsApp comes first and is built from the phone number rather than being a
+ * row in the list, because wa.me needs a number and not a profile URL — and
+ * because for a shop here it is a way to be contacted, not a page to follow.
+ *
+ * Everything after it is whatever the admin has added, in the order it was
+ * added. A platform we have no mark for still gets a working link behind a
+ * globe: an icon we have not drawn is no reason to drop someone's channel.
+ */
+function socialLinks(brand) {
+  const links = [];
+
+  if (brand.whatsapp) {
+    links.push({ href: `https://wa.me/${brand.whatsapp}`, Icon: Whatsapp, label: 'WhatsApp' });
+  }
+
+  /* Content saved before social became a list is still an object of
+     platform → url. Reading both shapes means an upgrade never empties a
+     footer that someone had already filled in. */
+  const entries = Array.isArray(brand.social)
+    ? brand.social
+    : Object.entries(brand.social || {}).map(([platform, url]) => ({ platform, url }));
+
+  for (const { platform, url } of entries) {
+    const href = String(url || '').trim();
+    // Only ever link out to a real address.
+    if (!/^https?:\/\//i.test(href)) continue;
+
+    const name = String(platform || 'Link').trim();
+    links.push({ href, label: name, Icon: SOCIAL_ICONS[name.toLowerCase()] || Globe });
+  }
+
+  return links;
+}
 
 
 export default function Footer() {
@@ -34,14 +86,10 @@ export default function Footer() {
             </p>
           </div>
 
-          <div className="mt-6 flex gap-2.5">
-            {[
-              { href: `https://wa.me/${brand.whatsapp}`, Icon: Whatsapp, label: 'WhatsApp' },
-              { href: brand.social.instagram, Icon: Instagram, label: 'Instagram' },
-              { href: brand.social.facebook, Icon: Facebook, label: 'Facebook' },
-            ].map(({ href, Icon, label }) => (
+          <div className="mt-6 flex flex-wrap gap-2.5">
+            {socialLinks(brand).map(({ href, Icon, label }) => (
               <a
-                key={label}
+                key={label + href}
                 href={href}
                 target="_blank"
                 rel="noreferrer noopener"

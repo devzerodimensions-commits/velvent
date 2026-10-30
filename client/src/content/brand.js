@@ -21,10 +21,12 @@ export const defaults = {
     { label: 'Every day', value: '9:00 AM – 9:00 PM' },
   ],
 
-  social: {
-    instagram: 'https://instagram.com/',
-    facebook: 'https://facebook.com/',
-  },
+  /* A list rather than a fixed pair, so adding YouTube or Pinterest is a row
+     in the admin instead of a release. Order here is the order in the footer. */
+  social: [
+    { platform: 'Instagram', url: 'https://instagram.com/' },
+    { platform: 'Facebook', url: 'https://facebook.com/' },
+  ],
 
   shipping: {
     freeAbove: 999,
@@ -62,10 +64,18 @@ export const fields = [
   {
     name: 'social',
     label: 'Social links',
-    type: 'group',
+    type: 'list',
+    itemLabel: 'Link',
+    titleKey: 'platform',
+    help: 'Shown as icons in the footer, in this order. Add as many as you like — a platform with no icon of its own gets a globe.',
     fields: [
-      { name: 'instagram', label: 'Instagram URL', type: 'url' },
-      { name: 'facebook', label: 'Facebook URL', type: 'url' },
+      {
+        name: 'platform',
+        label: 'Platform',
+        type: 'select',
+        options: ['Instagram', 'Facebook', 'YouTube', 'X', 'LinkedIn', 'Pinterest', 'Snapchat', 'Website'],
+      },
+      { name: 'url', label: 'Link', type: 'url', help: 'The full address, starting with https://' },
     ],
   },
 
