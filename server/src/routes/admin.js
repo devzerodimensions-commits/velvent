@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { query, withTransaction } from '../db.js';
-import { ah, slugify } from '../lib/helpers.js';
-import { requireAdmin } from '../lib/auth.js';
+import { ah, isEmail, slugify } from '../lib/helpers.js';
+import { hashPassword, requireAdmin } from '../lib/auth.js';
 import { ORDER_STATUS_KEYS, NEEDS_ACTION, STOCK_ALREADY_RETURNED } from '../lib/orderStatus.js';
-import { deleteContent, saveContent } from '../lib/content.js';
+import { deleteContent, getContent, saveContent } from '../lib/content.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -50,6 +50,12 @@ const handleUploadErrors = (err, _req, res, next) => {
 /* ---------------------------------------------------------------- dashboard */
 
 router.get('/stats', ah(async (_req, res) => {
+  /* The threshold the dashboard warns at is a setting, so a shop selling in
+     tens and one selling in thousands can each pick what 'low' means. */
+  const content = await getContent();
+  const lowStockAt = Number(content?.settings?.lowStockAt);
+  const threshold = Number.isFinite(lowStockAt) && lowStockAt >= 0 ? lowStockAt : 5;
+
   const [orders, revenue, products, lowStock, recent, byDay] = await Promise.all([
     query(`SELECT COUNT(*)::int AS total,
                   COUNT(*) FILTER (WHERE status = ANY($1::text[]))::int AS new_orders,
@@ -62,7 +68,7 @@ router.get('/stats', ah(async (_req, res) => {
                   COUNT(*) FILTER (WHERE is_active)::int AS active FROM products`),
     query(`SELECT p.name, v.size, v.color, v.stock, v.sku
              FROM product_variants v JOIN products p ON p.id = v.product_id
-            WHERE v.stock <= 5 ORDER BY v.stock, p.name LIMIT 20`),
+            WHERE v.stock <= $1 ORDER BY v.stock, p.name LIMIT 20`, [threshold]),
     query(`SELECT id, order_number, email, status, payment_method, payment_status, total, created_at
              FROM orders ORDER BY created_at DESC LIMIT 8`),
     query(`SELECT to_char(d::date, 'YYYY-MM-DD') AS day,
@@ -448,6 +454,7 @@ router.delete('/coupons/:id', ah(async (req, res) => {
    half-saved field can never collapse a whole section. */
 
 const CONTENT_KEYS = new Set([
+  'settings',
   'brand', 'header', 'footer',
   'home', 'about', 'contact', 'faq', 'sizeGuide', 'notFound',
   'shop', 'product', 'cart', 'checkout', 'account',
@@ -562,6 +569,128 @@ router.get('/media', ah(async (_req, res) => {
 
 router.delete('/media/:id', ah(async (req, res) => {
   await query('DELETE FROM media WHERE id = $1', [req.params.id]);
+  res.json({ ok: true });
+}));
+
+/* ------------------------------------------------------------------- users
+   Staff accounts, and the roles that decide who can open this panel at all.
+   Two guards run on every change: an admin cannot act on their own account
+   here (that is what Profile is for), and the last remaining admin cannot be
+   removed or demoted — losing every admin locks the panel for good, with no
+   way back in short of editing the database by hand. */
+
+const ROLES = new Set(['admin', 'customer']);
+
+const countAdmins = async () => {
+  const { rows } = await query("SELECT COUNT(*)::int AS n FROM users WHERE role = 'admin'");
+  return rows[0].n;
+};
+
+router.get('/users', ah(async (req, res) => {
+  const q = (req.query.q || '').trim();
+  const params = [];
+  let where = '';
+  if (q) {
+    params.push(`%${q}%`);
+    where = 'WHERE u.name ILIKE $1 OR u.email ILIKE $1 OR u.phone ILIKE $1';
+  }
+  const { rows } = await query(
+    `SELECT u.id, u.name, u.email, u.phone, u.role, u.created_at,
+            COUNT(o.id)::int AS orders
+       FROM users u
+       LEFT JOIN orders o ON o.user_id = u.id
+       ${where}
+      GROUP BY u.id
+      ORDER BY (u.role = 'admin') DESC, u.created_at DESC
+      LIMIT 500`,
+    params,
+  );
+  res.json(rows.map((r) => ({ ...r, isSelf: r.id === req.user.id })));
+}));
+
+router.post('/users', ah(async (req, res) => {
+  const { name, email, phone, password, role = 'customer' } = req.body || {};
+
+  if (!String(name || '').trim()) return res.status(400).json({ error: 'Name is required.' });
+  if (!isEmail(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
+  if (String(password || '').length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
+  if (!ROLES.has(role)) return res.status(400).json({ error: 'Unknown role.' });
+
+  const { rows: taken } = await query('SELECT 1 FROM users WHERE LOWER(email) = LOWER($1)', [email]);
+  if (taken[0]) return res.status(409).json({ error: 'An account with that email already exists.' });
+
+  const { rows } = await query(
+    `INSERT INTO users (name, email, phone, password_hash, role)
+          VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, name, email, phone, role, created_at`,
+    [String(name).trim(), String(email).trim().toLowerCase(), phone || null, await hashPassword(password), role],
+  );
+  res.status(201).json(rows[0]);
+}));
+
+router.put('/users/:id', ah(async (req, res) => {
+  const id = Number(req.params.id);
+  const { name, phone, role } = req.body || {};
+
+  const { rows: found } = await query('SELECT id, role FROM users WHERE id = $1', [id]);
+  const target = found[0];
+  if (!target) return res.status(404).json({ error: 'Account not found.' });
+
+  if (role !== undefined) {
+    if (!ROLES.has(role)) return res.status(400).json({ error: 'Unknown role.' });
+    if (id === req.user.id) {
+      return res.status(400).json({ error: 'You cannot change your own role. Ask another admin.' });
+    }
+    if (target.role === 'admin' && role !== 'admin' && await countAdmins() <= 1) {
+      return res.status(400).json({ error: 'This is the only admin. Make someone else an admin first.' });
+    }
+  }
+
+  const { rows } = await query(
+    `UPDATE users
+        SET name  = COALESCE($2, name),
+            phone = COALESCE($3, phone),
+            role  = COALESCE($4, role)
+      WHERE id = $1
+      RETURNING id, name, email, phone, role, created_at`,
+    [id, name?.trim() || null, phone ?? null, role ?? null],
+  );
+  res.json(rows[0]);
+}));
+
+/** Resetting someone's password without ever seeing their old one. */
+router.put('/users/:id/password', ah(async (req, res) => {
+  const { password } = req.body || {};
+  if (String(password || '').length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
+  const { rows } = await query(
+    'UPDATE users SET password_hash = $2 WHERE id = $1 RETURNING id',
+    [req.params.id, await hashPassword(password)],
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Account not found.' });
+  res.json({ ok: true });
+}));
+
+router.delete('/users/:id', ah(async (req, res) => {
+  const id = Number(req.params.id);
+  if (id === req.user.id) {
+    return res.status(400).json({ error: 'You cannot delete your own account from here.' });
+  }
+
+  const { rows: found } = await query('SELECT role FROM users WHERE id = $1', [id]);
+  if (!found[0]) return res.status(404).json({ error: 'Account not found.' });
+  if (found[0].role === 'admin' && await countAdmins() <= 1) {
+    return res.status(400).json({ error: 'This is the only admin. Make someone else an admin first.' });
+  }
+
+  /* Orders outlive the account that placed them — they are the shop's record,
+     not the customer's, and a deleted account must not take its history with
+     it. The column is nullable, so the order simply stops pointing anywhere. */
+  await query('UPDATE orders SET user_id = NULL WHERE user_id = $1', [id]);
+  await query('DELETE FROM users WHERE id = $1', [id]);
   res.json({ ok: true });
 }));
 

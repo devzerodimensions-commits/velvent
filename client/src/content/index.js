@@ -1,3 +1,4 @@
+import * as settings from './settings';
 import * as brand from './brand';
 import * as header from './header';
 import * as footer from './footer';
@@ -26,6 +27,7 @@ import { shipping, returns, privacy, terms } from './policies';
  * is data, edited where that record is edited.
  */
 export const SECTIONS = [
+  { key: 'settings', label: 'Store settings', group: 'Site', blurb: 'Site icon, search defaults, stock warnings and maintenance mode.', ...settings },
   { key: 'brand', label: 'Brand & contact', group: 'Site', blurb: 'Name, phone, email, hours, social links and the shipping rules.', ...brand },
   { key: 'header', label: 'Header', group: 'Site', blurb: 'The announcement bar and the main menu.', ...header },
   { key: 'footer', label: 'Footer', group: 'Site', blurb: 'Link columns, the newsletter note and payment badges.', ...footer },

@@ -8,8 +8,9 @@ import Cursor from './components/Cursor';
 import { PageLoader, ScrollToTop } from './components/ui';
 import { AuthProvider, useAuth } from './store/auth';
 import { CartProvider } from './store/cart';
+import { Mark } from './components/Logo';
 import { ToastProvider } from './store/toast';
-import { ContentProvider } from './store/content';
+import { ContentProvider, useContent } from './store/content';
 
 import Home from './pages/Home';
 import Shop from './pages/Shop';
@@ -45,6 +46,8 @@ const AdminCustomers = lazy(() => import('./pages/admin/Customers').then((m) => 
 const AdminCustomerDetail = lazy(() => import('./pages/admin/Customers'));
 const AdminMedia = lazy(() => import('./pages/admin/Media'));
 const AdminMediaUpload = lazy(() => import('./pages/admin/MediaUpload'));
+const AdminUsers = lazy(() => import('./pages/admin/Users'));
+const AdminProfile = lazy(() => import('./pages/admin/Profile'));
 
 function RequireAuth({ children, admin = false }) {
   const { user, ready, isAdmin } = useAuth();
@@ -56,9 +59,34 @@ function RequireAuth({ children, admin = false }) {
   return children;
 }
 
+/**
+ * The storefront closed, with the panel still reachable.
+ *
+ * Signing in has to stay open or an admin who is not already signed in could
+ * not get back to the switch that reopens the shop.
+ */
+function Closed({ title, body }) {
+  return (
+    <div className="shell flex min-h-screen flex-col items-center justify-center py-20 text-center">
+      <Mark className="h-12 w-auto text-mist" />
+      <h1 className="mt-8 font-display text-xl font-semibold uppercase tracking-wider2 text-navy">{title}</h1>
+      <p className="mt-4 max-w-md text-[14.5px] leading-relaxed text-slate">{body}</p>
+    </div>
+  );
+}
+
 function Storefront() {
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
+  const { maintenance } = useContent('settings');
+  const { isAdmin: signedInAsAdmin } = useAuth();
+
+  const closed = maintenance?.on === true
+    && !isAdmin
+    && !signedInAsAdmin
+    && pathname !== '/login';
+
+  if (closed) return <Closed title={maintenance.title} body={maintenance.body} />;
 
   if (isAdmin) {
     return (
@@ -79,6 +107,8 @@ function Storefront() {
             <Route path="customers/:id" element={<AdminCustomerDetail />} />
             <Route path="media" element={<AdminMedia />} />
             <Route path="media/new" element={<AdminMediaUpload />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="profile" element={<AdminProfile />} />
           </Route>
         </Routes>
       </Suspense>

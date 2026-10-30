@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, Star } from './Icons';
+import { useContent } from '../store/content';
 
 /**
  * Animates its contents in the first time they reach the viewport. `variant` picks
@@ -254,9 +255,14 @@ function upsertLink(rel, href) {
  * data object — a Product on a product page, for instance.
  */
 export function Seo({ title, description, image, noindex = false, jsonLd = null }) {
+  const settings = useContent('settings');
+
   useEffect(() => {
-    const full = title ? `${title} | VELVENT` : 'VELVENT — Premium Clothing';
-    const text = description || DEFAULT_DESCRIPTION;
+    /* The suffix, the fallback description and the share image are settings,
+       so a rename does not mean a deploy. Each falls back to what shipped. */
+    const suffix = settings.titleSuffix || 'VELVENT';
+    const full = title ? `${title} | ${suffix}` : `${suffix} — Premium Clothing`;
+    const text = description || settings.seoDescription || DEFAULT_DESCRIPTION;
     const { origin, pathname } = window.location;
     const canonical = origin + pathname;
 
@@ -267,11 +273,12 @@ export function Seo({ title, description, image, noindex = false, jsonLd = null 
     upsertMeta('property', 'og:description', text);
     upsertMeta('property', 'og:url', canonical);
     // Social crawlers reject relative image paths, so resolve against the origin.
-    upsertMeta('property', 'og:image', new URL(image || DEFAULT_SHARE_IMAGE, origin).href);
+    upsertMeta('property', 'og:image', new URL(image || settings.seoImage || DEFAULT_SHARE_IMAGE, origin).href);
     upsertMeta('name', 'twitter:title', full);
     upsertMeta('name', 'twitter:description', text);
     upsertLink('canonical', canonical);
-  }, [title, description, image, noindex]);
+    if (settings.siteIcon) upsertLink('icon', settings.siteIcon);
+  }, [title, description, image, noindex, settings]);
 
   useEffect(() => {
     if (!jsonLd) return undefined;

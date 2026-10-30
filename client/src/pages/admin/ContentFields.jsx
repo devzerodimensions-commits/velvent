@@ -378,7 +378,9 @@ function Control({ field, value, onChange, id, path }) {
       /* The knob is a grandchild of the input, which `peer-checked:` cannot
          reach — it only matches siblings. So the position is driven from the
          value rather than from CSS. */
-      const on = value !== false;
+      /* Strictly boolean: a missing value is off, never on. A switch that
+         defaults to closing the shop because nobody set it would be a trap. */
+      const on = value === true;
       return (
         <label className="inline-flex cursor-pointer items-center gap-2.5">
           <input

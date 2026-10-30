@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Mark } from '../../components/Logo';
 import {
-  Box, Chart, ChevronDown, ChevronLeft, Close, Grid, Logout, Mail, Menu,
-  Ruler, Search, Tag, Upload, User,
+  Box, Chart, ChevronDown, ChevronLeft, Close, Cog, Grid, Logout, Mail, Menu,
+  Ruler, Search, Shield, Tag, Upload, User,
 } from '../../components/Icons';
 import { useAuth } from '../../store/auth';
 import { api } from '../../lib/api';
@@ -42,6 +42,15 @@ const MENU = [
     heading: 'People',
     items: [
       { to: '/admin/customers', label: 'Customers', Icon: User },
+      {
+        to: '/admin/users',
+        label: 'Users',
+        Icon: Shield,
+        children: [
+          { to: '/admin/users', end: true, label: 'All users' },
+          { to: '/admin/profile', label: 'Your profile' },
+        ],
+      },
       { to: '/admin/inbox', label: 'Inbox', Icon: Mail, badge: 'messages' },
     ],
   },
@@ -70,6 +79,10 @@ const MENU = [
         ],
       },
     ],
+  },
+  {
+    heading: null,
+    items: [{ to: '/admin/content/settings', label: 'Settings', Icon: Cog }],
   },
 ];
 

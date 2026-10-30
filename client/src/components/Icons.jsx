@@ -77,6 +77,12 @@ export const Pin = (p) => (
 export const Logout = (p) => (
   <Svg {...p}><path d="M14 20H6V4h8" /><path d="M11 12h10M18 9l3 3-3 3" /></Svg>
 );
+export const Cog = (p) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="3.2" />
+    <path d="M12 3.2v2M12 18.8v2M20.8 12h-2M5.2 12h-2M18.2 5.8l-1.4 1.4M7.2 16.8l-1.4 1.4M18.2 18.2l-1.4-1.4M7.2 7.2 5.8 5.8" />
+  </Svg>
+);
 export const Ruler = (p) => (
   <Svg {...p}><rect x="2.5" y="8" width="19" height="8" /><path d="M7 8v3M11 8v4M15 8v3M19 8v4" /></Svg>
 );

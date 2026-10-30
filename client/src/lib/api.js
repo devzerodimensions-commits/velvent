@@ -124,6 +124,12 @@ export const api = {
     saveContent: (key, value) => request(`/admin/content/${key}`, { method: 'PUT', body: { value } }),
     resetContent: (key) => request(`/admin/content/${key}`, { method: 'DELETE' }),
 
+    users: (q) => request(`/admin/users${qs({ q })}`),
+    createUser: (body) => request('/admin/users', { method: 'POST', body }),
+    updateUser: (id, body) => request(`/admin/users/${id}`, { method: 'PUT', body }),
+    setUserPassword: (id, password) => request(`/admin/users/${id}/password`, { method: 'PUT', body: { password } }),
+    deleteUser: (id) => request(`/admin/users/${id}`, { method: 'DELETE' }),
+
     customers: (q) => request(`/admin/customers${qs({ q })}`),
     customer: (id) => request(`/admin/customers/${id}`),
     updateCustomer: (id, body) => request(`/admin/customers/${id}`, { method: 'PUT', body }),
