@@ -7,6 +7,7 @@ import {
 import { api } from '../../lib/api';
 import { ADMIN_STATUS_LABEL, formatDate, formatDateTime, inr, ORDER_STATUS_KEYS } from '../../lib/format';
 import { useToast } from '../../store/toast';
+import ShipDialog from './ShipDialog';
 
 const COLUMNS = [
   { key: 'order', label: 'Order' },
@@ -102,6 +103,7 @@ export default function AdminOrders() {
   const [view, setView] = useState('');
   const [search, setSearch] = useState('');
   const [preview, setPreview] = useState(null);
+  const [shipping, setShipping] = useState(null);
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
   const { success, error: toastError } = useToast();
@@ -185,6 +187,7 @@ export default function AdminOrders() {
               <RowActions
                 actions={[
                   { label: 'Preview', onClick: () => setPreview(o) },
+                  { label: o.tracking_number ? 'Shipping' : 'Mark shipped', onClick: () => setShipping(o) },
                   o.status !== 'completed' && { label: 'Mark completed', onClick: () => setStatus(o, 'completed') },
                   o.status !== 'cancelled' && { label: 'Cancel', onClick: () => setStatus(o, 'cancelled'), danger: true },
                 ]}
@@ -232,6 +235,17 @@ export default function AdminOrders() {
       />
 
       {preview && <Preview order={preview} onClose={() => setPreview(null)} />}
+
+      {shipping && (
+        <ShipDialog
+          order={shipping}
+          onClose={() => setShipping(null)}
+          onDone={(updated) => {
+            setRows((list) => list.map((o) => (o.id === updated.id ? { ...o, ...updated } : o)));
+            setShipping(null);
+          }}
+        />
+      )}
     </>
   );
 }

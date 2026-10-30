@@ -172,13 +172,18 @@ router.post('/orders/:orderNumber/verify', ah(async (req, res) => {
 }));
 
 /** GET /api/orders - the signed-in customer's order history. */
+/* shipment_meta is whatever the courier's API handed back — internal, and
+   none of a customer's business. The four fields they do need are separate
+   columns, so dropping it costs them nothing. */
+const withoutInternals = ({ shipment_meta, ...order }) => order;
+
 router.get('/orders', requireAuth, ah(async (req, res) => {
   const { rows } = await query(
     `SELECT o.*, COALESCE((SELECT json_agg(i) FROM order_items i WHERE i.order_id = o.id), '[]'::json) AS items
        FROM orders o WHERE o.user_id = $1 ORDER BY o.created_at DESC`,
     [req.user.id],
   );
-  res.json(rows);
+  res.json(rows.map(withoutInternals));
 }));
 
 /**
@@ -199,7 +204,7 @@ router.get('/orders/:orderNumber', ah(async (req, res) => {
   if (!isOwner && !emailMatches && req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'Enter the email address used on this order to view it.' });
   }
-  res.json(order);
+  res.json(withoutInternals(order));
 }));
 
 /** POST /api/orders/:orderNumber/cancel - allowed until the parcel ships. */

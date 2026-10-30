@@ -202,3 +202,15 @@ CREATE TABLE IF NOT EXISTS site_content (
    idempotent, so running setup against any database brings it up to date. */
 
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS size_chart JSONB;
+
+/* Dispatch details. Deliberately plain columns rather than a courier's own
+   shape: a carrier name, the number it gave us, and the two timestamps a
+   customer actually asks about. Whatever provider is plugged in later fills
+   these same fields, so the storefront never learns who is carrying the
+   parcel. shipment_meta holds whatever extra that provider wants to keep. */
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS carrier         TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_number TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_url    TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipped_at      TIMESTAMPTZ;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at    TIMESTAMPTZ;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipment_meta   JSONB;

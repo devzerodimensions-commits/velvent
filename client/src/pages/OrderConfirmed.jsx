@@ -166,12 +166,43 @@ export function OrderDetail({ order }) {
           {order.notes && <p className="mt-4 border-t border-mist pt-4 text-[12.5px] text-slate">Note: {order.notes}</p>}
         </div>
 
-        <div className="card-surface flex items-start gap-3 p-6">
-          <Truck size={20} className="mt-0.5 shrink-0 text-navy" />
-          <p className="text-[12.5px] leading-relaxed text-slate">
-            <Rich>{c.dispatchNote}</Rich>
-          </p>
-        </div>
+        {/* Once there is a tracking number, that is the thing the customer
+            came back for — it takes the place of the dispatch estimate rather
+            than sitting underneath it. */}
+        {order.tracking_number ? (
+          <div className="card-surface p-6">
+            <div className="flex items-start gap-3">
+              <Truck size={20} className="mt-0.5 shrink-0 text-navy" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wider2 text-slate">On its way</p>
+                <p className="mt-1.5 text-[13.5px] font-semibold text-navy">
+                  {order.carrier || 'Courier'}
+                </p>
+                <p className="mt-0.5 break-all font-mono text-[12.5px] text-slate">{order.tracking_number}</p>
+                {order.shipped_at && (
+                  <p className="mt-1.5 text-[12px] text-slate">Dispatched {formatDateTime(order.shipped_at)}</p>
+                )}
+              </div>
+            </div>
+            {order.tracking_url && (
+              <a
+                href={order.tracking_url}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="btn-primary mt-5 w-full"
+              >
+                Track this parcel
+              </a>
+            )}
+          </div>
+        ) : (
+          <div className="card-surface flex items-start gap-3 p-6">
+            <Truck size={20} className="mt-0.5 shrink-0 text-navy" />
+            <p className="text-[12.5px] leading-relaxed text-slate">
+              <Rich>{c.dispatchNote}</Rich>
+            </p>
+          </div>
+        )}
       </aside>
     </div>
   );

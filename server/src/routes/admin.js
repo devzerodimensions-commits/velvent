@@ -5,6 +5,7 @@ import { ah, isEmail, slugify } from '../lib/helpers.js';
 import { hashPassword, requireAdmin } from '../lib/auth.js';
 import { ORDER_STATUS_KEYS, NEEDS_ACTION, STOCK_ALREADY_RETURNED } from '../lib/orderStatus.js';
 import { deleteContent, getContent, saveContent } from '../lib/content.js';
+import { getProvider, listProviders, normaliseShipment } from '../lib/shipping/index.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -692,6 +693,68 @@ router.delete('/users/:id', ah(async (req, res) => {
   await query('UPDATE orders SET user_id = NULL WHERE user_id = $1', [id]);
   await query('DELETE FROM users WHERE id = $1', [id]);
   res.json({ ok: true });
+}));
+
+/* ------------------------------------------------------------------ shipping
+
+   One route covers both ways a parcel goes out: a provider that books it over
+   an API, and a person typing in what the courier handed them. The order comes
+   back with the same four fields either way. */
+
+router.get('/shipping/providers', ah(async (_req, res) => {
+  res.json({ active: getProvider().id, providers: listProviders() });
+}));
+
+router.put('/orders/:id/shipment', ah(async (req, res) => {
+  const provider = getProvider();
+  const { rows: found } = await query('SELECT * FROM orders WHERE id = $1', [req.params.id]);
+  const order = found[0];
+  if (!order) return res.status(404).json({ error: 'Order not found.' });
+
+  /* Clearing a dispatch is a real action — a parcel booked against the wrong
+     order has to be undoable without inventing a blank tracking number. */
+  if (req.body?.clear === true) {
+    const { rows } = await query(
+      `UPDATE orders
+          SET carrier = NULL, tracking_number = NULL, tracking_url = NULL,
+              shipped_at = NULL, shipment_meta = NULL, updated_at = NOW()
+        WHERE id = $1 RETURNING *`,
+      [order.id],
+    );
+    return res.json(rows[0]);
+  }
+
+  let shipment;
+  try {
+    shipment = normaliseShipment(provider, await provider.createShipment(order, req.body || {}));
+  } catch (err) {
+    return res.status(502).json({ error: `${provider.label} could not book this parcel: ${err.message}` });
+  }
+
+  if (!shipment.trackingNumber) {
+    return res.status(400).json({ error: 'A tracking number is needed to mark this as shipped.' });
+  }
+
+  /* Dispatching is also a status change: an order with a tracking number that
+     still reads "processing" tells the customer the wrong thing. Statuses past
+     shipping are left alone, so adding a number to a delivered order does not
+     drag it backwards. */
+  const movesToShipped = ['pending', 'processing', 'on-hold'].includes(order.status);
+
+  const { rows } = await query(
+    `UPDATE orders
+        SET carrier = $2, tracking_number = $3, tracking_url = $4,
+            shipment_meta = $5::jsonb,
+            shipped_at = COALESCE(shipped_at, NOW()),
+            status = CASE WHEN $6 THEN 'shipped' ELSE status END,
+            updated_at = NOW()
+      WHERE id = $1 RETURNING *`,
+    [
+      order.id, shipment.carrier, shipment.trackingNumber, shipment.trackingUrl,
+      shipment.meta ? JSON.stringify(shipment.meta) : null, movesToShipped,
+    ],
+  );
+  res.json(rows[0]);
 }));
 
 export default router;

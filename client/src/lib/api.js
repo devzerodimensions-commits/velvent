@@ -111,6 +111,8 @@ export const api = {
 
     orders: (status) => request(`/admin/orders${qs({ status })}`),
     setOrderStatus: (id, body) => request(`/admin/orders/${id}/status`, { method: 'PUT', body }),
+    shippingProviders: () => request('/admin/shipping/providers'),
+    shipOrder: (id, body) => request(`/admin/orders/${id}/shipment`, { method: 'PUT', body }),
 
     messages: () => request('/admin/messages'),
     readMessage: (id) => request(`/admin/messages/${id}/read`, { method: 'PUT' }),
