@@ -10,6 +10,7 @@ dotenv.config();
 
 import { optionalAuth } from './lib/auth.js';
 import { migrateOnBoot } from './lib/migrate.js';
+import { purgeAbandoned } from './lib/abandoned.js';
 import catalogRoutes from './routes/catalog.js';
 import authRoutes from './routes/auth.js';
 import orderRoutes from './routes/orders.js';
@@ -64,6 +65,37 @@ app.use('/api/products', writeLimit(60, 10));     // the only POST here is a rev
 app.use('/api/contact', writeLimit(60, 5));
 app.use('/api/newsletter', writeLimit(60, 10));
 
+/**
+ * The admin API had no ceiling at all.
+ *
+ * Every route behind it already requires an admin token, so this is not about
+ * strangers — it is about what a leaked or stolen token can do before anyone
+ * notices, and about a loop in the panel that goes wrong at three in the
+ * morning. The limit is deliberately generous: a real stock-take saves a
+ * screenful at a time and a media upload is one request per file, so ordinary
+ * work never comes close.
+ *
+ * Unlike the others this counts reads as well. Exporting the customer list is
+ * a GET, and quietly draining it is the thing worth slowing down.
+ */
+app.use('/api/admin', rateLimit({
+  windowMs: 60 * 1000,
+  limit: 300,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  /* Counted per admin, so one person working hard never throttles another.
+     Every route here needs a token, so a request without one is already going
+     to be refused — those share a single bucket, which is the behaviour we
+     want anyway: it is someone knocking without a key.
+
+     Keying on the admin id rather than the address also sidesteps the IPv6
+     question entirely. A hand-written address key counts every address in a
+     /64 separately, which is one household, and this version of the library
+     does not export the helper that handles it. */
+  keyGenerator: (req) => (req.user?.id ? `admin:${req.user.id}` : 'no-token'),
+  message: { error: 'That is a lot of requests in one minute. Wait a moment and try again.' },
+}));
+
 app.use('/api', miscRoutes);
 app.use('/api', catalogRoutes);
 app.use('/api/auth', authRoutes);
@@ -115,6 +147,9 @@ app.use((err, _req, res, _next) => {
 // The schema is brought up to date before the first request, not during the
 // build: the running server is the one place DATABASE_URL is guaranteed.
 await migrateOnBoot();
+
+// Personal data of people who did not buy should not outlive its usefulness.
+await purgeAbandoned();
 
 app.listen(PORT, () => {
   console.log(`[velvent] API listening on http://localhost:${PORT}`);

@@ -4,6 +4,7 @@ import { query, withTransaction } from '../db.js';
 import { ah, isEmail, isPhone, isPincode, orderNumber, validate } from '../lib/helpers.js';
 import { requireAuth } from '../lib/auth.js';
 import { priceCart, findCoupon } from '../lib/pricing.js';
+import { clearAbandoned, recordAbandoned } from '../lib/abandoned.js';
 import { CANCELLABLE, initialStatus } from '../lib/orderStatus.js';
 
 const router = Router();
@@ -28,6 +29,47 @@ router.post('/cart/price', ah(async (req, res) => {
   const priced = await priceCart({ query }, items, coupon);
   if (priced.error) return res.status(400).json({ error: priced.error });
   res.json(priced);
+}));
+
+/**
+ * POST /api/checkout/started
+ *
+ * Called once a shopper has typed a usable email into checkout. It records
+ * what they were about to buy so the shop can follow up if the order never
+ * arrives — and is deleted the instant it does.
+ *
+ * Prices are not taken from the request. The subtotal is recalculated from
+ * the database exactly as an order is, because a row that flatters a cart
+ * would send someone chasing a sale that was never worth what it claimed.
+ */
+router.post('/checkout/started', ah(async (req, res) => {
+  const { email, name, phone, items } = req.body || {};
+
+  /* Answered with a shrug rather than an error. This is a side errand, and
+     someone mid-checkout should never see a failure from it. */
+  if (!isEmail(email) || !Array.isArray(items) || !items.length) {
+    return res.json({ ok: true });
+  }
+
+  const priced = await priceCart({ query }, items.slice(0, 50));
+  if (priced.error) return res.json({ ok: true });
+
+  await recordAbandoned({
+    email,
+    name,
+    phone,
+    userId: req.user?.id || null,
+    subtotal: priced.totals.subtotal,
+    items: priced.lines.map((l) => ({
+      name: l.name,
+      color: l.color,
+      size: l.size,
+      quantity: l.quantity,
+      unitPrice: l.unitPrice,
+    })),
+  });
+
+  res.json({ ok: true });
 }));
 
 /** POST /api/orders - place an order. Works for guests and signed-in customers. */
@@ -124,6 +166,8 @@ router.post('/orders', ah(async (req, res) => {
       });
     }
   }
+  // The sale happened, so there is nothing left to chase.
+  await clearAbandoned(result.body.order.email);
 
   res.status(201).json(result.body);
 }));

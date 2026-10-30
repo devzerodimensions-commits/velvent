@@ -71,6 +71,32 @@ export default function Checkout() {
     if (!items.length && !placing) navigate('/cart', { replace: true });
   }, [items.length, placing, navigate]);
 
+  /**
+   * Tells the shop what someone was about to buy, once they have given an
+   * email worth contacting. The order itself clears this; if no order
+   * follows, it is the only trace that this nearly happened.
+   *
+   * Waits a few seconds after typing stops, so a slowly typed address is one
+   * request rather than one per keystroke, and never blocks or interrupts the
+   * person filling the form — a failure here is the shop's problem, not
+   * theirs.
+   */
+  useEffect(() => {
+    const email = form.email.trim();
+    if (placing || !items.length || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return undefined;
+
+    const timer = setTimeout(() => {
+      api.checkoutStarted({
+        email,
+        name: form.full_name.trim() || null,
+        phone: form.phone.trim() || null,
+        items: items.map(({ variantId, quantity }) => ({ variantId, quantity })),
+      }).catch(() => { /* never the shopper's problem */ });
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, [form.email, form.full_name, form.phone, items, placing]);
+
   const rows = lines || [];
   const set = (k) => (e) => {
     setForm({ ...form, [k]: e.target.value });

@@ -599,6 +599,30 @@ router.delete('/media/:id', ah(async (req, res) => {
 
 
 
+
+/* --------------------------------------------------------- abandoned carts
+
+   Someone who typed their email into checkout and never came back. The shop
+   has their number, so the follow-up is a WhatsApp message, not a campaign —
+   which is why the list carries contact details and a value, and nothing
+   resembling a marketing tool. */
+
+router.get('/abandoned', ah(async (_req, res) => {
+  const { rows } = await query(
+    `SELECT a.*,
+            (SELECT COUNT(*) FROM orders o WHERE LOWER(o.email) = LOWER(a.email))::int AS past_orders
+       FROM abandoned_carts a
+      ORDER BY a.updated_at DESC
+      LIMIT 200`,
+  );
+  res.json(rows);
+}));
+
+router.delete('/abandoned/:id', ah(async (req, res) => {
+  await query('DELETE FROM abandoned_carts WHERE id = $1', [req.params.id]);
+  res.json({ ok: true });
+}));
+
 /* ----------------------------------------------------------------- reviews
 
    Anyone can write one, under any name, about anything — so a review waits

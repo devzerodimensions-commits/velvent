@@ -196,6 +196,31 @@ CREATE TABLE IF NOT EXISTS site_content (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+
+/* Checkouts that were started and never finished.
+
+   One row per shopper, replaced as they go, so a person who tries three times
+   is one row and not three. It is deleted the moment their order is placed —
+   a cart that became a sale is not abandoned, and keeping it would mean the
+   shop chasing people who have already paid.
+
+   This is personal data about someone who did not buy, so it carries a
+   deliberate expiry rather than sitting there forever; see purgeAbandoned. */
+CREATE TABLE IF NOT EXISTS abandoned_carts (
+  id         SERIAL PRIMARY KEY,
+  email      TEXT NOT NULL,
+  name       TEXT,
+  phone      TEXT,
+  items      JSONB NOT NULL,
+  subtotal   NUMERIC(10,2) NOT NULL DEFAULT 0,
+  user_id    INT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS abandoned_carts_email_idx
+  ON abandoned_carts (LOWER(email));
+
 /* ---------------------------------------------------------------- migrations
    CREATE TABLE IF NOT EXISTS leaves an existing table alone, so a column added
    after a database was first built needs saying again here. Each one is

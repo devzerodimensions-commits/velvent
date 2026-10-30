@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Mark } from '../../components/Logo';
 import {
-  Box, Chart, ChevronDown, ChevronLeft, Close, Cog, Grid, Logout, Mail, Menu,
+  Bag, Box, Chart, ChevronDown, ChevronLeft, Close, Cog, Grid, Logout, Mail, Menu,
   Ruler, Search, Shield, Star, Tag, Upload, User,
 } from '../../components/Icons';
 import { useAuth } from '../../store/auth';
@@ -53,6 +53,7 @@ const MENU = [
           { to: '/admin/profile', label: 'Your profile' },
         ],
       },
+      { to: '/admin/abandoned', label: 'Abandoned carts', Icon: Bag },
       { to: '/admin/inbox', label: 'Inbox', Icon: Mail, badge: 'messages' },
     ],
   },

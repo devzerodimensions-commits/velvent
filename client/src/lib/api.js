@@ -72,6 +72,7 @@ export const api = {
   paymentMethods: () => request('/payment-methods'),
 
   placeOrder: (body) => request('/orders', { method: 'POST', body }),
+  checkoutStarted: (body) => request('/checkout/started', { method: 'POST', body }),
   verifyPayment: (orderNumber, body) => request(`/orders/${orderNumber}/verify`, { method: 'POST', body }),
   myOrders: () => request('/orders'),
   order: (orderNumber, email) => request(`/orders/${orderNumber}${qs({ email })}`),
@@ -130,6 +131,9 @@ export const api = {
 
     coupons: () => request('/admin/coupons'),
     couponStats: () => request('/admin/coupons/stats'),
+
+    abandoned: () => request('/admin/abandoned'),
+    deleteAbandoned: (id) => request(`/admin/abandoned/${id}`, { method: 'DELETE' }),
 
     reviews: (status) => request(`/admin/reviews${qs({ status })}`),
     updateReview: (id, body) => request(`/admin/reviews/${id}`, { method: 'PUT', body }),
