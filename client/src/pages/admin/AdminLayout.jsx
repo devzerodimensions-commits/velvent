@@ -33,6 +33,7 @@ const MENU = [
           { to: '/admin/products', end: true, label: 'All products' },
           { to: '/admin/products/new', label: 'Add new' },
           { to: '/admin/categories', label: 'Categories' },
+          { to: '/admin/stock', label: 'Stock' },
         ],
       },
       { to: '/admin/coupons', label: 'Coupons', Icon: Tag },

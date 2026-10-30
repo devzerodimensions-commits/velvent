@@ -111,6 +111,12 @@ export const api = {
 
     orders: (status) => request(`/admin/orders${qs({ status })}`),
     setOrderStatus: (id, body) => request(`/admin/orders/${id}/status`, { method: 'PUT', body }),
+    order: (id) => request(`/admin/orders/${id}`),
+    setOrderNote: (id, admin_note) => request(`/admin/orders/${id}/note`, { method: 'PUT', body: { admin_note } }),
+
+    stock: (q) => request(`/admin/stock${qs({ q })}`),
+    saveStock: (updates) => request('/admin/stock', { method: 'PUT', body: { updates } }),
+
     shippingProviders: () => request('/admin/shipping/providers'),
     shipOrder: (id, body) => request(`/admin/orders/${id}/shipment`, { method: 'PUT', body }),
 

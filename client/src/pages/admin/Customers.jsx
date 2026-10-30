@@ -5,6 +5,7 @@ import { Seo } from '../../components/ui';
 import { api } from '../../lib/api';
 import { formatDate, formatDateTime, inr } from '../../lib/format';
 import { useToast } from '../../store/toast';
+import { downloadCsv, stampedName } from '../../lib/csv';
 
 const COLUMNS = [
   { key: 'name', label: 'Customer' },
@@ -19,6 +20,16 @@ const COLUMNS = [
 
 export function CustomersList() {
   const [rows, setRows] = useState(null);
+
+  const exportCsv = () => downloadCsv(stampedName('velvent-customers'), rows || [], [
+    ['Name', (c) => c.name],
+    ['Email', (c) => c.email],
+    ['Phone', (c) => c.phone || ''],
+    ['Orders', (c) => c.orders],
+    ['Lifetime value', (c) => Number(c.spent)],
+    ['Last order', (c) => (c.last_order_at ? formatDate(c.last_order_at) : '')],
+    ['Joined', (c) => formatDate(c.created_at)],
+  ]);
   const [term, setTerm] = useState('');
 
   useEffect(() => {
@@ -32,7 +43,7 @@ export function CustomersList() {
   return (
     <>
       <Seo title="Customers" noindex />
-      <ScreenHeader title="Customers" count={rows?.length} />
+      <ScreenHeader title="Customers" count={rows?.length} action="Export CSV" onAction={exportCsv} />
 
       <ListTable
         columns={COLUMNS}

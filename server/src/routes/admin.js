@@ -757,4 +757,89 @@ router.put('/orders/:id/shipment', ah(async (req, res) => {
   res.json(rows[0]);
 }));
 
+/** One order, with everything the shop needs on a single screen. */
+router.get('/orders/:id', ah(async (req, res) => {
+  const { rows } = await query(
+    `SELECT o.*,
+            COALESCE((SELECT json_agg(i ORDER BY i.id) FROM order_items i WHERE i.order_id = o.id), '[]'::json) AS items
+       FROM orders o WHERE o.id = $1`,
+    [req.params.id],
+  );
+  const order = rows[0];
+  if (!order) return res.status(404).json({ error: 'Order not found.' });
+
+  /* The customer's other orders, so someone handling a complaint can see at a
+     glance whether this is a first purchase or a regular. Matched on email
+     rather than user_id, because guests have no account to match on. */
+  const { rows: history } = await query(
+    `SELECT id, order_number, status, total, created_at
+       FROM orders WHERE LOWER(email) = LOWER($1) AND id <> $2
+      ORDER BY created_at DESC LIMIT 10`,
+    [order.email, order.id],
+  );
+
+  res.json({ ...order, customerHistory: history });
+}));
+
+/** The shop's own note on an order. Never shown to the customer. */
+router.put('/orders/:id/note', ah(async (req, res) => {
+  const note = String(req.body?.admin_note ?? '').slice(0, 5000);
+  const { rows } = await query(
+    'UPDATE orders SET admin_note = $2, updated_at = NOW() WHERE id = $1 RETURNING *',
+    [req.params.id, note || null],
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Order not found.' });
+  res.json(rows[0]);
+}));
+
+/* ------------------------------------------------------------------- stock
+   Every size of every product on one screen. Editing stock a product at a
+   time is fine when something arrives; it is the wrong shape entirely for a
+   stock-take, which goes shelf by shelf. */
+
+router.get('/stock', ah(async (req, res) => {
+  const q = (req.query.q || '').trim();
+  const params = [];
+  let where = '';
+  if (q) {
+    params.push(`%${q}%`);
+    where = 'WHERE p.name ILIKE $1 OR v.sku ILIKE $1 OR v.color ILIKE $1';
+  }
+  const { rows } = await query(
+    `SELECT v.id, v.sku, v.size, v.color, v.stock,
+            p.id AS product_id, p.name AS product_name, p.slug, p.is_active
+       FROM product_variants v
+       JOIN products p ON p.id = v.product_id
+       ${where}
+      ORDER BY p.name, v.color, v.id
+      LIMIT 1000`,
+    params,
+  );
+  res.json(rows);
+}));
+
+/** Saves a screenful of stock edits in one transaction, so a half-finished
+    stock-take cannot leave the shelf and the shop disagreeing. */
+router.put('/stock', ah(async (req, res) => {
+  const updates = Array.isArray(req.body?.updates) ? req.body.updates : [];
+  if (!updates.length) return res.status(400).json({ error: 'Nothing to save.' });
+  if (updates.length > 500) return res.status(413).json({ error: 'Too many changes at once.' });
+
+  for (const u of updates) {
+    const stock = Number(u.stock);
+    if (!Number.isInteger(stock) || stock < 0) {
+      return res.status(400).json({ error: 'Stock must be a whole number, zero or more.' });
+    }
+  }
+
+  const saved = await withTransaction(async (client) => {
+    for (const u of updates) {
+      await client.query('UPDATE product_variants SET stock = $2 WHERE id = $1', [u.id, Number(u.stock)]);
+    }
+    return updates.length;
+  });
+
+  res.json({ ok: true, saved });
+}));
+
 export default router;

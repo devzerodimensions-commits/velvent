@@ -214,3 +214,8 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_url    TEXT;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipped_at      TIMESTAMPTZ;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at    TIMESTAMPTZ;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipment_meta   JSONB;
+
+/* What the shop says to itself about an order — "customer asked to change the
+   size", "second delivery attempt". Separate from notes, which is what the
+   customer wrote at checkout and is theirs, not ours to edit. */
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS admin_note TEXT;

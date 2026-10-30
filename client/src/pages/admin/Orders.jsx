@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Seo } from '../../components/ui';
 import { Close, Search } from '../../components/Icons';
 import {
@@ -8,6 +9,7 @@ import { api } from '../../lib/api';
 import { ADMIN_STATUS_LABEL, formatDate, formatDateTime, inr, ORDER_STATUS_KEYS } from '../../lib/format';
 import { useToast } from '../../store/toast';
 import ShipDialog from './ShipDialog';
+import { downloadCsv, stampedName } from '../../lib/csv';
 
 const COLUMNS = [
   { key: 'order', label: 'Order' },
@@ -104,6 +106,30 @@ export default function AdminOrders() {
   const [search, setSearch] = useState('');
   const [preview, setPreview] = useState(null);
   const [shipping, setShipping] = useState(null);
+
+  /* One row per order, with the money as plain numbers so a spreadsheet can
+     total them without anyone stripping currency symbols out first. */
+  const exportCsv = () => downloadCsv(stampedName('velvent-orders'), rows || [], [
+    ['Order', (o) => o.order_number],
+    ['Placed', (o) => formatDateTime(o.created_at)],
+    ['Status', (o) => ADMIN_STATUS_LABEL[o.status] || o.status],
+    ['Customer', (o) => o.shipping_address?.full_name || ''],
+    ['Email', (o) => o.email],
+    ['Phone', (o) => o.phone],
+    ['City', (o) => o.shipping_address?.city || ''],
+    ['State', (o) => o.shipping_address?.state || ''],
+    ['Pincode', (o) => o.shipping_address?.pincode || ''],
+    ['Items', (o) => (o.items || []).map((i) => `${i.name} (${i.color}/${i.size}) x${i.quantity}`).join(' | ')],
+    ['Subtotal', (o) => Number(o.subtotal)],
+    ['Discount', (o) => Number(o.discount)],
+    ['Coupon', (o) => o.coupon_code || ''],
+    ['Shipping', (o) => Number(o.shipping)],
+    ['Total', (o) => Number(o.total)],
+    ['Payment', (o) => (o.payment_method === 'cod' ? 'Cash on delivery' : 'Online')],
+    ['Paid', (o) => o.payment_status],
+    ['Carrier', (o) => o.carrier || ''],
+    ['Tracking', (o) => o.tracking_number || ''],
+  ]);
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
   const { success, error: toastError } = useToast();
@@ -156,7 +182,7 @@ export default function AdminOrders() {
   return (
     <>
       <Seo title="Orders" noindex />
-      <ScreenHeader title="Orders">
+      <ScreenHeader title="Orders" action="Export CSV" onAction={exportCsv}>
         {notice && <Notice tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Notice>}
       </ScreenHeader>
 
@@ -176,16 +202,13 @@ export default function AdminOrders() {
         renderRow={(o) => (
           <>
             <Cell primary>
-              <button
-                type="button"
-                onClick={() => setPreview(o)}
-                className="font-semibold text-navy hover:underline"
-              >
+              <Link to={`/admin/orders/${o.id}`} className="font-semibold text-navy hover:underline">
                 {o.order_number}
-              </button>
+              </Link>
               <span className="text-adm-mute"> — {o.shipping_address?.full_name || o.email}</span>
               <RowActions
                 actions={[
+                  { label: 'Open', to: `/admin/orders/${o.id}` },
                   { label: 'Preview', onClick: () => setPreview(o) },
                   { label: o.tracking_number ? 'Shipping' : 'Mark shipped', onClick: () => setShipping(o) },
                   o.status !== 'completed' && { label: 'Mark completed', onClick: () => setStatus(o, 'completed') },

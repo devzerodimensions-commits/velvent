@@ -172,10 +172,15 @@ router.post('/orders/:orderNumber/verify', ah(async (req, res) => {
 }));
 
 /** GET /api/orders - the signed-in customer's order history. */
-/* shipment_meta is whatever the courier's API handed back — internal, and
-   none of a customer's business. The four fields they do need are separate
-   columns, so dropping it costs them nothing. */
-const withoutInternals = ({ shipment_meta, ...order }) => order;
+/* What the shop keeps to itself.
+
+   shipment_meta is whatever the courier's API handed back, and admin_note is
+   the shop writing to the shop — "customer asked to swap the size", "second
+   delivery attempt failed". A note written on the assumption nobody outside
+   reads it is exactly the thing that must not be served to the person it is
+   about. The fields a customer does need are columns of their own, so
+   dropping these costs them nothing. */
+const withoutInternals = ({ shipment_meta, admin_note, ...order }) => order;
 
 router.get('/orders', requireAuth, ah(async (req, res) => {
   const { rows } = await query(
