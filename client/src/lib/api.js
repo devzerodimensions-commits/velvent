@@ -129,6 +129,11 @@ export const api = {
     subscribers: () => request('/admin/subscribers'),
 
     coupons: () => request('/admin/coupons'),
+    couponStats: () => request('/admin/coupons/stats'),
+
+    reviews: (status) => request(`/admin/reviews${qs({ status })}`),
+    updateReview: (id, body) => request(`/admin/reviews/${id}`, { method: 'PUT', body }),
+    deleteReview: (id) => request(`/admin/reviews/${id}`, { method: 'DELETE' }),
     saveCoupon: (body) => request('/admin/coupons', { method: 'POST', body }),
     deleteCoupon: (id) => request(`/admin/coupons/${id}`, { method: 'DELETE' }),
 

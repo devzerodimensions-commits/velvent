@@ -574,6 +574,117 @@ router.delete('/media/:id', ah(async (req, res) => {
 }));
 
 
+
+/* ----------------------------------------------------------------- reviews
+
+   Anyone can write one, under any name, about anything — so a review waits
+   to be read before it is published. A product's star rating counts only
+   approved reviews, or a spammer could move the rating without ever showing
+   a word of what they wrote. */
+
+const REVIEW_STATUSES = new Set(['pending', 'approved', 'spam']);
+
+/** Keeps a product's rating in step with the reviews actually on show. */
+async function recountProduct(client, productId) {
+  await client.query(
+    `UPDATE products SET
+       rating = COALESCE((SELECT ROUND(AVG(rating)::numeric, 1) FROM reviews
+                           WHERE product_id = $1 AND status = 'approved'), 0),
+       review_count = (SELECT COUNT(*) FROM reviews
+                        WHERE product_id = $1 AND status = 'approved')
+     WHERE id = $1`,
+    [productId],
+  );
+}
+
+router.get('/reviews', ah(async (req, res) => {
+  const status = req.query.status || null;
+  const { rows } = await query(
+    `SELECT r.*, p.name AS product_name, p.slug AS product_slug
+       FROM reviews r JOIN products p ON p.id = r.product_id
+      WHERE ($1::text IS NULL OR r.status = $1)
+      ORDER BY (r.status = 'pending') DESC, r.created_at DESC
+      LIMIT 300`,
+    [status],
+  );
+
+  const { rows: counts } = await query(
+    `SELECT status, COUNT(*)::int AS n FROM reviews GROUP BY status`,
+  );
+
+  res.json({
+    reviews: rows,
+    counts: Object.fromEntries(counts.map((c) => [c.status, c.n])),
+  });
+}));
+
+router.put('/reviews/:id', ah(async (req, res) => {
+  const { status, reply } = req.body || {};
+  if (status !== undefined && !REVIEW_STATUSES.has(status)) {
+    return res.status(400).json({ error: 'Unknown review status.' });
+  }
+
+  const updated = await withTransaction(async (client) => {
+    const { rows: found } = await client.query('SELECT * FROM reviews WHERE id = $1', [req.params.id]);
+    if (!found[0]) return null;
+
+    const hasReply = reply !== undefined;
+    const trimmed = hasReply ? String(reply).trim().slice(0, 2000) : null;
+
+    const { rows } = await client.query(
+      `UPDATE reviews
+          SET status     = COALESCE($2, status),
+              reply      = CASE WHEN $3 THEN $4 ELSE reply END,
+              replied_at = CASE WHEN $3 THEN (CASE WHEN $4 = '' THEN NULL ELSE NOW() END) ELSE replied_at END
+        WHERE id = $1 RETURNING *`,
+      [req.params.id, status ?? null, hasReply, trimmed],
+    );
+
+    await recountProduct(client, found[0].product_id);
+    return rows[0];
+  });
+
+  if (!updated) return res.status(404).json({ error: 'Review not found.' });
+  res.json(updated);
+}));
+
+router.delete('/reviews/:id', ah(async (req, res) => {
+  const removed = await withTransaction(async (client) => {
+    const { rows } = await client.query('DELETE FROM reviews WHERE id = $1 RETURNING product_id', [req.params.id]);
+    if (!rows[0]) return false;
+    await recountProduct(client, rows[0].product_id);
+    return true;
+  });
+
+  if (!removed) return res.status(404).json({ error: 'Review not found.' });
+  res.json({ ok: true });
+}));
+
+/* ----------------------------------------------------- how coupons are doing
+
+   Counted from the orders themselves rather than a tally on the coupon, so
+   the figures cannot drift from what was actually sold. Cancelled, refunded
+   and failed orders are left out: a discount on money that never arrived did
+   not bring anything in. */
+
+router.get('/coupons/stats', ah(async (_req, res) => {
+  const { rows } = await query(
+    `SELECT c.id, c.code, c.kind, c.value, c.min_order, c.max_discount,
+            c.description, c.is_active, c.expires_at,
+            COUNT(o.id)::int                            AS uses,
+            COALESCE(SUM(o.discount), 0)::float         AS discount_given,
+            COALESCE(SUM(o.total), 0)::float            AS revenue,
+            MAX(o.created_at)                           AS last_used
+       FROM coupons c
+       LEFT JOIN orders o
+         ON UPPER(o.coupon_code) = UPPER(c.code)
+        AND o.status <> ALL(ARRAY['cancelled','refunded','failed'])
+      GROUP BY c.id
+      ORDER BY uses DESC, c.code`,
+  );
+  res.json(rows);
+}));
+
 /* -------------------------------------------------- duplicating a product */
 
 /** Finds a free slug: "cable-knit-polo-copy", then "-copy-2", and so on. */

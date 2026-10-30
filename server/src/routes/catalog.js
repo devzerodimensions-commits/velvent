@@ -143,8 +143,9 @@ router.get('/products/:slug', ah(async (req, res) => {
     [product.id, product.category_id],
   );
   const { rows: reviews } = await query(
-    `SELECT id, author, rating, title, body, created_at FROM reviews
-      WHERE product_id = $1 ORDER BY created_at DESC LIMIT 20`,
+    `SELECT id, author, rating, title, body, reply, replied_at, created_at FROM reviews
+      WHERE product_id = $1 AND status = 'approved'
+      ORDER BY created_at DESC LIMIT 20`,
     [product.id],
   );
   res.json({ ...product, related, reviews });
@@ -168,12 +169,13 @@ router.post('/products/:slug/reviews', ah(async (req, res) => {
   );
   await query(
     `UPDATE products SET
-       rating = (SELECT ROUND(AVG(rating)::numeric, 1) FROM reviews WHERE product_id = $1),
-       review_count = (SELECT COUNT(*) FROM reviews WHERE product_id = $1)
+       rating = (SELECT ROUND(AVG(rating)::numeric, 1) FROM reviews WHERE product_id = $1 AND status = 'approved'),
+       review_count = (SELECT COUNT(*) FROM reviews WHERE product_id = $1 AND status = 'approved')
      WHERE id = $1`,
     [p[0].id],
   );
-  res.status(201).json({ ok: true });
+  /* Moderated, so the honest answer is not "posted". */
+  res.status(201).json({ ok: true, pending: true });
 }));
 
 export default router;

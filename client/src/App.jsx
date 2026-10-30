@@ -41,6 +41,7 @@ const AdminOrderDetail = lazy(() => import('./pages/admin/OrderDetail'));
 const AdminStock = lazy(() => import('./pages/admin/Stock'));
 const AdminCategories = lazy(() => import('./pages/admin/Categories'));
 const AdminCoupons = lazy(() => import('./pages/admin/Coupons'));
+const AdminReviews = lazy(() => import('./pages/admin/Reviews'));
 const AdminInbox = lazy(() => import('./pages/admin/Inbox'));
 const AdminContentIndex = lazy(() => import('./pages/admin/Content').then((m) => ({ default: m.ContentIndex })));
 const AdminContentEditor = lazy(() => import('./pages/admin/Content'));
@@ -104,6 +105,7 @@ function Storefront() {
             <Route path="stock" element={<AdminStock />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="coupons" element={<AdminCoupons />} />
+            <Route path="reviews" element={<AdminReviews />} />
             <Route path="inbox" element={<AdminInbox />} />
             <Route path="content" element={<AdminContentIndex />} />
             <Route path="content/:key" element={<AdminContentEditor />} />

@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { Mark } from '../../components/Logo';
 import {
   Box, Chart, ChevronDown, ChevronLeft, Close, Cog, Grid, Logout, Mail, Menu,
-  Ruler, Search, Shield, Tag, Upload, User,
+  Ruler, Search, Shield, Star, Tag, Upload, User,
 } from '../../components/Icons';
 import { useAuth } from '../../store/auth';
 import { api } from '../../lib/api';
@@ -37,6 +37,7 @@ const MENU = [
         ],
       },
       { to: '/admin/coupons', label: 'Coupons', Icon: Tag },
+      { to: '/admin/reviews', label: 'Reviews', Icon: Star, badge: 'reviews' },
     ],
   },
   {
@@ -266,12 +267,17 @@ export default function AdminLayout() {
   // The count bubbles. A failure here must never stop the panel rendering.
   useEffect(() => {
     let alive = true;
-    Promise.all([api.admin.stats().catch(() => null), api.admin.messages().catch(() => null)])
-      .then(([stats, messages]) => {
+    Promise.all([
+      api.admin.stats().catch(() => null),
+      api.admin.messages().catch(() => null),
+      api.admin.reviews('pending').catch(() => null),
+    ])
+      .then(([stats, messages, pendingReviews]) => {
         if (!alive) return;
         setCounts({
           orders: stats?.orders?.new_orders || 0,
           messages: Array.isArray(messages) ? messages.filter((m) => !m.is_read).length : 0,
+          reviews: pendingReviews?.counts?.pending || 0,
         });
       });
     return () => { alive = false; };

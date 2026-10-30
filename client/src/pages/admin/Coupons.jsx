@@ -15,6 +15,9 @@ const COLUMNS = [
   { key: 'type', label: 'Coupon type', className: 'hidden md:table-cell w-40' },
   { key: 'amount', label: 'Amount', className: 'w-28' },
   { key: 'spend', label: 'Minimum spend', className: 'hidden lg:table-cell w-36' },
+  { key: 'uses', label: 'Used', className: 'w-24' },
+  { key: 'given', label: 'Discount given', className: 'hidden lg:table-cell w-36' },
+  { key: 'revenue', label: 'Revenue', className: 'hidden xl:table-cell w-32' },
   { key: 'expiry', label: 'Expiry date', className: 'w-32' },
 ];
 
@@ -26,7 +29,7 @@ export default function AdminCoupons() {
   const [error, setError] = useState(null);
   const { success, error: toastError } = useToast();
 
-  const load = () => api.admin.coupons().then(setRows).catch((e) => setError(e.message));
+  const load = () => api.admin.couponStats().then(setRows).catch((e) => setError(e.message));
   useEffect(() => { load(); }, []);
 
   const set = (k) => (e) =>
@@ -201,6 +204,22 @@ export default function AdminCoupons() {
               {c.max_discount && <span className="block text-[11px] text-adm-mute">max {inr(c.max_discount)}</span>}
             </Cell>
             <Cell className="hidden lg:table-cell">{Number(c.min_order) ? inr(c.min_order) : '—'}</Cell>
+            <Cell>
+              {c.uses > 0 ? (
+                <>
+                  <span className="font-semibold text-adm-ink">{c.uses}</span>
+                  {c.last_used && (
+                    <span className="block text-[11px] text-adm-mute">last {formatDate(c.last_used)}</span>
+                  )}
+                </>
+              ) : <span className="text-adm-mute">Never</span>}
+            </Cell>
+            <Cell className="hidden lg:table-cell">
+              {c.discount_given > 0 ? inr(c.discount_given) : '—'}
+            </Cell>
+            <Cell className="hidden xl:table-cell">
+              {c.revenue > 0 ? <span className="font-semibold text-adm-ink">{inr(c.revenue)}</span> : '—'}
+            </Cell>
             <Cell>{c.expires_at ? formatDate(c.expires_at) : '—'}</Cell>
           </>
         )}

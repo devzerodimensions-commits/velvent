@@ -219,3 +219,18 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipment_meta   JSONB;
    size", "second delivery attempt". Separate from notes, which is what the
    customer wrote at checkout and is theirs, not ours to edit. */
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS admin_note TEXT;
+
+/* Review moderation.
+
+   The two statements are a pair and the order matters. The first adds the
+   column with DEFAULT 'approved', which backfills every review already in
+   the table — those were live on the storefront before moderation existed,
+   and silently hiding them would be the wrong way to introduce it. The second
+   changes the default so everything written from now on arrives pending.
+   Both are idempotent, so running this again changes nothing. */
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved';
+ALTER TABLE reviews ALTER COLUMN status SET DEFAULT 'pending';
+
+/* The shop answering a review in public, under the review it answers. */
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reply      TEXT;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS replied_at TIMESTAMPTZ;
