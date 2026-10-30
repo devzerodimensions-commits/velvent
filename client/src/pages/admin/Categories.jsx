@@ -3,6 +3,7 @@ import { Seo } from '../../components/ui';
 import { Cell, ListTable, Notice, RowActions, ScreenHeader } from '../../components/adminUi';
 import { api } from '../../lib/api';
 import { useToast } from '../../store/toast';
+import Reorder from './Reorder';
 
 const BLANK = { name: '', slug: '', tagline: '', description: '', image_url: '', sort_order: 0, is_active: true, size_chart: null };
 
@@ -126,6 +127,7 @@ const COLUMNS = [
 
 export default function AdminCategories() {
   const [rows, setRows] = useState(null);
+  const [reordering, setReordering] = useState(false);
   const [form, setForm] = useState(BLANK);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -178,7 +180,7 @@ export default function AdminCategories() {
   return (
     <>
       <Seo title="Categories" noindex />
-      <ScreenHeader title="Product categories">
+      <ScreenHeader title="Product categories" action="Reorder" onAction={() => setReordering(true)}>
         {notice && <Notice tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Notice>}
       </ScreenHeader>
 
@@ -278,6 +280,15 @@ export default function AdminCategories() {
           )}
         />
       </div>
+
+      {reordering && (
+        <Reorder
+          items={(rows || []).map((c) => ({ id: c.id, name: c.name, image: c.image_url }))}
+          label="categories"
+          onSave={(order) => api.admin.reorderCategories(order)}
+          onClose={(saved) => { setReordering(false); if (saved) load(); }}
+        />
+      )}
     </>
   );
 }

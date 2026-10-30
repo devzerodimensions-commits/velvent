@@ -8,6 +8,7 @@ import { api } from '../lib/api';
 import { inr } from '../lib/format';
 
 const SORTS = [
+  { value: 'curated', label: 'Featured' },
   { value: 'newest', label: 'Newest first' },
   { value: 'popular', label: 'Most popular' },
   { value: 'price-asc', label: 'Price: low to high' },
@@ -106,7 +107,7 @@ export default function Shop() {
     sizes: params.get('size')?.split(',').filter(Boolean) || [],
     colors: params.get('color')?.split(',').filter(Boolean) || [],
     price: params.get('maxPrice') || '',
-    sort: params.get('sort') || 'newest',
+    sort: params.get('sort') || 'curated',
     page: Number(params.get('page')) || 1,
   }), [params]);
 

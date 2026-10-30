@@ -35,7 +35,7 @@ router.get('/categories', ah(async (_req, res) => {
 router.get('/products', ah(async (req, res) => {
   const {
     category, size, color, minPrice, maxPrice, q,
-    featured, sort = 'newest',
+    featured, sort = 'curated',
   } = req.query;
 
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -65,6 +65,11 @@ router.get('/products', ah(async (req, res) => {
   }
 
   const orderBy = {
+    /* The order the shop chose for itself, set by dragging in the admin.
+       Named 'curated' rather than 'featured' because `featured` is already a
+       filter on this endpoint, and one word meaning two things in the same
+       query string is a bug waiting to be written. */
+    curated: 'p.sort_order, p.id',
     newest: 'p.created_at DESC, p.id DESC',
     'price-asc': 'p.sale_price ASC, p.id',
     'price-desc': 'p.sale_price DESC, p.id',

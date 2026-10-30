@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Seo } from '../../components/ui';
 import { Star } from '../../components/Icons';
 import {
@@ -8,6 +8,7 @@ import {
 import { api } from '../../lib/api';
 import { formatDate, inr } from '../../lib/format';
 import { useToast } from '../../store/toast';
+import Reorder from './Reorder';
 
 const COLUMNS = [
   { key: 'image', label: '', className: 'w-16' },
@@ -87,12 +88,27 @@ function QuickEdit({ product, onCancel, onSaved }) {
 }
 
 export default function AdminProducts() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState(null);
   const [categories, setCategories] = useState([]);
   const [view, setView] = useState('all');
   const [category, setCategory] = useState('');
   const [search, setSearch] = useState('');
   const [quickEdit, setQuickEdit] = useState(null);
+  const [reordering, setReordering] = useState(false);
+
+  /* The copy lands as a draft, so it is safe to open and edit before anyone
+     can see it. Going straight there is what someone duplicating a product
+     wants next anyway. */
+  const duplicate = async (product) => {
+    try {
+      const copy = await api.admin.duplicateProduct(product.id);
+      setNotice({ tone: "success", text: `Copied as a draft. Its stock starts at zero.` });
+      navigate(`/admin/products/${copy.id}`);
+    } catch (err) {
+      setNotice({ tone: "error", text: err.message });
+    }
+  };
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
   const { success, error: toastError } = useToast();
@@ -160,6 +176,7 @@ export default function AdminProducts() {
     <>
       <Seo title="Products" noindex />
       <ScreenHeader title="Products" action="Add New" actionTo="/admin/products/new">
+        <button type="button" onClick={() => setReordering(true)} className="ad-btn-ghost">Reorder</button>
         {notice && (
           <Notice tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Notice>
         )}
@@ -220,6 +237,7 @@ export default function AdminProducts() {
                   { label: `ID: ${p.id}`, onClick: () => {} },
                   { label: 'Edit', to: `/admin/products/${p.id}` },
                   { label: 'Quick Edit', onClick: () => setQuickEdit(quickEdit === p.id ? null : p.id) },
+                  { label: 'Duplicate', onClick: () => duplicate(p) },
                   { label: 'View', to: `/product/${p.slug}` },
                   { label: 'Delete', onClick: () => remove(p), danger: true },
                 ]}
@@ -272,6 +290,15 @@ export default function AdminProducts() {
             />
           </tbody>
         </table>
+      )}
+
+      {reordering && (
+        <Reorder
+          items={(rows || []).map((p) => ({ id: p.id, name: p.name, image: p.image_url }))}
+          label="products"
+          onSave={(order) => api.admin.reorderProducts(order)}
+          onClose={(saved) => { setReordering(false); if (saved) load(); }}
+        />
       )}
     </>
   );

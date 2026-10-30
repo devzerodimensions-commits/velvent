@@ -102,6 +102,9 @@ export const api = {
     updateProduct: (id, body) => request(`/admin/products/${id}`, { method: 'PUT', body }),
     patchProduct: (id, body) => request(`/admin/products/${id}`, { method: 'PATCH', body }),
     deleteProduct: (id) => request(`/admin/products/${id}`, { method: 'DELETE' }),
+    duplicateProduct: (id) => request(`/admin/products/${id}/duplicate`, { method: 'POST' }),
+    reorderProducts: (order) => request('/admin/reorder/products', { method: 'PUT', body: { order } }),
+    reorderCategories: (order) => request('/admin/reorder/categories', { method: 'PUT', body: { order } }),
     setStock: (id, stock) => request(`/admin/variants/${id}/stock`, { method: 'PUT', body: { stock } }),
 
     categories: () => request('/admin/categories'),

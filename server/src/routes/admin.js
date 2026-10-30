@@ -102,7 +102,7 @@ router.get('/products', ah(async (req, res) => {
               ORDER BY pi.sort_order, pi.id LIMIT 1) AS image_url
        FROM products p LEFT JOIN categories c ON c.id = p.category_id
       WHERE ($1::text IS NULL OR p.name ILIKE $1)
-      ORDER BY p.id DESC`,
+      ORDER BY p.sort_order, p.id`,
     [q],
   );
   res.json(rows);
@@ -572,6 +572,124 @@ router.delete('/media/:id', ah(async (req, res) => {
   await query('DELETE FROM media WHERE id = $1', [req.params.id]);
   res.json({ ok: true });
 }));
+
+
+/* -------------------------------------------------- duplicating a product */
+
+/** Finds a free slug: "cable-knit-polo-copy", then "-copy-2", and so on. */
+async function freeSlug(client, base) {
+  for (let n = 1; n < 50; n += 1) {
+    const candidate = n === 1 ? `${base}-copy` : `${base}-copy-${n}`;
+    const { rows } = await client.query('SELECT 1 FROM products WHERE slug = $1', [candidate]);
+    if (!rows[0]) return candidate;
+  }
+  return `${base}-copy-${Date.now()}`;
+}
+
+/** Same idea for SKUs, which are unique across every product. */
+async function freeSku(client, base) {
+  for (let n = 2; n < 50; n += 1) {
+    const candidate = `${base}-C${n}`;
+    const { rows } = await client.query('SELECT 1 FROM product_variants WHERE sku = $1', [candidate]);
+    if (!rows[0]) return candidate;
+  }
+  return `${base}-C${Date.now()}`;
+}
+
+/**
+ * POST /api/admin/products/:id/duplicate
+ *
+ * Copies the garment, its photographs and every size. What it deliberately
+ * does not copy is anything the original earned rather than described:
+ * reviews, rating and stock all start at nothing, because a copy has not been
+ * bought, rated, or received into the stockroom.
+ *
+ * The copy is a draft. A half-edited duplicate appearing in the shop beside
+ * the thing it was copied from is the obvious way for this to go wrong.
+ */
+router.post('/products/:id/duplicate', ah(async (req, res) => {
+  const created = await withTransaction(async (client) => {
+    const { rows: found } = await client.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    const src = found[0];
+    if (!src) return null;
+
+    const slug = await freeSlug(client, src.slug);
+
+    const { rows: inserted } = await client.query(
+      `INSERT INTO products
+         (slug, name, category_id, short_desc, description, mrp, sale_price,
+          fabric, wash_care, fit, sleeve, collar, weight_grams,
+          rating, review_count, is_active, is_featured, is_new, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+               0, 0, FALSE, FALSE, FALSE, $14)
+       RETURNING *`,
+      [
+        slug, `${src.name} (copy)`, src.category_id, src.short_desc, src.description,
+        src.mrp, src.sale_price, src.fabric, src.wash_care, src.fit, src.sleeve,
+        src.collar, src.weight_grams, src.sort_order,
+      ],
+    );
+    const copy = inserted[0];
+
+    await client.query(
+      `INSERT INTO product_images (product_id, url, alt, color, sort_order)
+       SELECT $1, url, alt, color, sort_order FROM product_images WHERE product_id = $2`,
+      [copy.id, src.id],
+    );
+
+    const { rows: variants } = await client.query(
+      'SELECT size, color, color_hex, sku FROM product_variants WHERE product_id = $1 ORDER BY id',
+      [src.id],
+    );
+    for (const v of variants) {
+      await client.query(
+        `INSERT INTO product_variants (product_id, size, color, color_hex, sku, stock)
+              VALUES ($1, $2, $3, $4, $5, 0)`,
+        [copy.id, v.size, v.color, v.color_hex, await freeSku(client, v.sku)],
+      );
+    }
+
+    return copy;
+  });
+
+  if (!created) return res.status(404).json({ error: 'Product not found.' });
+  res.status(201).json(created);
+}));
+
+/* ------------------------------------------------------------- reordering
+
+   The shop lists products in sort_order by default, so this is the order
+   shoppers see — not an admin convenience. Saved as one transaction because a
+   half-applied reorder is a listing in an order nobody chose. */
+
+const saveOrder = (table) => ah(async (req, res) => {
+  const order = Array.isArray(req.body?.order) ? req.body.order : [];
+  if (!order.length) return res.status(400).json({ error: 'Nothing to reorder.' });
+  if (order.length > 1000) return res.status(413).json({ error: 'Too many rows at once.' });
+
+  const ids = order.map((id) => Number(id));
+  if (ids.some((id) => !Number.isInteger(id))) {
+    return res.status(400).json({ error: 'Reorder expects a list of ids.' });
+  }
+
+  await withTransaction(async (client) => {
+    for (const [index, id] of ids.entries()) {
+      await client.query(`UPDATE ${table} SET sort_order = $2 WHERE id = $1`, [id, index]);
+    }
+  });
+
+  res.json({ ok: true, reordered: ids.length });
+});
+
+/* The table name is fixed at definition, never taken from a request — it
+   cannot be parameterised in SQL, so it must never come from outside.
+
+   The path is /reorder/products rather than /products/order on purpose:
+   /products/:id is declared earlier in this file and would match "order" as
+   an id. Ordering the declarations would also fix it, but only until someone
+   moves one — a path that cannot collide stays fixed. */
+router.put('/reorder/products', saveOrder('products'));
+router.put('/reorder/categories', saveOrder('categories'));
 
 /* ------------------------------------------------------------------- users
    Staff accounts, and the roles that decide who can open this panel at all.
