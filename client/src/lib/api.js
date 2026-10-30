@@ -119,6 +119,7 @@ export const api = {
 
     shippingProviders: () => request('/admin/shipping/providers'),
     shipOrder: (id, body) => request(`/admin/orders/${id}/shipment`, { method: 'PUT', body }),
+    shipOrders: (shipments) => request('/admin/orders/shipments', { method: 'PUT', body: { shipments } }),
 
     messages: () => request('/admin/messages'),
     readMessage: (id) => request(`/admin/messages/${id}/read`, { method: 'PUT' }),

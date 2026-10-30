@@ -9,6 +9,7 @@ import { api } from '../../lib/api';
 import { ADMIN_STATUS_LABEL, formatDate, formatDateTime, inr, ORDER_STATUS_KEYS } from '../../lib/format';
 import { useToast } from '../../store/toast';
 import ShipDialog from './ShipDialog';
+import BulkShipDialog from './BulkShipDialog';
 import { downloadCsv, stampedName } from '../../lib/csv';
 
 const COLUMNS = [
@@ -20,10 +21,15 @@ const COLUMNS = [
   { key: 'actions', label: 'Actions', className: 'w-28' },
 ];
 
-const BULK = ORDER_STATUS_KEYS.map((s) => ({
-  value: s,
-  label: `Change status to ${ADMIN_STATUS_LABEL[s].toLowerCase()}`,
-}));
+/* Dispatch sits first because it is the one bulk action that happens daily;
+   the status changes below it are the exceptions. */
+const BULK = [
+  { value: 'dispatch', label: 'Dispatch — enter tracking numbers' },
+  ...ORDER_STATUS_KEYS.map((s) => ({
+    value: s,
+    label: `Change status to ${ADMIN_STATUS_LABEL[s].toLowerCase()}`,
+  })),
+];
 
 /** The order preview — the modal behind the eye icon. */
 function Preview({ order, onClose }) {
@@ -106,6 +112,7 @@ export default function AdminOrders() {
   const [search, setSearch] = useState('');
   const [preview, setPreview] = useState(null);
   const [shipping, setShipping] = useState(null);
+  const [bulkShipping, setBulkShipping] = useState(null);
 
   /* One row per order, with the money as plain numbers so a spreadsheet can
      total them without anyone stripping currency symbols out first. */
@@ -162,10 +169,18 @@ export default function AdminOrders() {
     } catch (err) { toastError(err.message); }
   };
 
-  const runBulk = async (status, ids) => {
+  const runBulk = async (action, ids) => {
+    /* Dispatching needs a tracking number per order, so it opens the dialog
+       rather than acting on the selection straight away. */
+    if (action === 'dispatch') {
+      const picked = (rows || []).filter((o) => ids.includes(o.id));
+      if (picked.length) setBulkShipping(picked);
+      return;
+    }
+
     try {
-      await Promise.all(ids.map((id) => api.admin.setOrderStatus(id, { status })));
-      setNotice({ tone: 'success', text: `${ids.length} order${ids.length === 1 ? '' : 's'} moved to ${ADMIN_STATUS_LABEL[status]}.` });
+      await Promise.all(ids.map((id) => api.admin.setOrderStatus(id, { status: action })));
+      setNotice({ tone: 'success', text: `${ids.length} order${ids.length === 1 ? '' : 's'} moved to ${ADMIN_STATUS_LABEL[action]}.` });
       load();
     } catch (err) { toastError(err.message); }
   };
@@ -258,6 +273,14 @@ export default function AdminOrders() {
       />
 
       {preview && <Preview order={preview} onClose={() => setPreview(null)} />}
+
+      {bulkShipping && (
+        <BulkShipDialog
+          orders={bulkShipping}
+          onClose={() => { setBulkShipping(null); load(); }}
+          onDone={() => { setBulkShipping(null); load(); }}
+        />
+      )}
 
       {shipping && (
         <ShipDialog

@@ -705,34 +705,27 @@ router.get('/shipping/providers', ah(async (_req, res) => {
   res.json({ active: getProvider().id, providers: listProviders() });
 }));
 
-router.put('/orders/:id/shipment', ah(async (req, res) => {
-  const provider = getProvider();
-  const { rows: found } = await query('SELECT * FROM orders WHERE id = $1', [req.params.id]);
-  const order = found[0];
-  if (!order) return res.status(404).json({ error: 'Order not found.' });
-
-  /* Clearing a dispatch is a real action — a parcel booked against the wrong
-     order has to be undoable without inventing a blank tracking number. */
-  if (req.body?.clear === true) {
-    const { rows } = await query(
-      `UPDATE orders
-          SET carrier = NULL, tracking_number = NULL, tracking_url = NULL,
-              shipped_at = NULL, shipment_meta = NULL, updated_at = NOW()
-        WHERE id = $1 RETURNING *`,
-      [order.id],
-    );
-    return res.json(rows[0]);
-  }
-
+/**
+ * Dispatching one order.
+ *
+ * Shared by the single route and the bulk one so the two cannot drift: the
+ * rule about which statuses move to "shipped", and the refusal to record a
+ * dispatch with no number, have to mean the same thing however many parcels
+ * are going out at once.
+ *
+ * Returns { ok: true, order } or { ok: false, error }, never throws, so a bulk
+ * run can report per order rather than stopping at the first problem.
+ */
+async function dispatchOrder(provider, order, input) {
   let shipment;
   try {
-    shipment = normaliseShipment(provider, await provider.createShipment(order, req.body || {}));
+    shipment = normaliseShipment(provider, await provider.createShipment(order, input || {}));
   } catch (err) {
-    return res.status(502).json({ error: `${provider.label} could not book this parcel: ${err.message}` });
+    return { ok: false, error: `${provider.label} could not book this parcel: ${err.message}` };
   }
 
   if (!shipment.trackingNumber) {
-    return res.status(400).json({ error: 'A tracking number is needed to mark this as shipped.' });
+    return { ok: false, error: 'A tracking number is needed to mark this as shipped.' };
   }
 
   /* Dispatching is also a status change: an order with a tracking number that
@@ -754,7 +747,83 @@ router.put('/orders/:id/shipment', ah(async (req, res) => {
       shipment.meta ? JSON.stringify(shipment.meta) : null, movesToShipped,
     ],
   );
-  res.json(rows[0]);
+  return { ok: true, order: rows[0] };
+}
+
+router.put('/orders/:id/shipment', ah(async (req, res) => {
+  const provider = getProvider();
+  const { rows: found } = await query('SELECT * FROM orders WHERE id = $1', [req.params.id]);
+  const order = found[0];
+  if (!order) return res.status(404).json({ error: 'Order not found.' });
+
+  /* Clearing a dispatch is a real action — a parcel booked against the wrong
+     order has to be undoable without inventing a blank tracking number.
+     Undoing it has to take the status back too: an order reading "shipped"
+     with nothing to track is the exact state this feature exists to prevent.
+     Only "shipped" is rewound — a delivered or refunded order is further down
+     the road, and removing a tracking number should not drag it backwards. */
+  if (req.body?.clear === true) {
+    const { rows } = await query(
+      `UPDATE orders
+          SET carrier = NULL, tracking_number = NULL, tracking_url = NULL,
+              shipped_at = NULL, shipment_meta = NULL,
+              status = CASE WHEN status = 'shipped' THEN 'processing' ELSE status END,
+              updated_at = NOW()
+        WHERE id = $1 RETURNING *`,
+      [order.id],
+    );
+    return res.json(rows[0]);
+  }
+
+  const result = await dispatchOrder(provider, order, req.body);
+  if (!result.ok) return res.status(400).json({ error: result.error });
+  res.json(result.order);
+}));
+
+/**
+ * PUT /api/admin/orders/shipments — a batch of parcels going out together.
+ *
+ * Deliberately not one transaction. Nineteen parcels booked and one rejected
+ * is a true account of what happened at the courier counter; rolling the
+ * nineteen back would make the screen agree with the database and both
+ * disagree with the shelf. Each order reports its own outcome and the admin
+ * fixes the one that failed.
+ */
+router.put('/orders/shipments', ah(async (req, res) => {
+  const provider = getProvider();
+  const list = Array.isArray(req.body?.shipments) ? req.body.shipments : [];
+
+  if (!list.length) return res.status(400).json({ error: 'Nothing to dispatch.' });
+  if (list.length > 100) return res.status(413).json({ error: 'Dispatch at most 100 orders at a time.' });
+
+  /* One query for the whole batch rather than one per order: on a free
+     instance a hundred round trips to Neon is a visible wait. */
+  const ids = [...new Set(list.map((s) => Number(s.id)).filter(Number.isInteger))];
+  const { rows: orders } = await query('SELECT * FROM orders WHERE id = ANY($1::int[])', [ids]);
+  const byId = new Map(orders.map((o) => [o.id, o]));
+
+  const results = [];
+  for (const entry of list) {
+    const order = byId.get(Number(entry.id));
+    if (!order) {
+      results.push({ id: entry.id, ok: false, error: 'Order not found.' });
+      continue;
+    }
+    const result = await dispatchOrder(provider, order, entry);
+    results.push({
+      id: order.id,
+      orderNumber: order.order_number,
+      ok: result.ok,
+      error: result.error,
+      order: result.order,
+    });
+  }
+
+  res.json({
+    dispatched: results.filter((r) => r.ok).length,
+    failed: results.filter((r) => !r.ok).length,
+    results,
+  });
 }));
 
 /** One order, with everything the shop needs on a single screen. */
