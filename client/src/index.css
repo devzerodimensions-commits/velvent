@@ -368,11 +368,17 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
    two swatches are the section's motion now: absent to begin with, easing in
    either side of the text as it is read. */
 
+/* The monogram sits still.
+
+   It used to rotate and grow as the stage was scrolled. Nothing else on this
+   stage reads the scroll position any more, so that one moving thing behind
+   the sentence read as a distraction from it rather than as depth. Kept as a
+   watermark at the size the motion used to settle on. */
 .cx-mark {
   z-index: 0; width: min(80vh, 90vw); height: auto;
   color: transparent; opacity: .14;
   stroke: #F6F2EA; stroke-width: .6;
-  transform: rotate(calc(-12deg + var(--p) * 24deg)) scale(calc(.85 + var(--p) * .35));
+  transform: scale(1.02);
 }
 
 .cx-fill {
@@ -457,8 +463,26 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   position: relative; display: block;
   color: #F6F2EA;
 }
-/* The right-hand card of every pair drops, keeping the stagger the design had. */
-.cx-track > *:nth-child(even) { margin-top: 6vh; }
+/* The stagger.
+
+   One card rises while its neighbour drops, so the eye travels twice as far
+   as it did when only every second card fell — and the row still sits on the
+   middle of the stage rather than drifting toward its bottom edge.
+
+   Margins rather than transforms, and that is the whole trick. The track is
+   centred inside a viewport that clips, so the offset has to be something
+   the line reserves room for. A transform moves the card and tells the
+   layout nothing, which simply slides it under the clipped edge. With
+   align-items: center each card's margin box is what gets centred, so a
+   bottom margin lifts the card and a top margin lowers it, by half the
+   margin each — and the line grows to hold both. */
+.cx-track > *:nth-child(odd)  { margin-bottom: var(--stagger, 9vh); }
+.cx-track > *:nth-child(even) { margin-top: var(--stagger, 9vh); }
+
+/* Less height to spend as the stage shortens, and three or two across is
+   already a busier row. */
+@media (max-width: 1099px) { .cx-track { --stagger: 6vh; } }
+@media (max-width: 599px)  { .cx-track { --stagger: 4vh; } }
 .cx-card__img { overflow: hidden; aspect-ratio: 3 / 4; background: #1E2531; }
 .cx-card__img img {
   width: 100%; height: 100%; object-fit: cover;
@@ -587,7 +611,10 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cursor.is-on { opacity: 1; }
 .cursor.is-dark { border-color: rgba(246,242,234,.6); }
 .cursor__label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .2em; color: #0F131A; opacity: 0; transition: opacity .2s; }
-.cursor.is-big { width: 86px; height: 86px; margin: -43px 0 0 -43px; background: #F6F2EA; border-color: #F6F2EA; }
+/* 50px rather than 86. The label is 36px wide at this size and tracking, so
+   it clears the edge by 7px either side — tight, but the disc is meant to sit
+   over the photograph rather than hide it. */
+.cursor.is-big { width: 50px; height: 50px; margin: -25px 0 0 -25px; background: #F6F2EA; border-color: #F6F2EA; }
 .cursor.is-big .cursor__label { opacity: 1; transition-delay: .1s; }
 .cursor.is-press { width: 26px; height: 26px; margin: -13px 0 0 -13px; }
 
