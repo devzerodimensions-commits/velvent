@@ -25,6 +25,7 @@ export const defaults = {
 
   railEyebrow: 'The range',
   railTitle: 'Made to be worn often',
+  railGlow: 'warm',
 
   promises: [
     { icon: 'Truck', title: 'Free shipping', body: 'On prepaid orders above ₹999' },
@@ -191,6 +192,18 @@ export const fields = [
 
   { name: 'railEyebrow', label: 'Range eyebrow', type: 'text' },
   { name: 'railTitle', label: 'Range heading', type: 'text' },
+  {
+    name: 'railGlow',
+    label: 'Light behind the rail',
+    type: 'select',
+    help: 'The glow the hanging rail is lit against.',
+    options: [
+      ['warm', 'Warm — the brand cream'],
+      ['violet', 'Violet'],
+      ['cool', 'Cool blue'],
+      ['none', 'No glow'],
+    ],
+  },
 
   {
     name: 'promises',

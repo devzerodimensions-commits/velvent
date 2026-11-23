@@ -120,7 +120,22 @@ function RailStage({ rail }) {
   const c = useContent('home');
   const viewportRef = useRef(null);
   const trackRef = useRef(null);
+  const rowRef = useRef(null);
+  /* The garments swing in when the row is reached rather than on load, or the
+     entrance would play to nobody while the section is still below the fold. */
+  const [shown, setShown] = useState(false);
   const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setShown(true); return undefined; }
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setShown(true); io.disconnect(); }
+    }, { rootMargin: '0px 0px -10% 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   // How many fit, how many pages that makes, and how far to slide. All three
   // are measured rather than assumed, because the CSS decides how many cards
   // share the row at a given width and it changes with the breakpoints.
@@ -178,8 +193,18 @@ function RailStage({ rail }) {
       </div>
       <span className="cx-chapter cx-meta" aria-hidden>03 / 03</span>
 
-      <div className="cx-rail-row">
+      {/* The glow the rail hangs in front of. Its colour is a setting, so the
+          shop can have the brand's warm light or something colder without a
+          deploy. */}
+      <span className={`cx-rail-glow cx-rail-glow--${c.railGlow || 'warm'}`} aria-hidden />
+
+      <div className={`cx-rail-row${shown ? ' is-in' : ''}`} ref={rowRef}>
         <div className="cx-viewport" ref={viewportRef}>
+          {/* The rail itself: a bar across the window with a post at each end.
+              It sits outside the track, so it stays put while the garments
+              slide along underneath it. */}
+          <span className="cx-rail-bar" aria-hidden />
+
           <div className="cx-track" ref={trackRef} style={{ transform: `translate3d(${-offset}px, 0, 0)` }}>
             {rail.map((item, i) => (
               <Link
@@ -187,12 +212,25 @@ function RailStage({ rail }) {
                 to={item.slug ? `/product/${item.slug}` : '/shop'}
                 className="cx-card"
                 data-cursor="View"
+                style={{ '--i': i }}
                 {...hidden(i)}
               >
-                <span className="cx-card__no">{String(i + 1).padStart(2, '0')}</span>
-                <div className="cx-card__img"><img src={item.img} alt={item.name} loading="lazy" /></div>
-                <p className="cx-card__name">{item.name}</p>
-                {item.price != null && <p className="cx-card__price">{inr(item.price)}</p>}
+                {/* Hangs from the bar: a stem down to the hanger, then the
+                    garment under it. The stem length alternates so the row
+                    still rises and falls across the stage. */}
+                <span className="cx-hanger" aria-hidden>
+                  <svg viewBox="0 0 48 22" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M24 8.5V7a2.6 2.6 0 1 1 2.6 2.6" />
+                    <path d="M24 8.5 5 19.5h38L24 8.5Z" />
+                  </svg>
+                </span>
+
+                <span className="cx-swing">
+                  <span className="cx-card__no">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="cx-card__img"><img src={item.img} alt={item.name} loading="lazy" /></span>
+                  <span className="cx-card__name">{item.name}</span>
+                  {item.price != null && <span className="cx-card__price">{inr(item.price)}</span>}
+                </span>
               </Link>
             ))}
             <div className="cx-end-slot">

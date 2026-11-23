@@ -498,12 +498,60 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 /* The window the pages move behind. It never scrolls — it has no scrollbar to
    drag, no snap points and no overflow to chase; the track is simply offset by
    whole pages, so the only way through the range is the buttons. */
-.cx-viewport { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+.cx-viewport { position: relative; flex: 1 1 auto; min-width: 0; overflow: hidden; }
+
+/* The rail. A bar across the window with a thicker stop at each end, drawn
+   outside the track so it holds still while the garments slide along under
+   it — which is what a rack does. */
+.cx-rail-bar {
+  position: absolute; z-index: 1;
+  left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(
+    to right,
+    rgba(246,242,234,.5) 0 10px,
+    rgba(246,242,234,.26) 10px,
+    rgba(246,242,234,.26) calc(100% - 10px),
+    rgba(246,242,234,.5) calc(100% - 10px)
+  );
+}
+/* The posts the bar rests on. */
+.cx-rail-bar::before,
+.cx-rail-bar::after {
+  content: ''; position: absolute; top: -5px;
+  width: 2px; height: 12px; background: rgba(246,242,234,.45);
+}
+.cx-rail-bar::before { left: 0; }
+.cx-rail-bar::after  { right: 0; }
+
+/* The light behind the rack.
+
+   The client's reference lit the clothes from behind with a coloured ring.
+   The colour is a setting rather than a decision taken here: the warm one
+   belongs to this brand, and the others are there because the reference was
+   violet and the shop may well want that. */
+.cx-rail-glow {
+  position: absolute; z-index: 0; pointer-events: none;
+  left: 50%; top: 52%; translate: -50% -50%;
+  width: min(72vw, 940px); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle, var(--glow) 0%, transparent 68%);
+}
+.cx-rail-glow::after {
+  content: ''; position: absolute; inset: 16%;
+  border-radius: 50%; border: 1px solid var(--ring);
+}
+.cx-rail-glow--warm   { --glow: rgba(226,217,198,.17); --ring: rgba(226,217,198,.16); }
+.cx-rail-glow--violet { --glow: rgba(167,108,224,.26); --ring: rgba(190,140,240,.32); }
+.cx-rail-glow--cool   { --glow: rgba(120,150,210,.22); --ring: rgba(150,180,230,.26); }
+.cx-rail-glow--none   { display: none; }
 
 .cx-track {
   --gap: clamp(1rem, 1.6vw, 1.75rem);
   --per: 4;                     /* products in view; the pager reads it back */
-  display: flex; align-items: center; gap: var(--gap);
+  /* Top aligned, not centred. Every garment hangs from the same bar, so every
+     card's top edge has to sit on it — the drop is the stem's length, not an
+     offset from a shared middle. Centring left each stem starting a few
+     pixels short of the rail with a visible gap above it. */
+  display: flex; align-items: flex-start; gap: var(--gap);
   transition: transform .7s cubic-bezier(.22,.61,.36,1);
 }
 @media (max-width: 1099px) { .cx-track { --per: 3; } }
@@ -512,31 +560,83 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cx-card, .cx-end-slot {
   flex: 0 0 calc((100% - (var(--per) - 1) * var(--gap)) / var(--per));
 }
+
+/* The garments hang from the rail.
+
+   The client's reference was a shop rack: a bar across the frame with the
+   pieces suspended from it, lit from behind. So each card is hung rather
+   than placed — a stem from the bar, a hanger, then the garment under it.
+
+   The stem length alternates, which is what keeps the row rising and falling
+   across the stage. It used to be done with margins pushing cards up and
+   down; hanging them at different lengths says the same thing and says it
+   for a reason. */
 .cx-card {
   position: relative; display: block;
   color: #F6F2EA;
+  padding-top: calc(var(--drop, 0px) + 26px);
 }
-/* The stagger.
-
-   One card rises while its neighbour drops, so the eye travels twice as far
-   as it did when only every second card fell — and the row still sits on the
-   middle of the stage rather than drifting toward its bottom edge.
-
-   Margins rather than transforms, and that is the whole trick. The track is
-   centred inside a viewport that clips, so the offset has to be something
-   the line reserves room for. A transform moves the card and tells the
-   layout nothing, which simply slides it under the clipped edge. With
-   align-items: center each card's margin box is what gets centred, so a
-   bottom margin lifts the card and a top margin lowers it, by half the
-   margin each — and the line grows to hold both. */
-.cx-track > *:nth-child(odd)  { margin-bottom: var(--stagger, 9vh); }
-.cx-track > *:nth-child(even) { margin-top: var(--stagger, 9vh); }
+.cx-track > *:nth-child(odd)  { --drop: var(--stagger, 9vh); }
+.cx-track > *:nth-child(even) { --drop: 0px; }
 
 /* Less height to spend as the stage shortens, and three or two across is
    already a busier row. */
 @media (max-width: 1099px) { .cx-track { --stagger: 6vh; } }
 @media (max-width: 599px)  { .cx-track { --stagger: 4vh; } }
-.cx-card__img { overflow: hidden; aspect-ratio: 3 / 4; background: #1E2531; }
+
+/* The stem, from the bar down to the hanger's hook. */
+.cx-card::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  width: 1px; height: calc(var(--drop, 0px) + 9px);
+  background: rgba(246,242,234,.3);
+}
+.cx-hanger {
+  position: absolute; top: calc(var(--drop, 0px) + 3px); left: 50%;
+  width: 48px; margin-left: -24px;
+  color: rgba(246,242,234,.55);
+  transition: color .4s;
+}
+.cx-hanger svg { display: block; width: 100%; height: auto; }
+.cx-card:hover .cx-hanger { color: rgba(246,242,234,.85); }
+
+/* Everything below the hook swings. Keeping the sway on an inner element
+   leaves the card's own transform free for the entrance, so the two never
+   fight over the same property. */
+.cx-swing {
+  display: block;
+  --amp: .55deg;
+  transform-origin: 50% -14px;
+  animation: cx-sway 6s ease-in-out infinite;
+  animation-play-state: paused;
+  transition: --amp .5s;
+}
+.is-in .cx-swing { animation-play-state: running; }
+.cx-card:hover .cx-swing { --amp: 1.5deg; }
+.cx-card:nth-child(2n) .cx-swing { animation-duration: 7.3s; animation-delay: -1.6s; }
+.cx-card:nth-child(3n) .cx-swing { animation-duration: 6.6s; animation-delay: -3.1s; }
+.cx-card:nth-child(4n) .cx-swing { animation-duration: 8.1s; animation-delay: -4.4s; }
+
+@keyframes cx-sway {
+  0%, 100% { transform: rotate(calc(var(--amp) * -1)); }
+  50%      { transform: rotate(var(--amp)); }
+}
+
+/* Hung on arrival: each piece drops onto the rail and settles, one after the
+   next along the row. */
+.cx-card {
+  opacity: 0;
+  transform: translateY(-18px) rotate(-4deg);
+  transform-origin: 50% 0;
+}
+.is-in .cx-card {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity .5s ease-out calc(var(--i, 0) * 110ms),
+    transform .85s cubic-bezier(.3, 1.4, .5, 1) calc(var(--i, 0) * 110ms);
+}
+
+.cx-card__img { display: block; overflow: hidden; aspect-ratio: 3 / 4; background: #1E2531; }
 .cx-card__img img {
   width: 100%; height: 100%; object-fit: cover;
   transform: scale(1.14);
@@ -544,9 +644,9 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   filter: saturate(.85);
 }
 .cx-card:hover .cx-card__img img { filter: saturate(1.05) brightness(1.05); }
-.cx-card__name { margin-top: .9rem; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; }
-.cx-card__price { margin-top: .3rem; font-size: 12px; color: rgba(246,242,234,.6); }
-.cx-card__no { position: absolute; top: .75rem; left: .75rem; font-size: 10px; font-weight: 600; letter-spacing: .2em; color: #F6F2EA; mix-blend-mode: difference; }
+.cx-card__name { display: block; margin-top: .9rem; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; }
+.cx-card__price { display: block; margin-top: .3rem; font-size: 12px; color: rgba(246,242,234,.6); }
+.cx-card__no { position: absolute; top: .75rem; left: .75rem; z-index: 2; font-size: 10px; font-weight: 600; letter-spacing: .2em; color: #F6F2EA; mix-blend-mode: difference; }
 
 /* The way into the shop takes a card's place on the last page, so the circle
    is centred in a slot the same width as a card rather than being one. */

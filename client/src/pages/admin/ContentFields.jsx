@@ -369,9 +369,15 @@ function Control({ field, value, onChange, id, path }) {
     case 'list':
       return <GroupList field={field} value={value} onChange={onChange} path={path} />;
     case 'select':
+      /* Options are either plain strings, where the stored value is the label
+         itself, or [value, label] pairs for when what is saved has to differ
+         from what is read — a CSS keyword under a sentence, say. */
       return (
         <select id={id} value={value ?? ''} onChange={(e) => onChange(e.target.value)} className="ad-select">
-          {(field.options || []).map((o) => <option key={o}>{o}</option>)}
+          {(field.options || []).map((o) => {
+            const [val, label] = Array.isArray(o) ? o : [o, o];
+            return <option key={val} value={val}>{label}</option>;
+          })}
         </select>
       );
     case 'toggle': {
