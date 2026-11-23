@@ -369,31 +369,43 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cx-thread__line { position: relative; width: 1px; height: 46px; overflow: hidden; background: rgba(246,242,234,.18); }
 .cx-thread__line::after { content: ''; position: absolute; inset: 0; background: #F6F2EA; animation: cx-pull 2.2s cubic-bezier(.77,0,.18,1) infinite; }
 
-/* 2 · the statement, knitted.
+/* 2 · the statement, cut out of the cloth.
 
-   Three versions of this came and went: photographs in corners around a
-   centred line, the line beside a full-height photograph, and the line on a
-   woven label over one. All three were a sentence next to a picture of
-   clothes.
+   Earlier versions of this put the sentence next to a picture of clothes, or
+   on a label over one, or on nothing at all. Plain words on black were the
+   honest version but read as an empty screen.
 
-   This one has no photograph on it at all, which is also what gives the page
-   its rhythm — the hero is an image, the range is images, and this sits
-   between them as words. The words that matter are filled with a close-up of
-   the cloth, so "knitted cotton" is set in knitted cotton, and the fabric
-   drifts inside the letterforms. */
+   The whole stage is the cloth now — one close-up of the knit, thrown far out
+   of focus and dropped almost to black, so the section has the depth of a
+   photograph without having a photograph in it. The picked-out words are
+   filled with that same cloth, sharp.
+
+   Both fills are fixed to the viewport, which is the entire trick: a fixed
+   background is positioned against the window rather than against the box it
+   is painted in, so the sharp cloth inside the letters lines up exactly with
+   the blurred cloth behind them. The words are not coloured in — they are
+   windows, and what is behind the glass is in focus. */
 .cx-stage--fill {
   position: relative;
   overflow: hidden;
+  background-image: var(--knit);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
-/* A stitch ground, barely there, faded out before it reaches the edges. */
+/* The frosting. backdrop-filter blurs what is behind this layer rather than
+   the layer itself, so the text above it stays sharp. */
 .cx-stage--fill::before {
-  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background-image:
-    repeating-linear-gradient(90deg, rgba(246,242,234,.05) 0 1px, transparent 1px 10px),
-    repeating-linear-gradient(0deg,  rgba(246,242,234,.03) 0 1px, transparent 1px 7px);
-  -webkit-mask-image: radial-gradient(72% 62% at 50% 50%, #000, transparent 78%);
-          mask-image: radial-gradient(72% 62% at 50% 50%, #000, transparent 78%);
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: rgba(15,19,26,.76);
+  -webkit-backdrop-filter: blur(22px) saturate(.85);
+          backdrop-filter: blur(22px) saturate(.85);
+}
+/* Without backdrop-filter the cloth would sit there in full focus under the
+   sentence. A heavier flat wash stands in. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .cx-stage--fill::before { background: rgba(15,19,26,.93); }
 }
 
 .cx-knit {
@@ -401,15 +413,6 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   width: min(92vw, 1120px);
   padding: 0 clamp(1rem, 4vw, 2.5rem);
   text-align: center;
-}
-/* The sentence stands in a pool of light rather than on flat black, which is
-   what stops a page of plain type reading as an empty screen. */
-.cx-knit::before {
-  content: ''; position: absolute; z-index: -1;
-  left: 50%; top: 50%; translate: -50% -50%;
-  width: min(135%, 1320px); aspect-ratio: 5 / 3; border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(226,217,198,.12), transparent 68%);
-  pointer-events: none;
 }
 .cx-knit__eyebrow { margin: 0 0 clamp(1.1rem, 3vh, 2.2rem); }
 
@@ -424,36 +427,20 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 }
 .cx-knit__word { display: inline-block; }
 
-/* The cloth, inside the letters.
-
-   A heavier weight than its neighbours on purpose: Cinzel's thin strokes do
-   not give a photograph enough room to read as fabric, and at 400 the fill
-   looks like dirt on the type rather than like knit. */
+/* The window. Same picture, same size, same fixed attachment as the stage —
+   so it registers with the blur behind it rather than showing some other
+   part of the photograph. */
 .cx-knit__word--em {
   font-weight: 600;
-  /* A cream wash over the photograph, not instead of it.
-
-     The cloth these products are cut from is dark — a bottle-green cable
-     knit — and dark cloth inside letterforms on a near-black ground is a
-     word you cannot read. The wash lifts the whole fill to roughly the
-     brightness of the plain words beside it while the stitches still come
-     through it, so the line reads as one sentence and the texture is still
-     the texture. */
   background-image:
-    linear-gradient(rgba(246,242,234,.55) 0 100%),
+    linear-gradient(rgba(246,242,234,.34) 0 100%),
     var(--knit);
-  /* A fixed size for the photograph rather than cover, so the stitches come
-     out the same scale in a three-letter word and a nine-letter one. */
-  background-size: 100% 100%, clamp(520px, 62vw, 1200px) auto;
-  background-position: 0 0, 0% 50%;
+  background-size: 100% 100%, cover;
+  background-position: center, center;
+  background-attachment: scroll, fixed;
   -webkit-background-clip: text;
           background-clip: text;
   color: transparent;
-  animation: cx-knit-drift 30s linear infinite alternate;
-}
-@keyframes cx-knit-drift {
-  from { background-position: 0 0, 0% 50%; }
-  to   { background-position: 0 0, 100% 50%; }
 }
 
 /* Somewhere without background-clip, transparent text would simply be
@@ -462,51 +449,70 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   .cx-knit__word--em { background-image: none; color: #E2D9C6; }
 }
 
+/* iOS has never handled a fixed background attachment, and silently paints it
+   wrong rather than ignoring it. On touch the cloth scrolls with the page and
+   the letters take their fill from their own box — the registration is lost,
+   the effect is not. */
+@media (hover: none) {
+  .cx-stage--fill { background-attachment: scroll; }
+  .cx-knit__word--em {
+    background-attachment: scroll, scroll;
+    background-size: 100% 100%, clamp(320px, 90vw, 640px) auto;
+  }
+}
+
 .cx-knit__rule {
   display: block; width: clamp(40px, 5vw, 86px); height: 1px;
   margin: clamp(1.6rem, 4vh, 3rem) auto 0;
   background: rgba(226,217,198,.45);
 }
 
-/* 3 · the range, as a runway.
 
-   Three versions of this section were turned down, and each one had made the
-   photographs small so that something else could be the idea — swatches in
-   corners, a column beside a heading, a rack of hangers. The photography is
-   the best thing this shop owns, so here it is the whole section: full
-   height, edge to edge, moving past like a show.
+/* 3 · the range, as a wall of photography.
 
-   The strip never ends and never empties. The list is laid down twice and the
-   track travels exactly half its own width, so the moment it repeats is the
-   moment it is back where it started — there is no seam to find. */
+   The strip used to sit in a band under a heading, with a coloured glow
+   washing the space between them. Two bands and a haze: the glow read as a
+   smudge on a flat page rather than as light in a room, and the section
+   looked like two unrelated things stacked.
+
+   The photography fills the whole stage now, top to bottom and edge to edge,
+   and the heading floats on it behind a scrim that fades out before the
+   middle of the screen. One thing, not three. */
 .cx-stage--rail {
-  position: relative; height: auto; min-height: 100svh;
-  display: grid;
-  grid-template-rows: auto auto;
-  align-content: center;
-  gap: clamp(1.25rem, 3vh, 2.5rem);
-  padding: calc(var(--header-h, 96px) + 1.5rem) 0 clamp(1.5rem, 5vh, 3rem);
+  position: relative;
+  height: 100svh; min-height: 520px;
+  display: block;
+  padding: 0;
   overflow: hidden;
 }
-/* The shared stage rule stacks every child into one centred cell, which is
-   right for the other two stages and wrong for this one. */
-.cx-stage--rail > * { grid-area: auto; place-self: stretch; }
-.cx-stage--rail .cx-chapter { top: 0; right: 0; }
+
+/* The scrim the heading is read against. It never catches a click, so the
+   pieces underneath it stay reachable all the way to the left edge. */
+.cx-stage--rail::before {
+  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    linear-gradient(to right,
+      rgba(15,19,26,.94) 0%,
+      rgba(15,19,26,.86) 24%,
+      rgba(15,19,26,.45) 40%,
+      rgba(15,19,26,0) 56%),
+    linear-gradient(to bottom, rgba(15,19,26,.55), transparent 22%);
+}
+.cx-stage--rail .cx-chapter { z-index: 4; top: 0; right: 0; }
 
 .cx-rail-head {
-  position: relative; z-index: 3;
-  width: min(92vw, 560px);
-  margin: 0 clamp(1rem, 4vw, 2.5rem);
-  place-self: start;
+  position: absolute; z-index: 3;
+  left: clamp(1rem, 4vw, 3.5rem); top: 50%; translate: 0 -50%;
+  width: min(86vw, 440px);
 }
 .cx-rail-body {
-  margin-top: 1rem; max-width: 46ch;
+  margin-top: 1.1rem;
   font-size: 13.5px; line-height: 1.75;
-  color: rgba(246,242,234,.6);
+  color: rgba(246,242,234,.68);
 }
 .cx-rail-cta {
   display: inline-flex; align-items: center; gap: .6rem;
-  margin-top: 1.4rem; padding-bottom: .4rem;
+  margin-top: 1.6rem; padding-bottom: .4rem;
   border-bottom: 1px solid rgba(226,217,198,.6);
   font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .22em;
   color: #F6F2EA;
@@ -514,25 +520,24 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 }
 .cx-rail-cta:hover { gap: 1.1rem; border-color: #F6F2EA; }
 
-/* ------------------------------------------------------------- the runway */
+/* ------------------------------------------------------------- the strip */
 
 .cx-runway {
-  position: relative; z-index: 2;
-  /* min-height: 0 is what lets this shrink inside its 1fr row. Without it a
-     grid item's automatic minimum is its content, so the strip pushed the
-     stage taller than the screen and the names fell under the fold. */
-  min-width: 0; min-height: 0; overflow: hidden;
-  display: flex; align-items: center;
-  /* Pieces arrive and leave rather than being cut off at a hard edge. */
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
-          mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+  position: absolute; inset: 0; z-index: 1;
+  /* place-self: stretch undoes the `center` every stage child inherits.
+     An absolutely positioned box with top:0 and bottom:0 is still aligned
+     inside that area, and any alignment other than stretch makes it shrink
+     to its own content — so the wall came out 552px tall inside a 953px
+     stage with bare black above and below it. */
+  place-self: stretch;
+  display: flex; align-items: stretch;
+  overflow: hidden;
 }
-
 .cx-runway__track {
   display: flex; align-items: stretch;
-  gap: clamp(.75rem, 1.4vw, 1.5rem);
-  width: max-content;
-  animation: cx-drift 54s linear infinite;
+  gap: clamp(.5rem, .9vw, 1rem);
+  width: max-content; height: 100%;
+  animation: cx-drift 58s linear infinite;
   animation-play-state: paused;
 }
 .cx-runway.is-in .cx-runway__track { animation-play-state: running; }
@@ -548,44 +553,40 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   to   { transform: translate3d(-50%, 0, 0); }
 }
 
-/* The photograph is sized against the viewport rather than against the row
-   it sits in. A 1fr grid row inside an auto-height stage has nothing to
-   divide — it resolves to its own content — so letting the frame fill it
-   made the section taller than the screen rather than shorter. This way the
-   heading, the strip and the names always add up to less than one screen. */
 .cx-piece {
   position: relative; display: block; flex: 0 0 auto;
-  width: clamp(190px, 21vw, 330px);
+  width: clamp(190px, 20vw, 340px); height: 100%;
   color: #F6F2EA;
 }
 .cx-piece__frame {
-  display: block; overflow: hidden;
-  height: clamp(230px, 45vh, 540px);
+  position: relative; display: block; overflow: hidden;
+  width: 100%; height: 100%;
   background: #1E2531;
 }
 .cx-piece__frame img {
-  width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%;
-  filter: saturate(.88) brightness(.92);
-  transition: transform .9s cubic-bezier(.22,.61,.36,1), filter .5s;
+  width: 100%; height: 100%; object-fit: cover; object-position: 50% 24%;
+  filter: saturate(.9) brightness(.9);
+  transition: transform 1.1s cubic-bezier(.22,.61,.36,1), filter .5s;
 }
-.cx-piece:hover .cx-piece__frame img { transform: scale(1.05); filter: saturate(1.04) brightness(1); }
+.cx-piece:hover .cx-piece__frame img { transform: scale(1.04); filter: saturate(1.05) brightness(1.02); }
 
-/* The name sits under the piece and is only fully there when the piece is —
-   which keeps the strip reading as photography rather than as a price list. */
+/* The name is laid on the photograph rather than under it, so the strip is
+   an unbroken wall of picture with nothing between the frames. */
 .cx-piece__meta {
-  display: block; margin-top: .85rem;
-  opacity: .55; transition: opacity .4s;
+  position: absolute; z-index: 2; left: 0; right: 0; bottom: 0;
+  padding: clamp(2.5rem, 6vh, 5rem) clamp(.9rem, 1.4vw, 1.4rem) clamp(1rem, 2.4vh, 1.6rem);
+  background: linear-gradient(to top, rgba(15,19,26,.9), rgba(15,19,26,.55) 45%, transparent);
+  opacity: .82; transition: opacity .4s;
 }
-.cx-piece:hover .cx-piece__meta,
-.cx-piece:focus-visible .cx-piece__meta { opacity: 1; }
+.cx-piece:hover .cx-piece__meta { opacity: 1; }
 .cx-piece__name {
   display: block;
   font-family: Cinzel, 'Trajan Pro', Georgia, serif;
   font-size: 12.5px; text-transform: uppercase; letter-spacing: .1em;
 }
-.cx-piece__price { display: block; margin-top: .25rem; font-size: 12px; color: rgba(246,242,234,.6); }
+.cx-piece__price { display: block; margin-top: .25rem; font-size: 12px; color: rgba(246,242,234,.72); }
 
-/* Each piece rises as the strip first arrives. */
+/* Each piece rises as the wall first arrives. */
 .cx-piece { opacity: 0; transform: translateY(26px); }
 .cx-runway.is-in .cx-piece {
   opacity: 1; transform: none;
@@ -596,40 +597,42 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 /* On a phone it is swiped, not watched.
 
    Drift relies on hover to hold still before a tap, and a touch screen has no
-   hover — so the thing you are aiming at would be moving at the moment you
-   reach it. Here the strip stops drifting and becomes an ordinary horizontal
-   scroller with snap points, which is what a thumb expects. The second lap is
-   scenery for the loop and would only be the same pieces again, so it goes. */
+   hover. Here the heading goes back above the strip — there is not enough
+   width to lay it over the pictures — and the strip becomes an ordinary
+   snapping scroller. The second lap is scenery for the loop and would only
+   be the same pieces again, so it goes. */
 @media (max-width: 899px) {
+  .cx-stage--rail {
+    display: grid; grid-template-rows: auto auto; align-content: center;
+    gap: clamp(1.25rem, 3vh, 2.25rem);
+    padding: calc(var(--header-h, 96px) + 1.25rem) 0 clamp(1.5rem, 5vh, 3rem);
+  }
+  .cx-stage--rail > * { grid-area: auto; place-self: stretch; }
+  .cx-stage--rail::before { display: none; }
+  .cx-rail-head {
+    position: relative; z-index: 3;
+    left: auto; top: auto; translate: none;
+    width: auto; margin: 0 clamp(1rem, 4vw, 2.5rem); place-self: start;
+  }
   .cx-runway {
+    position: relative; inset: auto;
     overflow-x: auto; overflow-y: hidden;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
-    -webkit-mask-image: none; mask-image: none;
     padding-inline: clamp(1rem, 4vw, 2.5rem);
     /* Without this the snap aligns the first piece to the scrollport's own
-       edge, scrolling straight past the padding and pinning it to the side
-       of the screen. */
+       edge, scrolling past the padding and pinning it to the side. */
     scroll-padding-inline: clamp(1rem, 4vw, 2.5rem);
   }
   .cx-runway::-webkit-scrollbar { display: none; }
-  .cx-runway__track { animation: none; transform: none; }
+  .cx-runway__track { animation: none; transform: none; height: auto; }
   .cx-runway__track > [aria-hidden='true'] { display: none; }
-  .cx-piece { scroll-snap-align: start; width: clamp(200px, 62vw, 320px); }
-  .cx-piece__frame { height: clamp(220px, 40vh, 420px); }
+  .cx-piece {
+    scroll-snap-align: start;
+    width: clamp(200px, 62vw, 320px); height: auto;
+  }
+  .cx-piece__frame { height: clamp(260px, 48vh, 440px); }
 }
-
-/* The light behind the strip. */
-.cx-rail-glow {
-  position: absolute; z-index: 0; pointer-events: none;
-  left: 50%; top: 56%; translate: -50% -50%;
-  width: min(120vw, 1500px); aspect-ratio: 2 / 1; border-radius: 50%;
-  background: radial-gradient(ellipse, var(--glow) 0%, transparent 70%);
-}
-.cx-rail-glow--warm   { --glow: rgba(226,217,198,.16); }
-.cx-rail-glow--violet { --glow: rgba(167,108,224,.26); }
-.cx-rail-glow--cool   { --glow: rgba(120,150,210,.22); }
-.cx-rail-glow--none   { display: none; }
 
 
 /* With reduced motion the stages stop being scroll-driven: one screen each,

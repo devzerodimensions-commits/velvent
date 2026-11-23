@@ -54,11 +54,11 @@ function useStageProgress(enabled) {
   return { outerRef, stageRef };
 }
 
-function Stage({ kind, label, className = '', scrollDriven = true, children }) {
+function Stage({ kind, label, className = '', style, scrollDriven = true, children }) {
   const { outerRef, stageRef } = useStageProgress(scrollDriven);
   return (
     <section ref={outerRef} className={`cx-outer cx-outer--${kind}`} aria-label={label}>
-      <div ref={stageRef} className={`cx-stage cx-stage--${kind} ${className}`}>
+      <div ref={stageRef} className={`cx-stage cx-stage--${kind} ${className}`} style={style}>
         {children}
         <div className="cx-grain" aria-hidden />
       </div>
@@ -167,17 +167,16 @@ function RailStage({ rail }) {
     >
       <span className="cx-piece__frame">
         <img src={item.img} alt={copy === 0 ? item.name : ''} loading="lazy" />
-      </span>
-      <span className="cx-piece__meta">
-        <span className="cx-piece__name">{item.name}</span>
-        {item.price != null && <span className="cx-piece__price">{inr(item.price)}</span>}
+        <span className="cx-piece__meta">
+          <span className="cx-piece__name">{item.name}</span>
+          {item.price != null && <span className="cx-piece__price">{inr(item.price)}</span>}
+        </span>
       </span>
     </Link>
   ));
 
   return (
     <Stage kind="rail" label={c.railEyebrow} scrollDriven={false}>
-      <span className={`cx-rail-glow cx-rail-glow--${c.railGlow || 'warm'}`} aria-hidden />
 
       <div className="cx-rail-head">
         <p className="cx-meta">{c.railEyebrow}</p>
@@ -271,14 +270,20 @@ export function Cinema({ products = [] }) {
       {/* 2 — the statement, read against one full-height photograph */}
       {/* scrollDriven off: nothing in this stage reads the scroll position, so
           there is no reason to measure it on every frame of every scroll. */}
-      <Stage kind="fill" label={STATEMENT} scrollDriven={false}>
+      <Stage
+        kind="fill"
+        label={STATEMENT}
+        scrollDriven={false}
+        className="cx-cloth"
+        style={{ '--knit': `url("${c.statementTexture || '/products/anatomy-cable.jpg'}")` }}
+      >
         {/* The sentence, knitted.
 
             The emphasised words are not coloured in — they are filled with a
             photograph of the cloth itself, so "knitted cotton" is set in
             knitted cotton. The fabric drifts slowly inside the letterforms,
             which is the only motion on the stage. */}
-        <div className="cx-knit" style={{ '--knit': `url("${c.statementTexture || '/products/anatomy-cable.jpg'}")` }}>
+        <div className="cx-knit">
           {c.statementLabel && <p className="cx-meta cx-knit__eyebrow">{c.statementLabel}</p>}
 
           <p className="cx-knit__text" aria-label={STATEMENT}>
