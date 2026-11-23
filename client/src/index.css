@@ -524,6 +524,10 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 
 .cx-runway {
   position: absolute; inset: 0; z-index: 1;
+  /* The room the pieces stand in. Without a perspective on the container,
+     a translateZ on a child is just a number that does nothing. */
+  perspective: 1700px;
+  perspective-origin: 50% 46%;
   /* place-self: stretch undoes the `center` every stage child inherits.
      An absolutely positioned box with top:0 and bottom:0 is still aligned
      inside that area, and any alignment other than stretch makes it shrink
@@ -534,6 +538,7 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   overflow: hidden;
 }
 .cx-runway__track {
+  transform-style: preserve-3d;
   display: flex; align-items: stretch;
   gap: clamp(.5rem, .9vw, 1rem);
   width: max-content; height: 100%;
@@ -553,11 +558,30 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   to   { transform: translate3d(-50%, 0, 0); }
 }
 
+/* Depth, and the parallax that comes free with it.
+
+   The pieces stand at three different distances. Because the whole track is
+   translated through a perspective, the near ones sweep past faster than the
+   far ones without a line of code asking them to — that difference in speed
+   is what the eye reads as space rather than as a flat strip sliding.
+
+   The tilt is written on by the pointer handler. At rest both angles are
+   zero, so a piece nobody is touching simply stands where it is. */
 .cx-piece {
+  --z: 0px; --rx: 0deg; --ry: 0deg;
   position: relative; display: block; flex: 0 0 auto;
   width: clamp(190px, 20vw, 340px); height: 100%;
   color: #F6F2EA;
+  transform-style: preserve-3d;
+  transform: translateZ(var(--z)) rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform .45s cubic-bezier(.22,.61,.36,1);
 }
+.cx-piece:nth-child(3n+1) { --z: -105px; }
+.cx-piece:nth-child(3n+2) { --z: 0px; }
+.cx-piece:nth-child(3n)   { --z: -52px; }
+/* Further away means darker, the way a room works. */
+.cx-piece:nth-child(3n+1) .cx-piece__frame img { filter: saturate(.78) brightness(.72); }
+.cx-piece:nth-child(3n)   .cx-piece__frame img { filter: saturate(.84) brightness(.82); }
 .cx-piece__frame {
   position: relative; display: block; overflow: hidden;
   width: 100%; height: 100%;
@@ -586,9 +610,13 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 }
 .cx-piece__price { display: block; margin-top: .25rem; font-size: 12px; color: rgba(246,242,234,.72); }
 
-/* Each piece rises as the wall first arrives. */
-.cx-piece { opacity: 0; transform: translateY(26px); }
-.cx-runway.is-in .cx-piece {
+/* Each piece rises as the wall first arrives.
+
+   On the frame rather than on the piece: the piece's transform is the 3D
+   placement and the pointer tilt, and two rules writing the same property
+   would simply overwrite one another. */
+.cx-piece__frame { opacity: 0; transform: translateY(30px); }
+.cx-runway.is-in .cx-piece__frame {
   opacity: 1; transform: none;
   transition: opacity .6s ease-out calc(var(--i, 0) * 80ms),
               transform .8s cubic-bezier(.22,.61,.36,1) calc(var(--i, 0) * 80ms);
@@ -628,9 +656,14 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   .cx-runway__track { animation: none; transform: none; height: auto; }
   .cx-runway__track > [aria-hidden='true'] { display: none; }
   .cx-piece {
+    /* Flat. There is no pointer to lean toward, and staggered depth across a
+       strip two pieces wide reads as pictures of the wrong size. */
+    --z: 0px;
+    transform: none;
     scroll-snap-align: start;
     width: clamp(200px, 62vw, 320px); height: auto;
   }
+  .cx-piece .cx-piece__frame img { filter: saturate(.9) brightness(.92); }
   .cx-piece__frame { height: clamp(260px, 48vh, 440px); }
 }
 

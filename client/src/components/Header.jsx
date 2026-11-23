@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import Logo from './Logo';
-import { Bag, Close, Heart, Menu, Search, User } from './Icons';
+import { Bag, Close, Heart, Menu, Search, Truck, User } from './Icons';
 import { useCart } from '../store/cart';
 import { useAuth } from '../store/auth';
 import { useContent } from '../store/content';
@@ -135,10 +135,20 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="flex items-center justify-end gap-0.5 lg:w-[210px]">
+          <div className="flex items-center justify-end gap-0.5 lg:w-[252px]">
             <button className={iconBtn} onClick={() => setSearchOpen((v) => !v)} aria-label="Search">
               {searchOpen ? <Close size={21} /> : <Search size={21} />}
             </button>
+
+            {/* Tracking an order had no way in from a desktop at all — it was
+                written into the mobile drawer only, so on a PC it existed in
+                the footer and nowhere else. It joins the icon row rather than
+                the nav, which is already six items wide and is built from the
+                menu the shop edits. Below this width the drawer still carries
+                it as a named link. */}
+            <Link to="/track-order" className={`${iconBtn} hidden lg:grid`} aria-label="Track order" title="Track order">
+              <Truck size={21} />
+            </Link>
 
             <Link to={user ? '/account/wishlist' : '/login'} className={`${iconBtn} hidden sm:grid`} aria-label="Wishlist">
               <Heart size={21} />

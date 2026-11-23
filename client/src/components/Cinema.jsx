@@ -154,6 +154,26 @@ function RailStage({ rail }) {
     return () => io.disconnect();
   }, []);
 
+  /* The tilt.
+
+     A piece leans toward the pointer while it is under it. The angles are
+     written straight onto the element as custom properties rather than into
+     React state: this runs on every mouse move, and a re-render per frame
+     would cost far more than the effect is worth. */
+  const tilt = (e) => {
+    const piece = e.target.closest?.('.cx-piece');
+    if (!piece) return;
+    const r = piece.getBoundingClientRect();
+    piece.style.setProperty('--ry', `${((e.clientX - r.left) / r.width - 0.5) * 15}deg`);
+    piece.style.setProperty('--rx', `${-((e.clientY - r.top) / r.height - 0.5) * 11}deg`);
+  };
+  const untilt = (e) => {
+    const piece = e.target.closest?.('.cx-piece');
+    if (!piece) return;
+    piece.style.removeProperty('--rx');
+    piece.style.removeProperty('--ry');
+  };
+
   /* Laid down twice. The second pass is scenery — it is the first pass again,
      so it is kept out of the tab order and away from screen readers. */
   const lap = (copy) => rail.map((item, i) => (
@@ -191,7 +211,12 @@ function RailStage({ rail }) {
 
       <span className="cx-chapter cx-meta" aria-hidden>03 / 03</span>
 
-      <div className={`cx-runway${shown ? ' is-in' : ''}`} ref={rowRef}>
+      <div
+        className={`cx-runway${shown ? ' is-in' : ''}`}
+        ref={rowRef}
+        onMouseMove={tilt}
+        onMouseOut={untilt}
+      >
         <div className="cx-runway__track">
           {lap(0)}
           {lap(1)}
