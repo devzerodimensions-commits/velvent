@@ -628,19 +628,26 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   perspective-origin: 34% 44%;
 }
 
-/* A studio light on the wall behind the rack. Neutral, and only just there —
-   the job is to lift the garments off the charcoal, not to colour them. */
+/* A studio light on the wall behind the rack: the disc the garments stand
+   against, in the store's cream rather than a colour. Bright enough to be the
+   first thing the eye finds, with a rim you can see and a halo past it, so it
+   reads as light falling on a wall and not as a grey circle. The dark pieces
+   stand out against it; that is what it is for. */
 .cx-glow {
   position: absolute; z-index: 0; left: 50%; top: 40%; translate: -50% -50%;
-  width: min(72%, 470px); aspect-ratio: 1; border-radius: 50%;
-  background: radial-gradient(circle at 50% 46%,
-      rgba(246,242,234,.17) 0%,
-      rgba(246,242,234,.115) 46%,
-      rgba(246,242,234,.05) 74%,
-      rgba(246,242,234,.012) 90%,
+  width: min(78%, 520px); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle at 50% 44%,
+      rgba(246,242,234,.30) 0%,
+      rgba(246,242,234,.22) 34%,
+      rgba(246,242,234,.13) 60%,
+      rgba(246,242,234,.07) 80%,
+      rgba(246,242,234,.03) 94%,
       transparent 100%);
-  box-shadow: inset 0 0 0 1px rgba(246,242,234,.06);
-  filter: blur(3px);
+  box-shadow:
+    inset 0 0 0 1px rgba(246,242,234,.14),
+    inset 0 0 60px rgba(246,242,234,.06),
+    0 0 90px 24px rgba(246,242,234,.07);
+  filter: blur(1.5px);
 }
 
 .cx-rack {
@@ -685,21 +692,6 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   filter: blur(10px);
 }
 
-/* The rest of the rail. Thin, close together, and dimmer than the four the
-   garments hang on, so they read as stock behind rather than as clutter. */
-.cx-rack__hooks {
-  position: absolute; z-index: 2; left: 10%; right: 9%; top: 13%;
-  display: flex; justify-content: space-between; align-items: flex-start;
-  pointer-events: none;
-}
-.cx-rack__hook {
-  width: clamp(26px, 5.2%, 48px); height: auto;
-  /* Only the hook above the rail; the shoulders hang below it. */
-  margin-top: clamp(-9px, -1.5%, -5px);
-  color: rgba(228,233,242,.5);
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,.6));
-}
-
 /* --------------------------------------------------------- the pieces */
 
 .cx-hang {
@@ -724,9 +716,12 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   position: relative; flex: 0 0 auto; height: 100%;
   margin-left: calc(-1 * clamp(100px, 27.5%, 220px));
   z-index: calc(10 - var(--d));
-  /* Hung from the rail, so a smaller piece keeps its shoulders on it. */
-  transform-origin: 50% 2%;
-  transform: translateY(calc(var(--d) * 5px)) scale(calc(1 - var(--d) * var(--sink, .06)));
+  /* Scaled about the point where its hook meets the rail, so a piece further
+     back is smaller and its hook is still on the rail. It used to step down
+     5px a piece as well, which marched the back three hooks off the rail and
+     left them hanging in mid-air. */
+  transform-origin: 50% -5.4%;
+  transform: scale(calc(1 - var(--d) * var(--sink, .06)));
   filter: brightness(calc(1 - var(--d) * .07)) saturate(calc(1 - var(--d) * .05));
   transition: transform .55s cubic-bezier(.22,.61,.36,1), filter .4s;
 }
@@ -736,7 +731,7 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cx-hang__item:hover,
 .cx-hang__item:focus-within {
   z-index: 20;
-  transform: translateY(calc(var(--d) * 5px)) scale(calc(1 - var(--d) * var(--sink, .06) + .065));
+  transform: scale(calc(1 - var(--d) * var(--sink, .06) + .065));
   filter: brightness(1.08) saturate(1.02);
 }
 
@@ -757,7 +752,7 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 }
 .cx-hang__swing {
   display: block; width: 100%; height: 100%;
-  transform-origin: 50% -8%;
+  transform-origin: 50% -5.4%;
   animation: cx-sway 7.5s ease-in-out infinite;
   animation-delay: calc(var(--d) * -1.45s);
 }
@@ -770,10 +765,12 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
    shirt, and only the hook and the neck of it show above the collar. */
 .cx-hang__hanger {
   position: absolute; z-index: 0; left: 50%; translate: -50% 0;
-  top: clamp(-34px, -11%, -22px);
-  width: 47%; height: auto;
-  color: rgba(228,233,242,.94);
-  filter: drop-shadow(0 2px 5px rgba(0,0,0,.7));
+  /* In the garment's height: the hook's top is 7% above the collar, which is
+     just over the rail; the neck meets the collar; the shoulders sit 11% down,
+     inside the shirt. */
+  top: -7%; height: 22%; width: auto;
+  color: rgba(228,233,242,.95);
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.65));
 }
 
 /* The garment: a cut-out on a transparent ground, as tall as the hanging
@@ -792,7 +789,7 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cx-hang__label {
   position: absolute; z-index: 5; left: 50%; translate: -50% 0;
   top: calc(100% + 14px);
-  width: max-content; max-width: 160%; text-align: center;
+  width: max-content; max-width: 100%; text-align: center;
   opacity: 0; transition: opacity .3s;
 }
 .cx-hang__item:first-child .cx-hang__label { opacity: .55; }
@@ -847,7 +844,6 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
     --sink: .07;
     margin-left: calc(-1 * clamp(58px, 27%, 116px));
   }
-  .cx-hang__hanger { width: 52%; top: -10px; }
   /* No pointer to reveal them with, and a row of names across a phone is a
      thicket. The link still carries the name for a screen reader. */
   .cx-hang__label,

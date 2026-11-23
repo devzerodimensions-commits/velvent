@@ -105,13 +105,14 @@ const fromSlug = (slug) => String(slug || '')
   .map((w) => w[0].toUpperCase() + w.slice(1))
   .join(' ');
 
-/** A wire hanger. Its hook is drawn long enough to cross the rail above it. */
-function Hanger({ className = 'cx-hang__hanger' }) {
+/** A wire hanger: a hook over the rail, a short neck, and shoulders that sit
+    inside the garment. Drawn behind it, so only the hook and neck show. */
+function Hanger() {
   return (
-    <svg className={className} viewBox="0 0 120 46" fill="none" aria-hidden focusable="false">
-      <path d="M60 17c0-7-5.5-7-5.5-11A5.5 5.5 0 0 1 65 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-      <path d="M11.5 41 60 17l48.5 24" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
-      <path d="M11.5 41h97" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+    <svg className="cx-hang__hanger" viewBox="0 0 120 60" fill="none" aria-hidden focusable="false">
+      <path d="M60 23V15c0-3.6 6-4.4 6-9.2A6 5.6 0 0 0 54 5.4" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 50 60 23l50 27" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
+      <path d="M10 50h100" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -193,12 +194,6 @@ function RailStage({ products }) {
             <span className="cx-rack__leg cx-rack__leg--l" aria-hidden />
             <span className="cx-rack__leg cx-rack__leg--r" aria-hidden />
             <span className="cx-rack__base" aria-hidden />
-
-            {/* The rest of the rail, hung but not on show. Behind the garments,
-                so they read as stock further along rather than as clutter. */}
-            <span className="cx-rack__hooks" aria-hidden>
-              {Array.from({ length: 11 }, (_, i) => <Hanger key={i} className="cx-rack__hook" />)}
-            </span>
 
             <ul className="cx-hang">
               {pieces.map((item, i) => (
