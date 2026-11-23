@@ -369,108 +369,105 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cx-thread__line { position: relative; width: 1px; height: 46px; overflow: hidden; background: rgba(246,242,234,.18); }
 .cx-thread__line::after { content: ''; position: absolute; inset: 0; background: #F6F2EA; animation: cx-pull 2.2s cubic-bezier(.77,0,.18,1) infinite; }
 
-/* 2 · the statement, on a woven label.
+/* 2 · the statement, knitted.
 
-   Two earlier versions were rejected. The first scattered two small tilted
-   photographs into opposite corners around a centred sentence, leaving the
-   middle and the whole bottom empty. The second set the sentence beside one
-   full-height photograph, which filled the left but left the right half of a
-   wide screen mostly bare.
+   Three versions of this came and went: photographs in corners around a
+   centred line, the line beside a full-height photograph, and the line on a
+   woven label over one. All three were a sentence next to a picture of
+   clothes.
 
-   This one stops treating the sentence as a caption next to a picture. The
-   photograph goes full bleed behind everything, and the sentence is presented
-   the way a knitwear brand presents words on a garment: a woven label, sewn
-   slightly off square, with the stitch line showing inside its edge.
-
-   It is the only thing on the page that is cream on dark rather than the
-   other way round, which is what makes it read as an object rather than a
-   section. */
+   This one has no photograph on it at all, which is also what gives the page
+   its rhythm — the hero is an image, the range is images, and this sits
+   between them as words. The words that matter are filled with a close-up of
+   the cloth, so "knitted cotton" is set in knitted cotton, and the fabric
+   drifts inside the letterforms. */
 .cx-stage--fill {
-  /* Not sticky: nothing here reads the scroll position, so the stage scrolls
-     past like an ordinary section instead of pinning the page. */
   position: relative;
   overflow: hidden;
 }
 
-/* place-self: stretch undoes the `center` every stage child inherits. An
-   absolutely positioned grid child with inset:0 is still laid out inside its
-   grid area, and a non-stretch alignment makes it shrink to fit its content
-   and sit in the middle — so the photograph came out at its own aspect ratio
-   with bare stage showing above and below it. */
-.cx-label__bg { position: absolute; inset: 0; z-index: 1; place-self: stretch; }
-/* Biased up the frame. A tall photograph cropped to a wide stage shows only
-   a band of itself, and centred on a full-length shot that band lands on the
-   legs. Thirty per cent puts it across the chest, which is where the garment
-   is — and the label then sits on the knitwear rather than floating over a
-   pair of trousers. */
-.cx-label__bg img {
-  display: block; width: 100%; height: 100%;
-  object-fit: cover; object-position: 50% 30%;
-}
-/* Dark enough for a cream panel to sit on it without the photograph fighting
-   the text, and graded so the garment is still legible at the edges. */
-.cx-label__bg::after {
-  content: ''; position: absolute; inset: 0;
-  background:
-    radial-gradient(70% 55% at 50% 50%, rgba(15,19,26,.78), rgba(15,19,26,.52) 60%, rgba(15,19,26,.72)),
-    linear-gradient(to bottom, rgba(15,19,26,.55), rgba(15,19,26,.25) 35%, rgba(15,19,26,.6));
+/* A stitch ground, barely there, faded out before it reaches the edges. */
+.cx-stage--fill::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(246,242,234,.05) 0 1px, transparent 1px 10px),
+    repeating-linear-gradient(0deg,  rgba(246,242,234,.03) 0 1px, transparent 1px 7px);
+  -webkit-mask-image: radial-gradient(72% 62% at 50% 50%, #000, transparent 78%);
+          mask-image: radial-gradient(72% 62% at 50% 50%, #000, transparent 78%);
 }
 
-.cx-label {
-  position: relative; z-index: 3;
-  width: min(90vw, 700px);
-  margin: 0;
-  padding: clamp(1.9rem, 4.2vw, 3.4rem) clamp(1.5rem, 4vw, 3rem);
-  background: #F6F2EA;
-  color: #2C3544;
+.cx-knit {
+  position: relative; z-index: 2;
+  width: min(92vw, 1120px);
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
   text-align: center;
-  /* Sewn on by hand, not printed. A whole degree is the difference between
-     deliberate and crooked. */
-  transform: rotate(-1.2deg);
-  box-shadow: 0 34px 80px -28px rgba(0,0,0,.75);
 }
-/* The stitch line, inside the edge, the way it runs on a woven label. */
-.cx-label::before {
-  content: ''; position: absolute; inset: clamp(8px, 1vw, 13px);
-  border: 1px dashed rgba(44,53,68,.38);
+/* The sentence stands in a pool of light rather than on flat black, which is
+   what stops a page of plain type reading as an empty screen. */
+.cx-knit::before {
+  content: ''; position: absolute; z-index: -1;
+  left: 50%; top: 50%; translate: -50% -50%;
+  width: min(135%, 1320px); aspect-ratio: 5 / 3; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(226,217,198,.12), transparent 68%);
   pointer-events: none;
 }
+.cx-knit__eyebrow { margin: 0 0 clamp(1.1rem, 3vh, 2.2rem); }
 
-.cx-label__meta {
-  margin: 0 0 clamp(1rem, 2.4vw, 1.6rem);
-  font-size: 10px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: .28em;
-  color: rgba(44,53,68,.55);
-}
-
-.cx-label__text {
+.cx-knit__text {
   margin: 0;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: .04em .3em;
   font-family: Cinzel, 'Trajan Pro', Georgia, serif;
   font-weight: 400; text-transform: uppercase;
-  font-size: clamp(21px, 3.3vw, 42px);
-  line-height: 1.24; letter-spacing: .015em;
+  font-size: clamp(28px, 6.2vw, 100px);
+  line-height: 1.14; letter-spacing: .012em;
+  color: #F6F2EA;
 }
-/* The sentence is set a shade back and the emphasised words come forward at
-   full strength — emphasis by weight of colour rather than an underline,
-   which on the old version read as a broken link. */
-.cx-label__word { color: rgba(44,53,68,.62); }
-.cx-label__word--em { color: #2C3544; }
+.cx-knit__word { display: inline-block; }
 
-.cx-label__rule {
-  display: block; width: clamp(34px, 4vw, 54px); height: 1px;
-  margin: clamp(1.1rem, 2.6vw, 1.8rem) auto clamp(.7rem, 1.4vw, 1rem);
-  background: rgba(44,53,68,.3);
+/* The cloth, inside the letters.
+
+   A heavier weight than its neighbours on purpose: Cinzel's thin strokes do
+   not give a photograph enough room to read as fabric, and at 400 the fill
+   looks like dirt on the type rather than like knit. */
+.cx-knit__word--em {
+  font-weight: 600;
+  /* A cream wash over the photograph, not instead of it.
+
+     The cloth these products are cut from is dark — a bottle-green cable
+     knit — and dark cloth inside letterforms on a near-black ground is a
+     word you cannot read. The wash lifts the whole fill to roughly the
+     brightness of the plain words beside it while the stitches still come
+     through it, so the line reads as one sentence and the texture is still
+     the texture. */
+  background-image:
+    linear-gradient(rgba(246,242,234,.55) 0 100%),
+    var(--knit);
+  /* A fixed size for the photograph rather than cover, so the stitches come
+     out the same scale in a three-letter word and a nine-letter one. */
+  background-size: 100% 100%, clamp(520px, 62vw, 1200px) auto;
+  background-position: 0 0, 0% 50%;
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  animation: cx-knit-drift 30s linear infinite alternate;
 }
-.cx-label__mark {
-  display: block;
-  font-family: Cinzel, 'Trajan Pro', Georgia, serif;
-  font-size: 11px; text-transform: uppercase; letter-spacing: .34em;
-  color: rgba(44,53,68,.5);
+@keyframes cx-knit-drift {
+  from { background-position: 0 0, 0% 50%; }
+  to   { background-position: 0 0, 100% 50%; }
 }
 
-@media (max-width: 767px) {
-  .cx-label { width: min(90vw, 440px); transform: rotate(-1deg); }
+/* Somewhere without background-clip, transparent text would simply be
+   invisible. Those browsers get the warm cream the words used to be. */
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .cx-knit__word--em { background-image: none; color: #E2D9C6; }
 }
+
+.cx-knit__rule {
+  display: block; width: clamp(40px, 5vw, 86px); height: 1px;
+  margin: clamp(1.6rem, 4vh, 3rem) auto 0;
+  background: rgba(226,217,198,.45);
+}
+
 /* 3 · the range, as a runway.
 
    Three versions of this section were turned down, and each one had made the

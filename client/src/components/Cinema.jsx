@@ -272,31 +272,28 @@ export function Cinema({ products = [] }) {
       {/* scrollDriven off: nothing in this stage reads the scroll position, so
           there is no reason to measure it on every frame of every scroll. */}
       <Stage kind="fill" label={STATEMENT} scrollDriven={false}>
-        <div className="cx-label__bg" aria-hidden>
-          <img src={c.statementImageA} alt="" loading="lazy" />
-        </div>
+        {/* The sentence, knitted.
 
-        <div className="cx-label">
-          {c.statementLabel && <p className="cx-label__meta">{c.statementLabel}</p>}
+            The emphasised words are not coloured in — they are filled with a
+            photograph of the cloth itself, so "knitted cotton" is set in
+            knitted cotton. The fabric drifts slowly inside the letterforms,
+            which is the only motion on the stage. */}
+        <div className="cx-knit" style={{ '--knit': `url("${c.statementTexture || '/products/anatomy-cable.jpg'}")` }}>
+          {c.statementLabel && <p className="cx-meta cx-knit__eyebrow">{c.statementLabel}</p>}
 
-          {/* The sentence is split into words so the emphasised ones can be
-              picked out. Each word is hidden from assistive tech and the
-              paragraph carries the whole sentence, or it would be read one
-              word at a time with no punctuation between. */}
-          <p className="cx-label__text" aria-label={STATEMENT}>
+          <p className="cx-knit__text" aria-label={STATEMENT}>
             {STATEMENT.split(' ').map((w, i) => (
               <span
                 key={w + i}
                 aria-hidden
-                className={`cx-label__word${EMPHASIS.has(w.toLowerCase()) ? ' cx-label__word--em' : ''}`}
+                className={`cx-knit__word${EMPHASIS.has(w.toLowerCase()) ? ' cx-knit__word--em' : ''}`}
               >
-                {w}{' '}
+                {w}
               </span>
             ))}
           </p>
 
-          <span className="cx-label__rule" aria-hidden />
-          <span className="cx-label__mark" aria-hidden>{brand.name || 'Velvent'}</span>
+          <span className="cx-knit__rule" aria-hidden />
         </div>
 
         <span className="cx-chapter cx-meta" aria-hidden>02 / 03</span>

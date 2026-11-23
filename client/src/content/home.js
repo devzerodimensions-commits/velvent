@@ -21,7 +21,7 @@ export const defaults = {
   statementLabel: 'Autumn knitwear',
   statement: 'Velvent is knitted cotton for people who dress with intent.',
   statementEmphasis: 'knitted, cotton, intent.',
-  statementImageA: '/products/anatomy-cable.jpg',
+  statementTexture: '/products/anatomy-cable.jpg',
 
   railEyebrow: 'The range',
   railTitle: 'Made to be worn often',
@@ -187,10 +187,10 @@ export const fields = [
     help: 'The small line above the sentence. Leave empty to hide it.',
   },
   {
-    name: 'statementImageA',
-    label: 'Statement photograph',
+    name: 'statementTexture',
+    label: 'Statement fabric',
     type: 'image',
-    help: 'Fills the whole stage behind the label, and is darkened so the label reads on it. Only a wide band across the upper-middle of the picture shows, so put the garment there.',
+    help: 'A close-up of the knit. The picked-out words are filled with it, so use a detail shot of the cloth rather than a photograph of someone wearing it.',
   },
 
   { name: 'railEyebrow', label: 'Range eyebrow', type: 'text' },
