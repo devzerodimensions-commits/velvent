@@ -121,15 +121,28 @@ const toRailItem = (p) => ({
  * swipe still works on a phone and focusing a card off-screen still brings it
  * into view — the buttons simply drive it, and the bar shows how far along it is.
  */
+/**
+ * 3 — the range, as a runway.
+ *
+ * Three versions of this section were rejected: photographs scattered in
+ * corners, a column of cards beside a heading, and a hanging rack copied from
+ * a reference that needed cut-out garments nobody has. Each one made the
+ * photography small so that something else could be clever.
+ *
+ * This stops doing that. The pieces are the best thing the shop owns, so they
+ * run edge to edge at the height of the stage and move past like a show. It
+ * never empties, because there is no end to the strip — the list is laid down
+ * twice and the track travels exactly half its width before repeating, which
+ * lands pixel for pixel on where it began.
+ *
+ * It holds still the moment you reach for it: hovering anywhere over the
+ * strip, or tabbing into it, stops the drift so the thing you are aiming at
+ * is not moving when you click.
+ */
 function RailStage({ rail }) {
   const c = useContent('home');
-  const viewportRef = useRef(null);
-  const trackRef = useRef(null);
   const rowRef = useRef(null);
-  /* The garments swing in when the row is reached rather than on load, or the
-     entrance would play to nobody while the section is still below the fold. */
   const [shown, setShown] = useState(false);
-  const [page, setPage] = useState(0);
 
   useEffect(() => {
     const el = rowRef.current;
@@ -141,170 +154,54 @@ function RailStage({ rail }) {
     return () => io.disconnect();
   }, []);
 
-  // How many fit, how many pages that makes, and how far to slide. All three
-  // are measured rather than assumed, because the CSS decides how many cards
-  // share the row at a given width and it changes with the breakpoints.
-  const [view, setView] = useState({ per: 4, pages: 1, offset: 0 });
-
-  // The range, plus the circle that leads into the shop: it takes a card's
-  // place on the last page rather than trailing after the final product.
-  const count = rail.length + 1;
-
-  // Products arrive after the first render and change how many pages there are.
-  useEffect(() => { setPage(0); }, [rail.length]);
-
-  useEffect(() => {
-    const vp = viewportRef.current;
-    const track = trackRef.current;
-    if (!vp || !track) return undefined;
-
-    const measure = () => {
-      const gap = Number.parseFloat(getComputedStyle(track).columnGap) || 0;
-      const card = track.querySelector('.cx-card');
-      const width = card ? card.getBoundingClientRect().width : 0;
-      const span = vp.clientWidth;
-      const per = width > 0 ? Math.max(1, Math.round((span + gap) / (width + gap))) : 1;
-      const pages = Math.max(1, Math.ceil(count / per));
-
-      // Stop at the track's end instead of overshooting, so the last page is a
-      // full row of products rather than one card and a stretch of background.
-      const limit = Math.max(0, track.scrollWidth - span);
-      const current = Math.min(page, pages - 1);
-      if (current !== page) setPage(current);
-      setView({ per, pages, offset: Math.min(current * (span + gap), limit) });
-    };
-
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(vp);
-    return () => ro.disconnect();
-  }, [page, count]);
-
-  const { per, pages, offset } = view;
-  const atStart = page === 0;
-  const atEnd = page >= pages - 1;
-  const onPage = (i) => Math.floor(i / per) === page;
-
-  /* Everything off the current page is left in the layout but taken out of the
-     tab order and the accessibility tree. Without this, tabbing reaches a card
-     nobody can see and the browser drags the window sideways to show it. */
-  const hidden = (i) => (onPage(i) ? undefined : { tabIndex: -1, 'aria-hidden': 'true' });
+  /* Laid down twice. The second pass is scenery — it is the first pass again,
+     so it is kept out of the tab order and away from screen readers. */
+  const lap = (copy) => rail.map((item, i) => (
+    <Link
+      key={`${copy}-${item.id}`}
+      to={item.slug ? `/product/${item.slug}` : '/shop'}
+      className="cx-piece"
+      data-cursor="View"
+      style={{ '--i': i }}
+      {...(copy === 1 ? { tabIndex: -1, 'aria-hidden': 'true' } : {})}
+    >
+      <span className="cx-piece__frame">
+        <img src={item.img} alt={copy === 0 ? item.name : ''} loading="lazy" />
+      </span>
+      <span className="cx-piece__meta">
+        <span className="cx-piece__name">{item.name}</span>
+        {item.price != null && <span className="cx-piece__price">{inr(item.price)}</span>}
+      </span>
+    </Link>
+  ));
 
   return (
     <Stage kind="rail" label={c.railEyebrow} scrollDriven={false}>
-      <div className="cx-rail-head">
-        <p className="cx-meta">{c.railEyebrow}</p>
-        <h2 className="h-display mt-3 text-[28px] sm:text-[40px]">{c.railTitle}</h2>
-        {c.railBody && <p className="cx-rail-body">{c.railBody}</p>}
-        {c.railCtaLabel && (
-          <Link to={c.railCtaHref || '/shop'} className="cx-rail-cta">{c.railCtaLabel}</Link>
-        )}
-        {/* The same four promises the storefront already makes, as the row of
-            marks the reference had under its button. */}
-        {(c.promises || []).length > 0 && (
-          <ul className="cx-rail-marks">
-            {c.promises.slice(0, 4).map((p) => {
-              const Icon = TRUST_ICONS[p.icon] || Box;
-              return (
-                <li key={p.title} title={p.title}>
-                  <Icon size={15} />
-                  <span className="sr-only">{p.title}</span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-      <span className="cx-chapter cx-meta" aria-hidden>03 / 03</span>
-
-      {/* The glow the rail hangs in front of. Its colour is a setting, so the
-          shop can have the brand's warm light or something colder without a
-          deploy. */}
       <span className={`cx-rail-glow cx-rail-glow--${c.railGlow || 'warm'}`} aria-hidden />
 
-      <div className={`cx-rail-row${shown ? ' is-in' : ''}`} ref={rowRef}>
-        {/* The rack. Uprights down each side, a foot across the bottom and the
-            floor it stands on — drawn outside the viewport so none of it is
-            clipped when the garments slide. */}
-        <div className="cx-rack">
-          <span className="cx-rack__foot" aria-hidden />
-          <span className="cx-rack__shadow" aria-hidden />
+      <div className="cx-rail-head">
+        <p className="cx-meta">{c.railEyebrow}</p>
+        <h2 className="h-display mt-3 text-[28px] sm:text-[40px] lg:text-[52px]">{c.railTitle}</h2>
+        {c.railBody && <p className="cx-rail-body">{c.railBody}</p>}
+        {c.railCtaLabel && (
+          <Link to={c.railCtaHref || '/shop'} className="cx-rail-cta">
+            {c.railCtaLabel} <span aria-hidden>→</span>
+          </Link>
+        )}
+      </div>
 
-          <div className="cx-viewport" ref={viewportRef}>
-            {/* The bar the hangers hook over. It stays put while the garments
-                slide along underneath it. */}
-            <span className="cx-rail-bar" aria-hidden />
+      <span className="cx-chapter cx-meta" aria-hidden>03 / 03</span>
 
-          <div className="cx-track" ref={trackRef} style={{ transform: `translate3d(${-offset}px, 0, 0)` }}>
-            {rail.map((item, i) => (
-              <Link
-                key={item.id}
-                to={item.slug ? `/product/${item.slug}` : '/shop'}
-                className="cx-card"
-                data-cursor="View"
-                style={{ '--i': i }}
-                {...hidden(i)}
-              >
-                {/* Hangs from the bar: a stem down to the hanger, then the
-                    garment under it. The stem length alternates so the row
-                    still rises and falls across the stage. */}
-                <span className="cx-hanger" aria-hidden>
-                  <svg viewBox="0 0 48 22" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M24 8.5V7a2.6 2.6 0 1 1 2.6 2.6" />
-                    <path d="M24 8.5 5 19.5h38L24 8.5Z" />
-                  </svg>
-                </span>
-
-                {/* Only the garment swings. The name and the price are the
-                    ticket on the rail, not part of the cloth — and leaving
-                    them inside the swing pushed them sideways past the edge
-                    the viewport clips at. */}
-                <span className="cx-swing">
-                  <span className="cx-card__no">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="cx-card__img"><img src={item.img} alt={item.name} loading="lazy" /></span>
-                </span>
-                <span className="cx-card__name">{item.name}</span>
-                {item.price != null && <span className="cx-card__price">{inr(item.price)}</span>}
-              </Link>
-            ))}
-            <div className="cx-end-slot">
-              <Link to="/shop" className="cx-end" data-cursor="Enter" {...hidden(rail.length)}>
-                Enter the<br />collection
-              </Link>
-            </div>
-          </div>
-          </div>
-        </div>
-
-        <div className="cx-rail-nav">
-          <div className="cx-arrows">
-            <button
-              type="button"
-              className="cx-arrow"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={atStart}
-              aria-label="Previous products"
-            >
-              <span aria-hidden>←</span>
-            </button>
-            <button
-              type="button"
-              className="cx-arrow"
-              onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}
-              disabled={atEnd}
-              aria-label="Next products"
-            >
-              <span aria-hidden>→</span>
-            </button>
-          </div>
-          <p className="cx-rail-count cx-meta" aria-live="polite">
-            {String(page + 1).padStart(2, '0')} / {String(pages).padStart(2, '0')}
-          </p>
+      <div className={`cx-runway${shown ? ' is-in' : ''}`} ref={rowRef}>
+        <div className="cx-runway__track">
+          {lap(0)}
+          {lap(1)}
         </div>
       </div>
     </Stage>
   );
 }
+
 
 export function Cinema({ products = [] }) {
   const ready = useIntroDone();

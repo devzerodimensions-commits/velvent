@@ -471,322 +471,169 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 @media (max-width: 767px) {
   .cx-label { width: min(90vw, 440px); transform: rotate(-1deg); }
 }
-/* 3 · rail — two of the range at a time, with the buttons that turn to the
-   next two sitting after them. Nothing scrolls: the row is a pager that slides
-   a page at a time. The heading keeps the left of the screen, which is also
-   what leaves the row exactly wide enough for a pair of cards. */
+/* 3 · the range, as a runway.
 
+   Three versions of this section were turned down, and each one had made the
+   photographs small so that something else could be the idea — swatches in
+   corners, a column beside a heading, a rack of hangers. The photography is
+   the best thing this shop owns, so here it is the whole section: full
+   height, edge to edge, moving past like a show.
+
+   The strip never ends and never empties. The list is laid down twice and the
+   track travels exactly half its own width, so the moment it repeats is the
+   moment it is back where it started — there is no seam to find. */
 .cx-stage--rail {
   position: relative; height: auto; min-height: 100svh;
-  display: flex; flex-direction: row; align-items: center;
-  gap: clamp(1.5rem, 4vw, 3rem);
-  padding: calc(var(--header-h, 96px) + 2rem) clamp(1rem, 4vw, 2.5rem) clamp(1.5rem, 5vh, 3rem);
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: center;
+  gap: clamp(1.25rem, 3vh, 2.5rem);
+  padding: calc(var(--header-h, 96px) + 1.5rem) 0 clamp(1.5rem, 5vh, 3rem);
+  overflow: hidden;
 }
+/* The shared stage rule stacks every child into one centred cell, which is
+   right for the other two stages and wrong for this one. */
+.cx-stage--rail > * { grid-area: auto; place-self: stretch; }
 .cx-stage--rail .cx-chapter { top: 0; right: 0; }
 
 .cx-rail-head {
   position: relative; z-index: 3;
-  flex: 0 0 auto; width: min(24vw, 330px); align-self: center;
+  width: min(92vw, 560px);
+  margin: 0 clamp(1rem, 4vw, 2.5rem);
+  place-self: start;
 }
 .cx-rail-body {
-  margin-top: 1.1rem;
+  margin-top: 1rem; max-width: 46ch;
   font-size: 13.5px; line-height: 1.75;
-  color: rgba(246,242,234,.62);
+  color: rgba(246,242,234,.6);
 }
-/* The pill the reference had under its paragraph. */
 .cx-rail-cta {
   display: inline-flex; align-items: center; gap: .6rem;
-  margin-top: 1.5rem; padding: .85rem 1.8rem;
-  border: 1px solid rgba(246,242,234,.4); border-radius: 999px;
-  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .2em;
+  margin-top: 1.4rem; padding-bottom: .4rem;
+  border-bottom: 1px solid rgba(226,217,198,.6);
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .22em;
   color: #F6F2EA;
-  transition: background-color .4s, color .4s, border-color .4s;
+  transition: gap .35s cubic-bezier(.22,.61,.36,1), border-color .35s;
 }
-.cx-rail-cta:hover { background: #F6F2EA; border-color: #F6F2EA; color: #0F131A; }
+.cx-rail-cta:hover { gap: 1.1rem; border-color: #F6F2EA; }
 
-.cx-rail-marks {
-  display: flex; gap: .7rem; margin-top: 1.9rem; padding: 0; list-style: none;
-}
-.cx-rail-marks li {
-  display: grid; place-items: center;
-  width: 36px; height: 36px; border-radius: 50%;
-  border: 1px solid rgba(246,242,234,.22);
-  color: rgba(246,242,234,.65);
-  transition: border-color .35s, color .35s;
-}
-.cx-rail-marks li:hover { border-color: rgba(246,242,234,.55); color: #F6F2EA; }
+/* ------------------------------------------------------------- the runway */
 
-.cx-rail-row {
+.cx-runway {
   position: relative; z-index: 2;
-  flex: 1 1 auto; min-width: 0;
-  display: flex; align-items: center; gap: clamp(1rem, 3vw, 2.5rem);
+  /* min-height: 0 is what lets this shrink inside its 1fr row. Without it a
+     grid item's automatic minimum is its content, so the strip pushed the
+     stage taller than the screen and the names fell under the fold. */
+  min-width: 0; min-height: 0; overflow: hidden;
+  display: flex; align-items: center;
+  /* Pieces arrive and leave rather than being cut off at a hard edge. */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+          mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
 }
 
-/* The window the pages move behind. It never scrolls — it has no scrollbar to
-   drag, no snap points and no overflow to chase; the track is simply offset by
-   whole pages, so the only way through the range is the buttons. */
-/* The rack the garments hang on.
-
-   The reference the client sent was a real rail standing on a floor, not a
-   line above a row of pictures. So it has uprights, a foot across the
-   bottom, and a shadow where it meets the ground. All of it is drawn on this
-   wrapper rather than inside the viewport, which clips. */
-.cx-rack {
-  position: relative; flex: 1 1 auto; min-width: 0;
-  padding-bottom: clamp(30px, 5vh, 62px);
+.cx-runway__track {
+  display: flex; align-items: stretch;
+  gap: clamp(.75rem, 1.4vw, 1.5rem);
+  width: max-content;
+  animation: cx-drift 54s linear infinite;
+  animation-play-state: paused;
 }
-/* The two uprights. */
-.cx-rack::before,
-.cx-rack::after {
-  content: ''; position: absolute; z-index: 1;
-  top: 0; bottom: clamp(30px, 5vh, 62px);
-  width: 3px; border-radius: 2px;
-  background: linear-gradient(to right, rgba(246,242,234,.2), rgba(246,242,234,.6), rgba(246,242,234,.2));
-}
-.cx-rack::before { left: 0; }
-.cx-rack::after  { right: 0; }
+.cx-runway.is-in .cx-runway__track { animation-play-state: running; }
+/* Still the instant it is reached for, so nothing is moving when it is
+   clicked — by pointer or by keyboard. */
+.cx-runway:hover .cx-runway__track,
+.cx-runway:focus-within .cx-runway__track { animation-play-state: paused; }
 
-/* The foot it stands on, with a tip at each end. */
-.cx-rack__foot {
-  position: absolute; z-index: 1;
-  left: -10px; right: -10px; bottom: clamp(26px, 4.4vh, 54px);
-  height: 2px;
-  background: linear-gradient(to right, transparent, rgba(246,242,234,.42) 8%, rgba(246,242,234,.42) 92%, transparent);
+/* Half the track is one full pass of the range, so landing on -50% lands
+   exactly where it began. */
+@keyframes cx-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
 }
 
-/* Where the rack meets the ground. A soft ellipse rather than a hard line —
-   it is the only thing telling you the rail is standing on something. */
-.cx-rack__shadow {
-  position: absolute; z-index: 0;
-  left: 6%; right: 6%; bottom: clamp(10px, 2vh, 28px);
-  height: clamp(18px, 3vh, 34px);
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(0,0,0,.55), transparent 72%);
-  filter: blur(6px);
+/* The photograph is sized against the viewport rather than against the row
+   it sits in. A 1fr grid row inside an auto-height stage has nothing to
+   divide — it resolves to its own content — so letting the frame fill it
+   made the section taller than the screen rather than shorter. This way the
+   heading, the strip and the names always add up to less than one screen. */
+.cx-piece {
+  position: relative; display: block; flex: 0 0 auto;
+  width: clamp(190px, 21vw, 330px);
+  color: #F6F2EA;
+}
+.cx-piece__frame {
+  display: block; overflow: hidden;
+  height: clamp(230px, 45vh, 540px);
+  background: #1E2531;
+}
+.cx-piece__frame img {
+  width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%;
+  filter: saturate(.88) brightness(.92);
+  transition: transform .9s cubic-bezier(.22,.61,.36,1), filter .5s;
+}
+.cx-piece:hover .cx-piece__frame img { transform: scale(1.05); filter: saturate(1.04) brightness(1); }
+
+/* The name sits under the piece and is only fully there when the piece is —
+   which keeps the strip reading as photography rather than as a price list. */
+.cx-piece__meta {
+  display: block; margin-top: .85rem;
+  opacity: .55; transition: opacity .4s;
+}
+.cx-piece:hover .cx-piece__meta,
+.cx-piece:focus-visible .cx-piece__meta { opacity: 1; }
+.cx-piece__name {
+  display: block;
+  font-family: Cinzel, 'Trajan Pro', Georgia, serif;
+  font-size: 12.5px; text-transform: uppercase; letter-spacing: .1em;
+}
+.cx-piece__price { display: block; margin-top: .25rem; font-size: 12px; color: rgba(246,242,234,.6); }
+
+/* Each piece rises as the strip first arrives. */
+.cx-piece { opacity: 0; transform: translateY(26px); }
+.cx-runway.is-in .cx-piece {
+  opacity: 1; transform: none;
+  transition: opacity .6s ease-out calc(var(--i, 0) * 80ms),
+              transform .8s cubic-bezier(.22,.61,.36,1) calc(var(--i, 0) * 80ms);
 }
 
-.cx-viewport { position: relative; z-index: 2; overflow: hidden; }
+/* On a phone it is swiped, not watched.
 
-/* The rail. A bar across the window with a thicker stop at each end, drawn
-   outside the track so it holds still while the garments slide along under
-   it — which is what a rack does. */
-.cx-rail-bar {
-  position: absolute; z-index: 1;
-  left: 0; right: 0; top: 0; height: 2px;
-  background: linear-gradient(
-    to right,
-    rgba(246,242,234,.5) 0 10px,
-    rgba(246,242,234,.26) 10px,
-    rgba(246,242,234,.26) calc(100% - 10px),
-    rgba(246,242,234,.5) calc(100% - 10px)
-  );
+   Drift relies on hover to hold still before a tap, and a touch screen has no
+   hover — so the thing you are aiming at would be moving at the moment you
+   reach it. Here the strip stops drifting and becomes an ordinary horizontal
+   scroller with snap points, which is what a thumb expects. The second lap is
+   scenery for the loop and would only be the same pieces again, so it goes. */
+@media (max-width: 899px) {
+  .cx-runway {
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-mask-image: none; mask-image: none;
+    padding-inline: clamp(1rem, 4vw, 2.5rem);
+    /* Without this the snap aligns the first piece to the scrollport's own
+       edge, scrolling straight past the padding and pinning it to the side
+       of the screen. */
+    scroll-padding-inline: clamp(1rem, 4vw, 2.5rem);
+  }
+  .cx-runway::-webkit-scrollbar { display: none; }
+  .cx-runway__track { animation: none; transform: none; }
+  .cx-runway__track > [aria-hidden='true'] { display: none; }
+  .cx-piece { scroll-snap-align: start; width: clamp(200px, 62vw, 320px); }
+  .cx-piece__frame { height: clamp(220px, 40vh, 420px); }
 }
-/* The posts the bar rests on. */
-.cx-rail-bar::before,
-.cx-rail-bar::after {
-  content: ''; position: absolute; top: -5px;
-  width: 2px; height: 12px; background: rgba(246,242,234,.45);
-}
-.cx-rail-bar::before { left: 0; }
-.cx-rail-bar::after  { right: 0; }
 
-/* The light behind the rack.
-
-   The client's reference lit the clothes from behind with a coloured ring.
-   The colour is a setting rather than a decision taken here: the warm one
-   belongs to this brand, and the others are there because the reference was
-   violet and the shop may well want that. */
+/* The light behind the strip. */
 .cx-rail-glow {
   position: absolute; z-index: 0; pointer-events: none;
-  left: 50%; top: 52%; translate: -50% -50%;
-  width: min(72vw, 940px); aspect-ratio: 1; border-radius: 50%;
-  background: radial-gradient(circle, var(--glow) 0%, transparent 68%);
+  left: 50%; top: 56%; translate: -50% -50%;
+  width: min(120vw, 1500px); aspect-ratio: 2 / 1; border-radius: 50%;
+  background: radial-gradient(ellipse, var(--glow) 0%, transparent 70%);
 }
-.cx-rail-glow::after {
-  content: ''; position: absolute; inset: 16%;
-  border-radius: 50%; border: 1px solid var(--ring);
-}
-.cx-rail-glow--warm   { --glow: rgba(226,217,198,.26); --ring: rgba(226,217,198,.3); }
-.cx-rail-glow--violet { --glow: rgba(167,108,224,.38); --ring: rgba(200,150,250,.5); }
-.cx-rail-glow--cool   { --glow: rgba(120,150,210,.32); --ring: rgba(150,180,230,.42); }
+.cx-rail-glow--warm   { --glow: rgba(226,217,198,.16); }
+.cx-rail-glow--violet { --glow: rgba(167,108,224,.26); }
+.cx-rail-glow--cool   { --glow: rgba(120,150,210,.22); }
 .cx-rail-glow--none   { display: none; }
 
-.cx-track {
-  --gap: clamp(1rem, 1.6vw, 1.75rem);
-  --per: 4;                     /* products in view; the pager reads it back */
-  /* Top aligned, not centred. Every garment hangs from the same bar, so every
-     card's top edge has to sit on it — the drop is the stem's length, not an
-     offset from a shared middle. Centring left each stem starting a few
-     pixels short of the rail with a visible gap above it. */
-  display: flex; align-items: flex-start; gap: var(--gap);
-  transition: transform .7s cubic-bezier(.22,.61,.36,1);
-}
-@media (max-width: 1099px) { .cx-track { --per: 3; } }
-@media (max-width: 599px)  { .cx-track { --per: 2; } }
-
-.cx-card, .cx-end-slot {
-  flex: 0 0 calc((100% - (var(--per) - 1) * var(--gap)) / var(--per));
-}
-
-/* The garments hang from the rail.
-
-   The client's reference was a shop rack: a bar across the frame with the
-   pieces suspended from it, lit from behind. So each card is hung rather
-   than placed — a stem from the bar, a hanger, then the garment under it.
-
-   The stem length alternates, which is what keeps the row rising and falling
-   across the stage. It used to be done with margins pushing cards up and
-   down; hanging them at different lengths says the same thing and says it
-   for a reason. */
-.cx-card {
-  position: relative; display: block;
-  color: #F6F2EA;
-  padding-top: calc(var(--drop, 0px) + 26px);
-}
-.cx-track > *:nth-child(odd)  { --drop: var(--stagger, 9vh); }
-.cx-track > *:nth-child(even) { --drop: 0px; }
-
-/* Less height to spend as the stage shortens, and three or two across is
-   already a busier row. */
-@media (max-width: 1099px) { .cx-track { --stagger: 6vh; } }
-@media (max-width: 599px)  { .cx-track { --stagger: 4vh; } }
-
-/* The stem, from the bar down to the hanger's hook. */
-.cx-card::before {
-  content: ''; position: absolute; top: 0; left: 50%;
-  width: 1px; height: calc(var(--drop, 0px) + 9px);
-  background: rgba(246,242,234,.3);
-}
-.cx-hanger {
-  position: absolute; top: calc(var(--drop, 0px) + 3px); left: 50%;
-  width: 48px; margin-left: -24px;
-  color: rgba(246,242,234,.55);
-  transition: color .4s;
-}
-.cx-hanger svg { display: block; width: 100%; height: auto; }
-.cx-card:hover .cx-hanger { color: rgba(246,242,234,.85); }
-
-/* Everything below the hook swings. Keeping the sway on an inner element
-   leaves the card's own transform free for the entrance, so the two never
-   fight over the same property. */
-.cx-swing {
-  display: block;
-  --amp: .55deg;
-  transform-origin: 50% -14px;
-  animation: cx-sway 6s ease-in-out infinite;
-  animation-play-state: paused;
-  transition: --amp .5s;
-}
-.is-in .cx-swing { animation-play-state: running; }
-.cx-card:hover .cx-swing { --amp: 1.5deg; }
-.cx-card:nth-child(2n) .cx-swing { animation-duration: 7.3s; animation-delay: -1.6s; }
-.cx-card:nth-child(3n) .cx-swing { animation-duration: 6.6s; animation-delay: -3.1s; }
-.cx-card:nth-child(4n) .cx-swing { animation-duration: 8.1s; animation-delay: -4.4s; }
-
-@keyframes cx-sway {
-  0%, 100% { transform: rotate(calc(var(--amp) * -1)); }
-  50%      { transform: rotate(var(--amp)); }
-}
-
-/* Hung on arrival: each piece drops onto the rail and settles, one after the
-   next along the row. */
-.cx-card {
-  opacity: 0;
-  transform: translateY(-18px) rotate(-4deg);
-  transform-origin: 50% 0;
-}
-.is-in .cx-card {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity .5s ease-out calc(var(--i, 0) * 110ms),
-    transform .85s cubic-bezier(.3, 1.4, .5, 1) calc(var(--i, 0) * 110ms);
-}
-
-/* The garment, not the photograph of it.
-
-   The reference hung cut-out clothes — a coat, a jacket, a jumper, no
-   background. These photographs are models standing in rooms, and a
-   rectangle of a man in a brick room does not hang on a hanger.
-
-   So the rectangle is cut to the shape of a garment and the picture inside
-   it is zoomed to the chest, where the knit is. What hangs on the rail is a
-   shirt-shaped piece of that product's own fabric, which is what the
-   reference was actually showing. */
-.cx-card__img {
-  display: block; overflow: hidden;
-  aspect-ratio: 3 / 4;
-  clip-path: polygon(
-    32% 5%, 40% 1%, 60% 1%, 68% 5%,
-    85% 10%, 100% 28%, 100% 49%, 83% 55%,
-    83% 100%, 17% 100%,
-    17% 55%, 0% 49%, 0% 28%, 15% 10%
-  );
-}
-.cx-card__img img {
-  width: 100%; height: 100%; object-fit: cover;
-  /* Into the chest, and far enough in that the chin and neck stay out of
-     frame. A full-length shot puts the face around 12–18% down and the
-     garment from roughly 20% to 40%; at this scale the visible band opens
-     below the collar, so the silhouette fills with knit rather than with
-     somebody's jaw. */
-  transform: scale(2.9);
-  transform-origin: 50% 41%;
-  transition: filter .5s, transform .6s cubic-bezier(.22,.61,.36,1);
-  filter: saturate(.9);
-}
-.cx-card:hover .cx-card__img img { transform: scale(3.05); }
-.cx-card:hover .cx-card__img img { filter: saturate(1.05) brightness(1.05); }
-.cx-card__name { display: block; margin-top: .9rem; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; }
-.cx-card__price { display: block; margin-top: .3rem; font-size: 12px; color: rgba(246,242,234,.6); }
-.cx-card__no { position: absolute; top: .75rem; left: .75rem; z-index: 2; font-size: 10px; font-weight: 600; letter-spacing: .2em; color: #F6F2EA; mix-blend-mode: difference; }
-
-/* The way into the shop takes a card's place on the last page, so the circle
-   is centred in a slot the same width as a card rather than being one. */
-.cx-end-slot { display: grid; place-items: center; }
-.cx-end {
-  display: grid; place-items: center; text-align: center;
-  width: min(100%, clamp(200px, 22vw, 300px)); aspect-ratio: 1;
-  border: 1px solid rgba(246,242,234,.35); border-radius: 50%;
-  font-family: Cinzel, 'Trajan Pro', Georgia, serif; text-transform: uppercase;
-  font-size: clamp(16px, 1.6vw, 22px); letter-spacing: .08em; line-height: 1.3;
-  transition: background-color .4s, color .4s, transform .6s cubic-bezier(.22,.61,.36,1);
-}
-.cx-end:hover { background: #F6F2EA; color: #0F131A; transform: rotate(-8deg); }
-
-/* The controls stand after the pair, where the next two will come from. */
-.cx-rail-nav {
-  flex: none; display: flex; flex-direction: column; align-items: center; gap: 1rem;
-}
-.cx-arrows { display: flex; gap: .7rem; }
-.cx-arrow {
-  display: grid; place-items: center;
-  width: 54px; height: 54px; border-radius: 50%;
-  border: 1px solid rgba(246,242,234,.35);
-  color: #F6F2EA; font-size: 17px; line-height: 1;
-  transition: background-color .35s, color .35s, border-color .35s, opacity .35s, transform .35s;
-}
-.cx-arrow:hover:not(:disabled) { background: #F6F2EA; border-color: #F6F2EA; color: #0F131A; transform: scale(1.06); }
-.cx-arrow:disabled { opacity: .25; cursor: default; }
-.cx-rail-count { white-space: nowrap; }
-
-/* A column of heading beside four cards only works while the screen is wide
-   enough to give both room; below that the heading goes over the row so the
-   cards keep their size. */
-@media (max-width: 1599px) {
-  .cx-stage--rail { flex-direction: column; align-items: stretch; justify-content: center; gap: clamp(1rem, 3vh, 2rem); }
-  /* The shared stage rule centres every child, which in a column means each one
-     shrinks to its content. The row must span the stage or the cards size
-     themselves against the whole track and spill out of the viewport. */
-  .cx-stage--rail > * { align-self: stretch; }
-  .cx-rail-head { width: auto; align-self: stretch; }
-}
-
-/* Narrower still and the buttons drop below the row rather than beside it. */
-@media (max-width: 899px) {
-  .cx-rail-row { flex-direction: column; align-items: stretch; }
-  .cx-rail-nav { flex-direction: row; justify-content: center; gap: 1.25rem; }
-}
 
 /* With reduced motion the stages stop being scroll-driven: one screen each,
    frozen at the moment the copy reads best. */
