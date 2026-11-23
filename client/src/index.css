@@ -486,8 +486,35 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 
 .cx-rail-head {
   position: relative; z-index: 3;
-  flex: 0 0 auto; width: min(22vw, 300px); align-self: flex-start;
+  flex: 0 0 auto; width: min(24vw, 330px); align-self: center;
 }
+.cx-rail-body {
+  margin-top: 1.1rem;
+  font-size: 13.5px; line-height: 1.75;
+  color: rgba(246,242,234,.62);
+}
+/* The pill the reference had under its paragraph. */
+.cx-rail-cta {
+  display: inline-flex; align-items: center; gap: .6rem;
+  margin-top: 1.5rem; padding: .85rem 1.8rem;
+  border: 1px solid rgba(246,242,234,.4); border-radius: 999px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .2em;
+  color: #F6F2EA;
+  transition: background-color .4s, color .4s, border-color .4s;
+}
+.cx-rail-cta:hover { background: #F6F2EA; border-color: #F6F2EA; color: #0F131A; }
+
+.cx-rail-marks {
+  display: flex; gap: .7rem; margin-top: 1.9rem; padding: 0; list-style: none;
+}
+.cx-rail-marks li {
+  display: grid; place-items: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid rgba(246,242,234,.22);
+  color: rgba(246,242,234,.65);
+  transition: border-color .35s, color .35s;
+}
+.cx-rail-marks li:hover { border-color: rgba(246,242,234,.55); color: #F6F2EA; }
 
 .cx-rail-row {
   position: relative; z-index: 2;
@@ -498,7 +525,47 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 /* The window the pages move behind. It never scrolls — it has no scrollbar to
    drag, no snap points and no overflow to chase; the track is simply offset by
    whole pages, so the only way through the range is the buttons. */
-.cx-viewport { position: relative; flex: 1 1 auto; min-width: 0; overflow: hidden; }
+/* The rack the garments hang on.
+
+   The reference the client sent was a real rail standing on a floor, not a
+   line above a row of pictures. So it has uprights, a foot across the
+   bottom, and a shadow where it meets the ground. All of it is drawn on this
+   wrapper rather than inside the viewport, which clips. */
+.cx-rack {
+  position: relative; flex: 1 1 auto; min-width: 0;
+  padding-bottom: clamp(30px, 5vh, 62px);
+}
+/* The two uprights. */
+.cx-rack::before,
+.cx-rack::after {
+  content: ''; position: absolute; z-index: 1;
+  top: 0; bottom: clamp(30px, 5vh, 62px);
+  width: 3px; border-radius: 2px;
+  background: linear-gradient(to right, rgba(246,242,234,.2), rgba(246,242,234,.6), rgba(246,242,234,.2));
+}
+.cx-rack::before { left: 0; }
+.cx-rack::after  { right: 0; }
+
+/* The foot it stands on, with a tip at each end. */
+.cx-rack__foot {
+  position: absolute; z-index: 1;
+  left: -10px; right: -10px; bottom: clamp(26px, 4.4vh, 54px);
+  height: 2px;
+  background: linear-gradient(to right, transparent, rgba(246,242,234,.42) 8%, rgba(246,242,234,.42) 92%, transparent);
+}
+
+/* Where the rack meets the ground. A soft ellipse rather than a hard line —
+   it is the only thing telling you the rail is standing on something. */
+.cx-rack__shadow {
+  position: absolute; z-index: 0;
+  left: 6%; right: 6%; bottom: clamp(10px, 2vh, 28px);
+  height: clamp(18px, 3vh, 34px);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.55), transparent 72%);
+  filter: blur(6px);
+}
+
+.cx-viewport { position: relative; z-index: 2; overflow: hidden; }
 
 /* The rail. A bar across the window with a thicker stop at each end, drawn
    outside the track so it holds still while the garments slide along under
@@ -539,9 +606,9 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   content: ''; position: absolute; inset: 16%;
   border-radius: 50%; border: 1px solid var(--ring);
 }
-.cx-rail-glow--warm   { --glow: rgba(226,217,198,.17); --ring: rgba(226,217,198,.16); }
-.cx-rail-glow--violet { --glow: rgba(167,108,224,.26); --ring: rgba(190,140,240,.32); }
-.cx-rail-glow--cool   { --glow: rgba(120,150,210,.22); --ring: rgba(150,180,230,.26); }
+.cx-rail-glow--warm   { --glow: rgba(226,217,198,.26); --ring: rgba(226,217,198,.3); }
+.cx-rail-glow--violet { --glow: rgba(167,108,224,.38); --ring: rgba(200,150,250,.5); }
+.cx-rail-glow--cool   { --glow: rgba(120,150,210,.32); --ring: rgba(150,180,230,.42); }
 .cx-rail-glow--none   { display: none; }
 
 .cx-track {
@@ -636,13 +703,39 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
     transform .85s cubic-bezier(.3, 1.4, .5, 1) calc(var(--i, 0) * 110ms);
 }
 
-.cx-card__img { display: block; overflow: hidden; aspect-ratio: 3 / 4; background: #1E2531; }
+/* The garment, not the photograph of it.
+
+   The reference hung cut-out clothes — a coat, a jacket, a jumper, no
+   background. These photographs are models standing in rooms, and a
+   rectangle of a man in a brick room does not hang on a hanger.
+
+   So the rectangle is cut to the shape of a garment and the picture inside
+   it is zoomed to the chest, where the knit is. What hangs on the rail is a
+   shirt-shaped piece of that product's own fabric, which is what the
+   reference was actually showing. */
+.cx-card__img {
+  display: block; overflow: hidden;
+  aspect-ratio: 3 / 4;
+  clip-path: polygon(
+    32% 5%, 40% 1%, 60% 1%, 68% 5%,
+    85% 10%, 100% 28%, 100% 49%, 83% 55%,
+    83% 100%, 17% 100%,
+    17% 55%, 0% 49%, 0% 28%, 15% 10%
+  );
+}
 .cx-card__img img {
   width: 100%; height: 100%; object-fit: cover;
-  transform: scale(1.14);
-  transition: filter .5s;
-  filter: saturate(.85);
+  /* Into the chest, and far enough in that the chin and neck stay out of
+     frame. A full-length shot puts the face around 12–18% down and the
+     garment from roughly 20% to 40%; at this scale the visible band opens
+     below the collar, so the silhouette fills with knit rather than with
+     somebody's jaw. */
+  transform: scale(2.9);
+  transform-origin: 50% 41%;
+  transition: filter .5s, transform .6s cubic-bezier(.22,.61,.36,1);
+  filter: saturate(.9);
 }
+.cx-card:hover .cx-card__img img { transform: scale(3.05); }
 .cx-card:hover .cx-card__img img { filter: saturate(1.05) brightness(1.05); }
 .cx-card__name { display: block; margin-top: .9rem; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; }
 .cx-card__price { display: block; margin-top: .3rem; font-size: 12px; color: rgba(246,242,234,.6); }

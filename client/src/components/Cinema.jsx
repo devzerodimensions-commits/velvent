@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useContent } from '../store/content';
 import { Mark } from './Logo';
+import { Box, Check, Refresh, Rupee, Shield, Tag, Truck } from './Icons';
 import { inr } from '../lib/format';
+
+/* The promise rows name their icon in the admin; this turns a name back into
+   a component, falling back rather than breaking the section. */
+const TRUST_ICONS = { Truck, Refresh, Shield, Box, Rupee, Check, Tag };
 
 /*
  * The homepage opening: three tall sections, each with a full-screen stage pinned
@@ -190,6 +195,25 @@ function RailStage({ rail }) {
       <div className="cx-rail-head">
         <p className="cx-meta">{c.railEyebrow}</p>
         <h2 className="h-display mt-3 text-[28px] sm:text-[40px]">{c.railTitle}</h2>
+        {c.railBody && <p className="cx-rail-body">{c.railBody}</p>}
+        {c.railCtaLabel && (
+          <Link to={c.railCtaHref || '/shop'} className="cx-rail-cta">{c.railCtaLabel}</Link>
+        )}
+        {/* The same four promises the storefront already makes, as the row of
+            marks the reference had under its button. */}
+        {(c.promises || []).length > 0 && (
+          <ul className="cx-rail-marks">
+            {c.promises.slice(0, 4).map((p) => {
+              const Icon = TRUST_ICONS[p.icon] || Box;
+              return (
+                <li key={p.title} title={p.title}>
+                  <Icon size={15} />
+                  <span className="sr-only">{p.title}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
       <span className="cx-chapter cx-meta" aria-hidden>03 / 03</span>
 
@@ -199,11 +223,17 @@ function RailStage({ rail }) {
       <span className={`cx-rail-glow cx-rail-glow--${c.railGlow || 'warm'}`} aria-hidden />
 
       <div className={`cx-rail-row${shown ? ' is-in' : ''}`} ref={rowRef}>
-        <div className="cx-viewport" ref={viewportRef}>
-          {/* The rail itself: a bar across the window with a post at each end.
-              It sits outside the track, so it stays put while the garments
-              slide along underneath it. */}
-          <span className="cx-rail-bar" aria-hidden />
+        {/* The rack. Uprights down each side, a foot across the bottom and the
+            floor it stands on — drawn outside the viewport so none of it is
+            clipped when the garments slide. */}
+        <div className="cx-rack">
+          <span className="cx-rack__foot" aria-hidden />
+          <span className="cx-rack__shadow" aria-hidden />
+
+          <div className="cx-viewport" ref={viewportRef}>
+            {/* The bar the hangers hook over. It stays put while the garments
+                slide along underneath it. */}
+            <span className="cx-rail-bar" aria-hidden />
 
           <div className="cx-track" ref={trackRef} style={{ transform: `translate3d(${-offset}px, 0, 0)` }}>
             {rail.map((item, i) => (
@@ -225,12 +255,16 @@ function RailStage({ rail }) {
                   </svg>
                 </span>
 
+                {/* Only the garment swings. The name and the price are the
+                    ticket on the rail, not part of the cloth — and leaving
+                    them inside the swing pushed them sideways past the edge
+                    the viewport clips at. */}
                 <span className="cx-swing">
                   <span className="cx-card__no">{String(i + 1).padStart(2, '0')}</span>
                   <span className="cx-card__img"><img src={item.img} alt={item.name} loading="lazy" /></span>
-                  <span className="cx-card__name">{item.name}</span>
-                  {item.price != null && <span className="cx-card__price">{inr(item.price)}</span>}
                 </span>
+                <span className="cx-card__name">{item.name}</span>
+                {item.price != null && <span className="cx-card__price">{inr(item.price)}</span>}
               </Link>
             ))}
             <div className="cx-end-slot">
@@ -238,6 +272,7 @@ function RailStage({ rail }) {
                 Enter the<br />collection
               </Link>
             </div>
+          </div>
           </div>
         </div>
 

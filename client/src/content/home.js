@@ -25,7 +25,10 @@ export const defaults = {
 
   railEyebrow: 'The range',
   railTitle: 'Made to be worn often',
-  railGlow: 'warm',
+  railGlow: 'violet',
+  railBody: 'Knitted cotton polos and shirts, cut for everyday wear and made to hold their shape. Every piece on the rail is in stock now.',
+  railCtaLabel: 'Browse the rail',
+  railCtaHref: '/shop',
 
   promises: [
     { icon: 'Truck', title: 'Free shipping', body: 'On prepaid orders above ₹999' },
@@ -192,6 +195,9 @@ export const fields = [
 
   { name: 'railEyebrow', label: 'Range eyebrow', type: 'text' },
   { name: 'railTitle', label: 'Range heading', type: 'text' },
+  { name: 'railBody', label: 'Range paragraph', type: 'textarea', help: 'The short line under the heading. Leave empty to hide it.' },
+  { name: 'railCtaLabel', label: 'Range button label', type: 'text', help: 'Leave empty to hide the button.' },
+  { name: 'railCtaHref', label: 'Range button link', type: 'text', help: 'A page on this site, such as /shop.' },
   {
     name: 'railGlow',
     label: 'Light behind the rail',
