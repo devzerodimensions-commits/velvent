@@ -143,6 +143,7 @@ function RailStage({ products }) {
   const c = useContent('home');
   const rackRef = useRef(null);
   const sceneRef = useRef(null);
+  const tagRef = useRef(null);
   const [shown, setShown] = useState(false);
   /* Which piece is wearing the tag: the front one, unless another is being
      pointed at or tabbed to. */
@@ -195,10 +196,22 @@ function RailStage({ products }) {
     const s = scene.getBoundingClientRect();
     // Rounded against the page, not the scene: the scene can itself sit on a
     // fractional pixel, and text placed on half a pixel is soft again.
-    setTagAt({
-      left: Math.round(g.left + g.width * 0.58) - s.left,
-      top: Math.round(g.bottom - 22) - s.top,
-    });
+    let top = Math.round(g.bottom - 22) - s.top;
+
+    // On a short screen the rack is short too, and a tag pinned at the hem
+    // reaches the base. Pin it higher up the garment instead — by as much as
+    // it would overlap, and no more than a hand's width — so the card always
+    // ends above the base. The base is turned with the rack, so its box top
+    // is its highest point, which is the safe side to measure from.
+    const tagH = tagRef.current?.offsetHeight || 0;
+    const base = rack.querySelector('.cx-rack__base')?.getBoundingClientRect();
+    if (tagH && base) {
+      const limit = Math.round(base.top - 18) - s.top;
+      const over = top + tagH - limit;
+      if (over > 0) top -= Math.min(over, 70);
+    }
+
+    setTagAt({ left: Math.round(g.left + g.width * 0.58) - s.left, top });
   }, [active]);
 
   useEffect(() => {
@@ -287,7 +300,7 @@ function RailStage({ products }) {
           {/* The swing tag, flat over the scene — see place() above. Keyed by
               the piece, so moving to another garment fades a fresh card in. */}
           {shown && tagAt && tagged && (
-            <span key={tagged.key} className="cx-tag" style={{ left: tagAt.left, top: tagAt.top }} aria-hidden>
+            <span key={tagged.key} ref={tagRef} className="cx-tag" style={{ left: tagAt.left, top: tagAt.top }} aria-hidden>
               <span className="cx-tag__card">
                 <span className="cx-tag__brand">Velvent</span>
                 <span className="cx-tag__name">{tagged.name}</span>

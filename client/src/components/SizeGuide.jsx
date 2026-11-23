@@ -6,7 +6,6 @@
  * and stale in the other.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Close, Ruler } from './Icons';
 import { api } from '../lib/api';
 import { useContent } from '../store/content';
@@ -259,16 +258,8 @@ export function SizeGuideModal({ open, onClose, categorySlug, selectedSize }) {
             />
           ))}
 
-          <div className="space-y-7 border-t border-mist pt-7">
+          <div className="border-t border-mist pt-7">
             <HowToMeasure />
-            <div className="border border-mist bg-cream p-5">
-              <h3 className="font-display text-base font-semibold uppercase tracking-wider2 text-navy">Between two sizes?</h3>
-              <p className="mt-2.5 text-[13.5px] leading-relaxed text-slate">
-                For polos and polo shirts, take the larger size — knitted cotton sits better with a
-                little room. For oversized tees, take the smaller one unless you want it genuinely loose.
-              </p>
-              <Link to="/contact" onClick={onClose} className="btn-primary btn-sm mt-5">Ask us</Link>
-            </div>
           </div>
         </div>
       </div>

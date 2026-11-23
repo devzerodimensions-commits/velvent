@@ -36,7 +36,7 @@ export const SECTIONS = [
   { key: 'about', label: 'About', group: 'Pages', blurb: 'The story, the photo grids and the brand values.', ...about },
   { key: 'contact', label: 'Contact', group: 'Pages', blurb: 'The heading, the intro and the enquiry subjects.', ...contact },
   { key: 'faq', label: 'FAQs', group: 'Pages', blurb: 'Every question and answer, in groups.', ...faq },
-  { key: 'sizeGuide', label: 'Size guide', group: 'Pages', blurb: 'The intro, the how-to-measure pictures and the between-two-sizes box. Charts are per category.', ...sizeGuide },
+  { key: 'sizeGuide', label: 'Size guide', group: 'Pages', blurb: 'The intro and the how-to-measure pictures. Charts are per category.', ...sizeGuide },
   { key: 'notFound', label: 'Page not found', group: 'Pages', blurb: 'What a stale link shows.', ...notFound },
 
   { key: 'shop', label: 'Shop & search', group: 'Shopping', blurb: 'Listing headings, filter labels and the no-results text.', ...shop },

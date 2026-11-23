@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { Breadcrumbs, Seo } from '../components/ui';
 import { HowToMeasure, SizeTable, useSizeTables } from '../components/SizeGuide';
 import { useContent } from '../store/content';
@@ -36,15 +35,6 @@ export default function SizeGuide() {
           <HowToMeasure />
         </div>
 
-        <section className="mt-14 border-t border-mist pt-10">
-          <div className="border border-mist bg-cream p-7 lg:max-w-xl">
-            <h2 className="font-display text-base font-semibold uppercase tracking-wider2 text-navy">{c.helpTitle}</h2>
-            {(c.helpParagraphs || []).map((para, i) => (
-              <p key={i} className="mt-3 text-[13.5px] leading-relaxed text-slate">{para}</p>
-            ))}
-            <Link to={c.helpCtaTo} className="btn-primary mt-6">{c.helpCtaLabel}</Link>
-          </div>
-        </section>
       </div>
     </>
   );
