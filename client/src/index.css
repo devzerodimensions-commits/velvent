@@ -180,7 +180,13 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
    before first paint, and a 0 fallback drops the stage a full header below the
    fold, taking the shop link and the scroll cue with it. */
 .cx-outer--frame { height: 240vh; margin-top: calc(-1 * var(--header-h, 96px)); }
-.cx-outer--fill  { height: 260vh; }
+/* One screen, scrolled past like any other section.
+   It used to be 260vh with the stage pinned for all of it, which bought the
+   scroll distance the word-by-word fill animation needed. That animation is
+   gone and nothing in this stage reads the scroll position any more, so the
+   extra 1.6 screens were spent holding a still picture in place — the page
+   simply felt stuck here. */
+.cx-outer--fill  { height: auto; }
 /* The range is browsed with its own arrows rather than by scrolling the page
    sideways, so this section is one screen like any other and the row inside it
    is an ordinary scroller the buttons drive. */
@@ -373,6 +379,9 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
    It is an editorial split now: one photograph holding a full column, the
    sentence set against it. The emphasis is colour alone. */
 .cx-stage--fill {
+  /* Not sticky. Every other stage pins while its animation plays; this one
+     has no animation to play, so it scrolls by as a normal section. */
+  position: relative;
   grid-template-columns: minmax(0, 46%) minmax(0, 1fr);
   place-items: stretch;
 }
@@ -551,7 +560,7 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 /* With reduced motion the stages stop being scroll-driven: one screen each,
    frozen at the moment the copy reads best. */
 @media (prefers-reduced-motion: reduce) {
-  .cx-outer--frame, .cx-outer--fill { height: auto; }
+  .cx-outer--frame { height: auto; }
   .cx-stage { position: relative; }
   /* The hero settles at its opening frame: full-bleed photograph, solid
      headline, no bars. The caption is pinned on because its product link is

@@ -296,7 +296,9 @@ export function Cinema({ products = [] }) {
       </Stage>
 
       {/* 2 — the statement, read against one full-height photograph */}
-      <Stage kind="fill" label={STATEMENT}>
+      {/* scrollDriven off: nothing in this stage reads the scroll position, so
+          there is no reason to measure it on every frame of every scroll. */}
+      <Stage kind="fill" label={STATEMENT} scrollDriven={false}>
         <figure className="cx-split__media" aria-hidden>
           <img src={c.statementImageA} alt="" loading="lazy" />
         </figure>
