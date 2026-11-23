@@ -21,17 +21,19 @@ export default function SizeGuide() {
           {c.intro}
         </p>
 
-        {/* Each garment carries its own chart and its own measuring notes —
-            a dropped shoulder is not measured the way a set-in sleeve is. */}
+        {/* One chart per garment, then how to measure once for all of them —
+            the pictures are the same for every chart, and showing them under
+            each one would only repeat them. */}
         <div className="mt-10 space-y-14">
           {tables.map((t) => (
             <section key={t.name}>
               <SizeTable table={t} />
-              <div className="mt-7 border-t border-mist pt-6">
-                <HowToMeasure steps={t.howTo} collar={t.collar !== false} />
-              </div>
             </section>
           ))}
+        </div>
+
+        <div className="mt-14 border-t border-mist pt-10 lg:max-w-3xl">
+          <HowToMeasure />
         </div>
 
         <section className="mt-14 border-t border-mist pt-10">

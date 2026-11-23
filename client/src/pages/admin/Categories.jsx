@@ -15,7 +15,6 @@ const MEASURE_COLS = ['Chest', 'Length', 'Sleeve', 'Shoulder'];
 const blankChart = () => ({
   note: '',
   rows: DEFAULT_SIZES.map((s) => [s, '', '', '', '']),
-  howTo: MEASURE_COLS.map((l) => [l, '']),
 });
 
 /**
@@ -84,32 +83,9 @@ function SizeChartFields({ value, onChange }) {
         </table>
       </div>
 
-      <div>
-        <p className="mb-1.5 text-[12.5px] font-semibold text-navy">How to measure</p>
-        <p className="mb-2.5 text-[11.5px] text-adm-mute">
-          Shown beside this chart. Written per category, so a dropped shoulder can be explained
-          differently from a set-in sleeve.
-        </p>
-        <div className="space-y-2">
-          {chart.howTo.map((s, i) => (
-            <div key={i} className="flex gap-2">
-              <input
-                value={s[0] ?? ''}
-                onChange={edit('howTo', i, 0)}
-                aria-label={`Measurement name ${i + 1}`}
-                className="ad-input w-28 shrink-0"
-              />
-              <input
-                value={s[1] ?? ''}
-                onChange={edit('howTo', i, 1)}
-                placeholder="How to take this measurement"
-                aria-label={`How to measure ${s[0] || i + 1}`}
-                className="ad-input"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      <p className="text-[11.5px] text-adm-mute">
+        How to measure is shown as pictures for every chart. Change them under Content → Size guide.
+      </p>
 
       <button type="button" onClick={() => onChange(null)} className="ad-btn-ghost">
         Clear chart
