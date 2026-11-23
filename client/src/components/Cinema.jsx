@@ -112,120 +112,175 @@ const toRailItem = (p) => ({
   img: p.images?.[0]?.url || p.image_url,
 });
 
-/* ------------------------------------------------ the range, stepped ---- */
+/* ------------------------------------------------- the range, on a rack ---- */
+
+/* The garment, drawn rather than photographed.
+
+   The shop owns model photography and nothing else — no cut-outs, no packshots
+   on a plain ground. So the pieces on this rack are the real photographs seen
+   through a garment-shaped hole: one path for the body and sleeves, a second
+   for the collar and a third for the placket, each filled with the same
+   picture at a different brightness. That is what makes it read as a polo
+   hanging up rather than as a rectangle of a man wearing one.
+
+   Written in objectBoundingBox units, so one path fits every size it is given. */
+const POLO = 'M.372 .052C.335 .056 .300 .060 .278 .070L.082 .152C.050 .167 .030 .195 .024 .232'
+  + 'L.012 .330C.008 .368 .022 .400 .052 .416L.124 .452C.152 .466 .178 .455 .186 .424L.238 .268'
+  + 'L.214 .940C.212 .958 .222 .968 .242 .968L.758 .968C.778 .968 .788 .958 .786 .940L.762 .268'
+  + 'L.814 .424C.822 .455 .848 .466 .876 .452L.948 .416C.978 .400 .992 .368 .988 .330L.976 .232'
+  + 'C.970 .195 .950 .167 .918 .152L.722 .070C.700 .060 .665 .056 .628 .052'
+  + 'C.620 .140 .380 .140 .372 .052Z';
+const COLLAR = 'M.352 .028C.360 .120 .640 .120 .648 .028L.690 .046C.680 .164 .320 .164 .310 .046Z';
+const PLACKET = 'M.468 .120L.532 .120L.537 .300L.463 .300Z';
+
+/** The clip shapes, defined once for the page. */
+function GarmentShapes() {
+  return (
+    <svg className="cx-shapes" aria-hidden focusable="false">
+      <defs>
+        <clipPath id="vv-polo" clipPathUnits="objectBoundingBox"><path d={POLO} /></clipPath>
+        <clipPath id="vv-collar" clipPathUnits="objectBoundingBox"><path d={COLLAR} /></clipPath>
+        <clipPath id="vv-placket" clipPathUnits="objectBoundingBox"><path d={PLACKET} /></clipPath>
+      </defs>
+    </svg>
+  );
+}
+
+/* Where the garment is, in a photograph nobody measured.
+
+   A piece on this rack is one of the shop's own photographs seen through a
+   polo-shaped hole, so something has to decide which band of the photograph
+   that hole is filled with. It cannot be worked out from the file: these
+   pictures are framed anywhere from head-to-hip to the whole model standing
+   in a room, two of them are the same proportions and nothing alike, and the
+   obvious tricks — look for skin, look for the shoulders — both read a beige
+   studio wall as a person.
+
+   So it is a setting rather than a guess. One number for the range, in the
+   admin, and a short list of exceptions for the photographs that do not sit
+   where the rest do. Lower is higher up the picture: 25 lands on the chest of
+   a full-length shot, 45 on the chest of one framed at the hip. The client can
+   see what it does without being told what it means, which is the point —
+   every photograph they add from here is theirs to place. */
+const DEFAULT_CROP = 45;
+
+/** The crop for one piece, as a background-position. */
+const cropFor = (img, fallback, fixes) => {
+  const fix = Array.isArray(fixes) ? fixes.find((f) => f && f.image === img) : null;
+  const n = Number(fix && fix.crop !== '' && fix.crop !== null ? fix.crop : fallback);
+  return `50% ${Number.isFinite(n) ? Math.min(90, Math.max(0, n)) : DEFAULT_CROP}%`;
+};
+
+/** A wire hanger. Its hook is drawn long enough to cross the rail above it. */
+function Hanger() {
+  return (
+    <svg className="cx-hang__hanger" viewBox="0 0 120 46" fill="none" aria-hidden focusable="false">
+      <path d="M60 17c0-7-5.5-7-5.5-11A5.5 5.5 0 0 1 65 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M11.5 41 60 17l48.5 24" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
+      <path d="M11.5 41h97" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 /**
- * The range used to run sideways as the page scrolled, which took the reader's
- * scroll away from them for three screens. It is now an ordinary row they step
- * through with the two buttons underneath. The row stays a real scroller, so a
- * swipe still works on a phone and focusing a card off-screen still brings it
- * into view — the buttons simply drive it, and the bar shows how far along it is.
- */
-/**
- * 3 — the range, as a runway.
+ * 3 — the range, stood up in a showroom.
  *
- * Three versions of this section were rejected: photographs scattered in
- * corners, a column of cards beside a heading, and a hanging rack copied from
- * a reference that needed cut-out garments nobody has. Each one made the
- * photography small so that something else could be clever.
+ * The brief for this section was a reference picture: a slim chrome rack in a
+ * dark room, one piece facing you and the rest overlapping away to the right,
+ * lit from behind by a violet ring. It is built here out of the parts the
+ * browser already has — the rail, the legs and the base are boxes with a
+ * chrome gradient down them, the ring is a circle of light, and the pieces are
+ * the shop's own photographs cut to the shape of a polo.
  *
- * This stops doing that. The pieces are the best thing the shop owns, so they
- * run edge to edge at the height of the stage and move past like a show. It
- * never empties, because there is no end to the strip — the list is laid down
- * twice and the track travels exactly half its width before repeating, which
- * lands pixel for pixel on where it began.
+ * Only the rack is turned. The whole group leans a few degrees on its Y axis
+ * inside a perspective, so the pieces stand at real distances from the eye and
+ * the ones further right are genuinely smaller and dimmer rather than drawn
+ * that way. The copy beside it is left square to the page, because type set at
+ * an angle is type nobody reads.
  *
- * It holds still the moment you reach for it: hovering anywhere over the
- * strip, or tabbing into it, stops the drift so the thing you are aiming at
- * is not moving when you click.
+ * Three things move, all of them small: the pieces drop onto the rail one
+ * after another when the section is first reached, each rocks on its hook at
+ * its own pace, and the one under the pointer swings forward out of the row.
  */
 function RailStage({ rail }) {
   const c = useContent('home');
-  const rowRef = useRef(null);
+  const rackRef = useRef(null);
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
-    const el = rowRef.current;
+    const el = rackRef.current;
     if (!el || typeof IntersectionObserver === 'undefined') { setShown(true); return undefined; }
     const io = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) { setShown(true); io.disconnect(); }
-    }, { rootMargin: '0px 0px -10% 0px' });
+    }, { rootMargin: '0px 0px -12% 0px' });
     io.observe(el);
     return () => io.disconnect();
   }, []);
 
-  /* The tilt.
-
-     A piece leans toward the pointer while it is under it. The angles are
-     written straight onto the element as custom properties rather than into
-     React state: this runs on every mouse move, and a re-render per frame
-     would cost far more than the effect is worth. */
-  const tilt = (e) => {
-    const piece = e.target.closest?.('.cx-piece');
-    if (!piece) return;
-    const r = piece.getBoundingClientRect();
-    piece.style.setProperty('--ry', `${((e.clientX - r.left) / r.width - 0.5) * 15}deg`);
-    piece.style.setProperty('--rx', `${-((e.clientY - r.top) / r.height - 0.5) * 11}deg`);
-  };
-  const untilt = (e) => {
-    const piece = e.target.closest?.('.cx-piece');
-    if (!piece) return;
-    piece.style.removeProperty('--rx');
-    piece.style.removeProperty('--ry');
-  };
-
-  /* Laid down twice. The second pass is scenery — it is the first pass again,
-     so it is kept out of the tab order and away from screen readers. */
-  const lap = (copy) => rail.map((item, i) => (
-    <Link
-      key={`${copy}-${item.id}`}
-      to={item.slug ? `/product/${item.slug}` : '/shop'}
-      className="cx-piece"
-      data-cursor="View"
-      style={{ '--i': i }}
-      {...(copy === 1 ? { tabIndex: -1, 'aria-hidden': 'true' } : {})}
-    >
-      <span className="cx-piece__frame">
-        <img src={item.img} alt={copy === 0 ? item.name : ''} loading="lazy" />
-        <span className="cx-piece__meta">
-          <span className="cx-piece__name">{item.name}</span>
-          {item.price != null && <span className="cx-piece__price">{inr(item.price)}</span>}
-        </span>
-      </span>
-    </Link>
-  ));
+  /* Four hang on the rail: one facing you and three stepping back behind it.
+     A fifth is a sliver of sleeve, which is clutter rather than depth. */
+  const pieces = rail.slice(0, 4);
 
   return (
     <Stage kind="rail" label={c.railEyebrow} scrollDriven={false}>
+      <GarmentShapes />
 
-      <div className="cx-rail-head">
-        <p className="cx-meta">{c.railEyebrow}</p>
-        <h2 className="h-display mt-3 text-[28px] sm:text-[40px] lg:text-[52px]">{c.railTitle}</h2>
-        {c.railBody && <p className="cx-rail-body">{c.railBody}</p>}
-        {c.railCtaLabel && (
-          <Link to={c.railCtaHref || '/shop'} className="cx-rail-cta">
-            {c.railCtaLabel} <span aria-hidden>→</span>
-          </Link>
-        )}
+      <div className="cx-showroom">
+        <div className="cx-showroom__copy">
+          <p className="cx-meta">{c.railEyebrow}</p>
+          <h2 className="h-display mt-3 text-[30px] leading-[1.08] sm:text-[38px] lg:text-[46px]">{c.railTitle}</h2>
+          {c.railBody && <p className="cx-rail-body">{c.railBody}</p>}
+          {c.railCtaLabel && (
+            <Link to={c.railCtaHref || '/shop'} className="cx-rail-cta" data-cursor="Shop">
+              {c.railCtaLabel} <span aria-hidden>→</span>
+            </Link>
+          )}
+        </div>
+
+        <div className="cx-showroom__scene">
+          <span className="cx-glow" aria-hidden />
+
+          <div className={`cx-rack${shown ? ' is-in' : ''}`} ref={rackRef}>
+            <span className="cx-rack__floor" aria-hidden />
+            <span className="cx-rack__leg cx-rack__leg--l" aria-hidden />
+            <span className="cx-rack__leg cx-rack__leg--r" aria-hidden />
+            <span className="cx-rack__base" aria-hidden />
+
+            <ul className="cx-hang">
+              {pieces.map((item, i) => (
+                <li key={item.id} className="cx-hang__item" style={{ '--d': i, '--pos': cropFor(item.img, c.railCrop, c.railCropFixes) }}>
+                  <Link
+                    to={item.slug ? `/product/${item.slug}` : '/shop'}
+                    className="cx-hang__link"
+                    data-cursor="View"
+                  >
+                    <span className="cx-hang__figure">
+                      <span className="cx-hang__swing">
+                        <Hanger />
+                        <span className="cx-garment" style={{ '--img': `url("${item.img}")` }} />
+                        <span className="cx-garment__collar" style={{ '--img': `url("${item.img}")` }} />
+                        <span className="cx-garment__placket" style={{ '--img': `url("${item.img}")` }} />
+                      </span>
+                    </span>
+                    <span className="cx-hang__label">
+                      <span className="cx-hang__name">{item.name}</span>
+                      {item.price != null && <span className="cx-hang__price">{inr(item.price)}</span>}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* Drawn after the hangers so the rail passes in front of the hooks. */}
+            <span className="cx-rack__bar" aria-hidden />
+          </div>
+        </div>
       </div>
 
       <span className="cx-chapter cx-meta" aria-hidden>03 / 03</span>
-
-      <div
-        className={`cx-runway${shown ? ' is-in' : ''}`}
-        ref={rowRef}
-        onMouseMove={tilt}
-        onMouseOut={untilt}
-      >
-        <div className="cx-runway__track">
-          {lap(0)}
-          {lap(1)}
-        </div>
-      </div>
     </Stage>
   );
 }
-
 
 export function Cinema({ products = [] }) {
   const ready = useIntroDone();
@@ -329,7 +384,7 @@ export function Cinema({ products = [] }) {
         <span className="cx-chapter cx-meta" aria-hidden>02 / 03</span>
       </Stage>
 
-      {/* 3 — the range, stepped through with its own arrows */}
+      {/* 3 — the range, hanging on a rack in a showroom */}
       <RailStage rail={rail} />
       <span data-cinema-end aria-hidden />
     </>

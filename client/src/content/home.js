@@ -28,6 +28,15 @@ export const defaults = {
   railBody: 'Knitted cotton polos and shirts, cut for everyday wear and made to hold their shape. Every piece on the rail is in stock now.',
   railCtaLabel: 'Browse the rail',
   railCtaHref: '/shop',
+  /* How far down each photograph the garment is taken from, for the rack on
+     the third stage. The range is shot at the hip, which puts the chest about
+     45% of the way down; the two lifestyle pictures below are shot head to
+     shoe, so the same band would land on a pair of trousers. */
+  railCrop: 45,
+  railCropFixes: [
+    { image: '/products/vertical-stripe-shirt-olive-1.jpg', crop: 26 },
+    { image: '/products/fine-stripe-polo-1.jpg', crop: 20 },
+  ],
 
   promises: [
     { icon: 'Truck', title: 'Free shipping', body: 'On prepaid orders above ₹999' },
@@ -197,6 +206,24 @@ export const fields = [
   { name: 'railBody', label: 'Range paragraph', type: 'textarea', help: 'The short line under the heading. Leave empty to hide it.' },
   { name: 'railCtaLabel', label: 'Range button label', type: 'text', help: 'Leave empty to hide the button.' },
   { name: 'railCtaHref', label: 'Range button link', type: 'text', help: 'A page on this site, such as /shop.' },
+  {
+    name: 'railCrop',
+    label: 'Rack crop',
+    type: 'number',
+    help: 'How far down each product photo the garment on the rack is taken from, 0 to 90. Lower moves it up the photo. 45 suits a photo framed at the hip; around 25 suits a full-length one. Change this if the rack is showing faces or trousers.',
+  },
+  {
+    name: 'railCropFixes',
+    label: 'Rack crop exceptions',
+    type: 'list',
+    itemLabel: 'Photo',
+    titleKey: 'image',
+    help: 'For any product photo that needs a different crop from the rest — a full-length shot among close ones, say.',
+    fields: [
+      { name: 'image', label: 'Product photo', type: 'image', help: 'The same image the product uses first.' },
+      { name: 'crop', label: 'Crop for this photo', type: 'number' },
+    ],
+  },
 
   {
     name: 'promises',
