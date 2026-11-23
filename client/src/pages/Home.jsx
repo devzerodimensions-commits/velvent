@@ -6,7 +6,7 @@ import { Mark } from '../components/Logo';
 import { Accordion, MaskHeading, Reveal, SectionHead, Seo } from '../components/ui';
 import { Cinema, Intro } from '../components/Cinema';
 import { SizeGuideModal } from '../components/SizeGuide';
-import { Bag, Box, Check, Heart, Refresh, Ruler, Rupee, Shield, Tag, Truck } from '../components/Icons';
+import { Bag, Box, Check, Close, Heart, Refresh, Ruler, Rupee, Shield, Tag, Truck } from '../components/Icons';
 import { api } from '../lib/api';
 import { useContent } from '../store/content';
 import { Rich } from '../components/RichText';
@@ -162,34 +162,41 @@ function Anatomy() {
   const [active, setActive] = useState(0);
   const point = POINTS[active] || POINTS[0];
 
-  // The magnifier, on the close-up itself.
-  const frameRef = useRef(null);
+  /* The close-up opens in a dialog rather than magnifying under the pointer.
+
+     The loupe only worked while the pointer was held on a 112px thumbnail,
+     which is nothing on a phone and awkward on a desktop — you had to keep
+     still to read it. A click opens it properly and it stays open. */
+  const [zoom, setZoom] = useState(false);
   const [natural, setNatural] = useState(0);   // the file's own pixel width
-  const [frameW, setFrameW] = useState(0);     // how wide it is actually drawn
-  const [loupe, setLoupe] = useState(false);
-  const [spot, setSpot] = useState({ x: 50, y: 50 });
+  const openerRef = useRef(null);
+  const closeRef = useRef(null);
 
-  /*
-   * These crops are 800px files upscaled from a 729px garment shot, so only
-   * about 250px of that is real detail. The magnifier works because the frame
-   * draws them at 112–176px: there are pixels in hand to move into. The cap
-   * keeps the magnified view inside the file's own width, where the browser is
-   * still downsampling — past that it starts inventing, and the softness shows.
-   * Sharper photography raises this on its own.
-   */
-  const factor = natural && frameW
-    ? Math.max(1.5, Math.min(2.8, (natural / frameW) * 0.85))
-    : 2;
+  const step = (by) => setActive((i) => (i + by + POINTS.length) % POINTS.length);
 
-  const track = (clientX, clientY) => {
-    const r = frameRef.current?.getBoundingClientRect();
-    if (!r) return;
-    if (r.width && r.width !== frameW) setFrameW(r.width);
-    setSpot({
-      x: Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100)),
-      y: Math.min(100, Math.max(0, ((clientY - r.top) / r.height) * 100)),
-    });
-  };
+  useEffect(() => {
+    if (!zoom) return undefined;
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') setZoom(false);
+      if (e.key === 'ArrowRight') step(1);
+      if (e.key === 'ArrowLeft') step(-1);
+    };
+    document.addEventListener('keydown', onKey);
+
+    /* The page behind must not scroll away under the dialog. */
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
+
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previous;
+      /* Back to the thumbnail that opened it, or the keyboard is left at the
+         top of the document. */
+      openerRef.current?.focus();
+    };
+  }, [zoom, POINTS.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className="border-y border-mist bg-cream">
@@ -238,45 +245,30 @@ function Anatomy() {
           {/* the close-up and copy for whichever point is active */}
           <div className="flex flex-col">
             <div className="flex gap-5">
-              {/* Move over the close-up and it magnifies where the pointer is,
-                  in place — the same file, panned closer. */}
-              <div
-                key={point.crop}
-                ref={frameRef}
+              {/* Click it and the detail opens at a size worth looking at. */}
+              <button
+                ref={openerRef}
+                type="button"
+                onClick={() => setZoom(true)}
                 data-cursor="Zoom"
-                role="img"
-                aria-label={`${point.title}. Move the pointer over it to magnify.`}
-                onMouseEnter={(e) => { setLoupe(true); track(e.clientX, e.clientY); }}
-                onMouseLeave={() => setLoupe(false)}
-                onMouseMove={(e) => track(e.clientX, e.clientY)}
-                onTouchStart={(e) => { setLoupe(true); track(e.touches[0].clientX, e.touches[0].clientY); }}
-                onTouchMove={(e) => track(e.touches[0].clientX, e.touches[0].clientY)}
-                onTouchEnd={() => setLoupe(false)}
-                className="relative h-28 w-28 shrink-0 animate-fade-in cursor-zoom-in touch-none select-none overflow-hidden border border-mist bg-white sm:h-44 sm:w-44"
+                aria-label={`${point.title} — see the close-up`}
+                className="group relative h-28 w-28 shrink-0 animate-fade-in cursor-zoom-in overflow-hidden border border-mist bg-white sm:h-44 sm:w-44"
               >
                 <img
+                  key={point.crop}
                   src={point.crop}
                   alt=""
                   loading="lazy"
                   onLoad={(e) => setNatural(e.currentTarget.naturalWidth)}
-                  className={`h-full w-full object-cover transition-opacity duration-200 ${loupe ? 'opacity-0' : 'opacity-100'}`}
-                />
-                <div
-                  aria-hidden
-                  className={`pointer-events-none absolute inset-0 bg-no-repeat transition-opacity duration-200 ${loupe ? 'opacity-100' : 'opacity-0'}`}
-                  style={{
-                    backgroundImage: `url(${point.crop})`,
-                    backgroundSize: `${factor * 100}%`,
-                    backgroundPosition: `${spot.x}% ${spot.y}%`,
-                  }}
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
                 />
                 <span
                   aria-hidden
-                  className={`pointer-events-none absolute inset-x-0 bottom-0 bg-navy/70 py-1 text-center text-[8.5px] font-semibold uppercase tracking-brand text-cream transition-opacity duration-200 ${loupe ? 'opacity-0' : 'opacity-100'}`}
+                  className="pointer-events-none absolute inset-x-0 bottom-0 bg-navy/75 py-1 text-center text-[8.5px] font-semibold uppercase tracking-brand text-cream"
                 >
-                  Move to zoom
+                  Click to zoom
                 </span>
-              </div>
+              </button>
               <div className="min-w-0 pt-1">
                 <p className="text-[10px] font-semibold uppercase tracking-brand text-slate-light">
                   {String(active + 1).padStart(2, '0')} — {point.label}
@@ -318,6 +310,75 @@ function Anatomy() {
         </div>
       </div>
 
+      {/* The close-up, opened.
+
+          The picture is never drawn wider than the file itself. These crops
+          are 800px upscaled from a 729px garment shot, so there is only about
+          250px of real detail in them; past their own width the browser stops
+          resampling and starts inventing, and a soft picture of a collar is
+          worse than a small sharp one. Better detail photography raises this
+          cap on its own — nothing here needs changing for it. */}
+      {zoom && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${point.label}: ${point.title}`}
+        >
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={() => setZoom(false)}
+            className="absolute inset-0 cursor-default bg-ink/85 backdrop-blur-sm"
+          />
+
+          <div className="relative flex max-h-full w-full max-w-3xl flex-col overflow-hidden bg-cream shadow-pop">
+            <div className="flex items-start justify-between gap-4 border-b border-mist px-5 py-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-brand text-slate-light">
+                  {String(active + 1).padStart(2, '0')} — {point.label}
+                </p>
+                <h3 className="mt-1.5 font-heading text-lg font-medium uppercase leading-snug tracking-[0.03em] text-navy sm:text-xl">
+                  {point.title}
+                </h3>
+              </div>
+              <button
+                ref={closeRef}
+                type="button"
+                onClick={() => setZoom(false)}
+                aria-label="Close"
+                className="-mr-1 shrink-0 p-1.5 text-slate transition hover:text-navy"
+              >
+                <Close size={20} />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto bg-white">
+              <img
+                key={point.crop}
+                src={point.crop}
+                alt={point.title}
+                style={natural ? { maxWidth: `${natural}px` } : undefined}
+                className="mx-auto block w-full animate-fade-in object-contain"
+              />
+            </div>
+
+            <div className="border-t border-mist px-5 py-4">
+              <p className="text-[14px] leading-relaxed text-slate">{point.body}</p>
+
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-brand text-slate-light">
+                  {String(active + 1).padStart(2, '0')} / {String(POINTS.length).padStart(2, '0')}
+                </span>
+                <span className="flex gap-2">
+                  <button type="button" onClick={() => step(-1)} aria-label="Previous detail" className="btn-outline px-4 py-2 text-[11px]">←</button>
+                  <button type="button" onClick={() => step(1)} aria-label="Next detail" className="btn-outline px-4 py-2 text-[11px]">→</button>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
