@@ -28,21 +28,19 @@ export const defaults = {
   railBody: 'Knitted cotton polos and shirts, cut for everyday wear and made to hold their shape. Every piece on the rail is in stock now.',
   railCtaLabel: 'Browse the rail',
   railCtaHref: '/shop',
-  /* How far down each photograph the garment is taken from, for the rack on
-     the third stage. A photograph framed at the hip puts the chest about 45%
-     of the way down; one shot head to shoe puts it nearer 25, and the same
-     band would land on a pair of trousers. So the range gets 45 and the
-     full-length shots are named below.
-
-     A photograph can also be left off the rack altogether. The fine stripe
-     polo is shot with the model's arms folded across his chest: there is no
-     band of that picture that is only cloth, so no crop saves it. */
-  railCrop: 45,
-  railCropFixes: [
-    { image: '/products/rugby-stripe-polo-1.jpg', crop: 24 },
-    { image: '/api/media/31', crop: 28 },
-    { image: '/products/vertical-stripe-shirt-olive-1.jpg', crop: 26 },
-    { image: '/products/fine-stripe-polo-1.jpg', crop: 20, hide: true },
+  /* What hangs on the rack on the third stage, front to back. Each is a
+     garment cut-out — the garment alone, front on, on a transparent ground —
+     and the product it opens. The first faces the reader; six hang on a
+     desktop and four on a phone, so the order is the display. */
+  railPieces: [
+    { image: '/products/rack/cable-knit-polo-green.webp', slug: 'cable-knit-contrast-polo' },
+    { image: '/products/rack/coastal-stripe-polo.webp', slug: 'coastal-stripe-knitted-polo' },
+    { image: '/products/rack/rugby-stripe-polo.webp', slug: 'rugby-stripe-knitted-polo' },
+    { image: '/products/rack/cable-knit-polo-burgundy.webp', slug: 'cable-knit-contrast-polo' },
+    { image: '/products/rack/vertical-stripe-shirt-olive.webp', slug: 'riviera-stripe-knitted-shirt' },
+    { image: '/products/rack/heritage-stripe-polo.webp', slug: 'heritage-stripe-knitted-polo' },
+    { image: '/products/rack/vertical-stripe-shirt-navy.webp', slug: 'riviera-stripe-knitted-shirt' },
+    { image: '/products/rack/oversized-tee-black.webp', slug: 'oversized-t-shirt' },
   ],
 
   promises: [
@@ -214,22 +212,15 @@ export const fields = [
   { name: 'railCtaLabel', label: 'Range button label', type: 'text', help: 'Leave empty to hide the button.' },
   { name: 'railCtaHref', label: 'Range button link', type: 'text', help: 'A page on this site, such as /shop.' },
   {
-    name: 'railCrop',
-    label: 'Rack crop',
-    type: 'number',
-    help: 'How far down each product photo the garment on the rack is taken from, 0 to 90. Lower moves it up the photo. 45 suits a photo framed at the hip; around 25 suits a full-length one. Change this if the rack is showing faces or trousers.',
-  },
-  {
-    name: 'railCropFixes',
-    label: 'Rack crop exceptions',
+    name: 'railPieces',
+    label: 'Rack',
     type: 'list',
-    itemLabel: 'Photo',
-    titleKey: 'image',
-    help: 'For any product photo that needs a different crop from the rest — a full-length shot among close ones — or that should not be on the rack at all.',
+    itemLabel: 'Garment',
+    titleKey: 'slug',
+    help: 'The garments hanging on the rack, front to back. The first faces the customer. Six show on a computer and four on a phone. Each image must be the garment alone with a transparent background (PNG or WebP) — a photo of someone wearing it, or one on a white background, will not look right on the rail.',
     fields: [
-      { name: 'image', label: 'Product photo', type: 'image', help: 'The same image the product uses first.' },
-      { name: 'crop', label: 'Crop for this photo', type: 'number' },
-      { name: 'hide', label: 'Leave off the rack', type: 'toggle', help: 'For a photo no crop can save — arms folded across the chest, or a shot from behind. The product still appears everywhere else.' },
+      { name: 'image', label: 'Garment cut-out', type: 'image', help: 'Front view, the whole garment from collar to hem, background removed.' },
+      { name: 'slug', label: 'Opens product', type: 'text', help: "The product's URL slug, as in /product/cable-knit-contrast-polo. Its name and price are shown on the rack." },
     ],
   },
 

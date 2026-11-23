@@ -96,94 +96,19 @@ function Rise({ text, offset = 0 }) {
   ));
 }
 
-const RAIL_FALLBACK = [
-  { id: 'a', slug: '', name: 'Cable Knit Contrast Polo', img: '/products/cable-knit-polo-green-1.jpg' },
-  { id: 'b', slug: '', name: 'Coastal Stripe Polo', img: '/products/coastal-stripe-polo-1.jpg' },
-  { id: 'c', slug: '', name: 'Cable Knit Polo', img: '/products/cable-knit-polo-burgundy-1.jpg' },
-  { id: 'd', slug: '', name: 'Vertical Stripe Shirt', img: '/products/vertical-stripe-shirt-olive-1.jpg' },
-  { id: 'e', slug: '', name: 'Fine Stripe Polo', img: '/products/fine-stripe-polo-1.jpg' },
-];
-
-const toRailItem = (p) => ({
-  id: p.id,
-  slug: p.slug,
-  name: p.name,
-  price: p.sale_price,
-  img: p.images?.[0]?.url || p.image_url,
-});
-
 /* ------------------------------------------------- the range, on a rack ---- */
 
-/* The garment, drawn rather than photographed.
-
-   The shop owns model photography and nothing else — no cut-outs, no packshots
-   on a plain ground. So the pieces on this rack are the real photographs seen
-   through a garment-shaped hole: one path for the body and sleeves, a second
-   for the collar and a third for the placket, each filled with the same
-   picture at a different brightness. That is what makes it read as a polo
-   hanging up rather than as a rectangle of a man wearing one.
-
-   Written in objectBoundingBox units, so one path fits every size it is given. */
-const POLO = 'M.372 .052C.335 .056 .300 .060 .278 .070L.082 .152C.050 .167 .030 .195 .024 .232'
-  + 'L.012 .330C.008 .368 .022 .400 .052 .416L.124 .452C.152 .466 .178 .455 .186 .424L.238 .268'
-  + 'L.214 .940C.212 .958 .222 .968 .242 .968L.758 .968C.778 .968 .788 .958 .786 .940L.762 .268'
-  + 'L.814 .424C.822 .455 .848 .466 .876 .452L.948 .416C.978 .400 .992 .368 .988 .330L.976 .232'
-  + 'C.970 .195 .950 .167 .918 .152L.722 .070C.700 .060 .665 .056 .628 .052'
-  + 'C.620 .140 .380 .140 .372 .052Z';
-const COLLAR = 'M.352 .028C.360 .120 .640 .120 .648 .028L.690 .046C.680 .164 .320 .164 .310 .046Z';
-const PLACKET = 'M.468 .120L.532 .120L.537 .300L.463 .300Z';
-
-/** The clip shapes, defined once for the page. */
-function GarmentShapes() {
-  return (
-    <svg className="cx-shapes" aria-hidden focusable="false">
-      <defs>
-        <clipPath id="vv-polo" clipPathUnits="objectBoundingBox"><path d={POLO} /></clipPath>
-        <clipPath id="vv-collar" clipPathUnits="objectBoundingBox"><path d={COLLAR} /></clipPath>
-        <clipPath id="vv-placket" clipPathUnits="objectBoundingBox"><path d={PLACKET} /></clipPath>
-      </defs>
-    </svg>
-  );
-}
-
-/* Where the garment is, in a photograph nobody measured.
-
-   A piece on this rack is one of the shop's own photographs seen through a
-   polo-shaped hole, so something has to decide which band of the photograph
-   that hole is filled with. It cannot be worked out from the file: these
-   pictures are framed anywhere from head-to-hip to the whole model standing
-   in a room, two of them are the same proportions and nothing alike, and the
-   obvious tricks — look for skin, look for the shoulders — both read a beige
-   studio wall as a person.
-
-   So it is a setting rather than a guess. One number for the range, in the
-   admin, and a short list of exceptions for the photographs that do not sit
-   where the rest do. Lower is higher up the picture: 25 lands on the chest of
-   a full-length shot, 45 on the chest of one framed at the hip. The client can
-   see what it does without being told what it means, which is the point —
-   every photograph they add from here is theirs to place. */
-const DEFAULT_CROP = 45;
-
-const fixFor = (img, fixes) => (Array.isArray(fixes) ? fixes.find((f) => f && f.image === img) : null);
-
-/** The crop for one piece, as a background-position. */
-const cropFor = (img, fallback, fixes) => {
-  const fix = fixFor(img, fixes);
-  const n = Number(fix && fix.crop !== '' && fix.crop !== null ? fix.crop : fallback);
-  return `50% ${Number.isFinite(n) ? Math.min(90, Math.max(0, n)) : DEFAULT_CROP}%`;
-};
-
-/* Some photographs cannot hang. One of the range is shot with the model's
-   arms folded across his chest, and there is no band of that picture which is
-   only cloth — every crop of it puts a forearm on the rail. Rather than leave
-   the shop to notice that on its own homepage, a photograph can be marked in
-   the admin as one to leave off, and the rack simply takes the next piece. */
-const onTheRack = (fixes) => (piece) => !fixFor(piece.img, fixes)?.hide;
+/* A product's name as a fallback label, from its slug, for a piece whose
+   product cannot be found in the catalogue (or before the catalogue loads). */
+const fromSlug = (slug) => String(slug || '')
+  .split('-').filter(Boolean)
+  .map((w) => w[0].toUpperCase() + w.slice(1))
+  .join(' ');
 
 /** A wire hanger. Its hook is drawn long enough to cross the rail above it. */
-function Hanger() {
+function Hanger({ className = 'cx-hang__hanger' }) {
   return (
-    <svg className="cx-hang__hanger" viewBox="0 0 120 46" fill="none" aria-hidden focusable="false">
+    <svg className={className} viewBox="0 0 120 46" fill="none" aria-hidden focusable="false">
       <path d="M60 17c0-7-5.5-7-5.5-11A5.5 5.5 0 0 1 65 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
       <path d="M11.5 41 60 17l48.5 24" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
       <path d="M11.5 41h97" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
@@ -192,26 +117,28 @@ function Hanger() {
 }
 
 /**
- * 3 — the range, stood up in a showroom.
+ * 3 — the range, on a rack in a showroom.
  *
- * The brief for this section was a reference picture: a slim chrome rack in a
- * dark room, one piece facing you and the rest overlapping away to the right,
- * lit from behind by a violet ring. It is built here out of the parts the
- * browser already has — the rail, the legs and the base are boxes with a
- * chrome gradient down them, the ring is a circle of light, and the pieces are
- * the shop's own photographs cut to the shape of a polo.
+ * The rail, the legs and the base are boxes with a chrome gradient down them,
+ * the light behind is a circle, and the floor is a shadow. The pieces are
+ * garment cut-outs — each one alone, front on, on a transparent ground — hung
+ * in the order the admin lists them, the first facing the reader and the rest
+ * stepping back behind it.
  *
- * Only the rack is turned. The whole group leans a few degrees on its Y axis
- * inside a perspective, so the pieces stand at real distances from the eye and
- * the ones further right are genuinely smaller and dimmer rather than drawn
- * that way. The copy beside it is left square to the page, because type set at
- * an angle is type nobody reads.
+ * Which garment hangs where is a homepage setting rather than a product one.
+ * The rack is a display: the shop chooses what is on it and in what order, and
+ * a cut-out belongs to the rack rather than to the product page, where a
+ * customer needs a photograph of the real thing.
+ *
+ * Only the rack is turned. The plane leans a few degrees on its Y axis inside
+ * a perspective, so the far end of the rail is genuinely further away; the
+ * copy beside it stays square to the page.
  *
  * Three things move, all of them small: the pieces drop onto the rail one
  * after another when the section is first reached, each rocks on its hook at
  * its own pace, and the one under the pointer swings forward out of the row.
  */
-function RailStage({ rail }) {
+function RailStage({ products }) {
   const c = useContent('home');
   const rackRef = useRef(null);
   const [shown, setShown] = useState(false);
@@ -226,14 +153,25 @@ function RailStage({ rail }) {
     return () => io.disconnect();
   }, []);
 
-  /* Four hang on the rail: one facing you and three stepping back behind it.
-     A fifth is a sliver of sleeve, which is clutter rather than depth. */
-  const pieces = rail.filter(onTheRack(c.railCropFixes)).slice(0, 4);
+  /* The name and price come from the catalogue, so a rename or a sale in the
+     admin reaches the rack without anyone remembering that it is there. */
+  const bySlug = new Map(products.map((p) => [p.slug, p]));
+  const pieces = (Array.isArray(c.railPieces) ? c.railPieces : [])
+    .filter((p) => p && p.image)
+    .slice(0, 8)
+    .map((p, i) => {
+      const product = bySlug.get(p.slug);
+      return {
+        key: `${i}-${p.image}`,
+        image: p.image,
+        slug: product ? product.slug : p.slug,
+        name: product?.name?.trim() || fromSlug(p.slug) || 'VELVENT',
+        price: product?.sale_price ?? null,
+      };
+    });
 
   return (
     <Stage kind="rail" label={c.railEyebrow} scrollDriven={false}>
-      <GarmentShapes />
-
       <div className="cx-showroom">
         <div className="cx-showroom__copy">
           <p className="cx-meta">{c.railEyebrow}</p>
@@ -251,13 +189,20 @@ function RailStage({ rail }) {
 
           <div className={`cx-rack${shown ? ' is-in' : ''}`} ref={rackRef}>
             <span className="cx-rack__floor" aria-hidden />
+            <span className="cx-rack__plane" aria-hidden />
             <span className="cx-rack__leg cx-rack__leg--l" aria-hidden />
             <span className="cx-rack__leg cx-rack__leg--r" aria-hidden />
             <span className="cx-rack__base" aria-hidden />
 
+            {/* The rest of the rail, hung but not on show. Behind the garments,
+                so they read as stock further along rather than as clutter. */}
+            <span className="cx-rack__hooks" aria-hidden>
+              {Array.from({ length: 11 }, (_, i) => <Hanger key={i} className="cx-rack__hook" />)}
+            </span>
+
             <ul className="cx-hang">
               {pieces.map((item, i) => (
-                <li key={item.id} className="cx-hang__item" style={{ '--d': i, '--pos': cropFor(item.img, c.railCrop, c.railCropFixes) }}>
+                <li key={item.key} className="cx-hang__item" style={{ '--d': i }}>
                   <Link
                     to={item.slug ? `/product/${item.slug}` : '/shop'}
                     className="cx-hang__link"
@@ -265,10 +210,17 @@ function RailStage({ rail }) {
                   >
                     <span className="cx-hang__figure">
                       <span className="cx-hang__swing">
+                        {/* Behind the garment, as a hanger is: only the hook
+                            shows, above the collar. */}
                         <Hanger />
-                        <span className="cx-garment" style={{ '--img': `url("${item.img}")` }} />
-                        <span className="cx-garment__collar" style={{ '--img': `url("${item.img}")` }} />
-                        <span className="cx-garment__placket" style={{ '--img': `url("${item.img}")` }} />
+                        <img
+                          className="cx-garment"
+                          src={item.image}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          draggable={false}
+                        />
                       </span>
                     </span>
                     <span className="cx-hang__label">
@@ -305,7 +257,6 @@ export function Cinema({ products = [] }) {
   const EMPHASIS = new Set(
     String(c.statementEmphasis || '').split(',').map((w) => w.trim().toLowerCase()).filter(Boolean),
   );
-  const rail = products.length ? products.slice(0, 6).map(toRailItem) : RAIL_FALLBACK;
 
   return (
     <>
@@ -394,7 +345,7 @@ export function Cinema({ products = [] }) {
       </Stage>
 
       {/* 3 — the range, hanging on a rack in a showroom */}
-      <RailStage rail={rail} />
+      <RailStage products={products} />
       <span data-cinema-end aria-hidden />
     </>
   );
