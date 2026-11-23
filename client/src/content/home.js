@@ -25,7 +25,6 @@ export const defaults = {
 
   railEyebrow: 'The range',
   railTitle: 'Made to be worn often',
-  railGlow: 'violet',
   railBody: 'Knitted cotton polos and shirts, cut for everyday wear and made to hold their shape. Every piece on the rail is in stock now.',
   railCtaLabel: 'Browse the rail',
   railCtaHref: '/shop',
@@ -198,18 +197,6 @@ export const fields = [
   { name: 'railBody', label: 'Range paragraph', type: 'textarea', help: 'The short line under the heading. Leave empty to hide it.' },
   { name: 'railCtaLabel', label: 'Range button label', type: 'text', help: 'Leave empty to hide the button.' },
   { name: 'railCtaHref', label: 'Range button link', type: 'text', help: 'A page on this site, such as /shop.' },
-  {
-    name: 'railGlow',
-    label: 'Light behind the rail',
-    type: 'select',
-    help: 'The glow the hanging rail is lit against.',
-    options: [
-      ['warm', 'Warm — the brand cream'],
-      ['violet', 'Violet'],
-      ['cool', 'Cool blue'],
-      ['none', 'No glow'],
-    ],
-  },
 
   {
     name: 'promises',
