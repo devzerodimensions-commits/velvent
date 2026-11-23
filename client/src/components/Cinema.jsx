@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useContent } from '../store/content';
 import { Mark } from './Logo';
@@ -142,7 +142,12 @@ function Hanger() {
 function RailStage({ products }) {
   const c = useContent('home');
   const rackRef = useRef(null);
+  const sceneRef = useRef(null);
   const [shown, setShown] = useState(false);
+  /* Which piece is wearing the tag: the front one, unless another is being
+     pointed at or tabbed to. */
+  const [active, setActive] = useState(0);
+  const [tagAt, setTagAt] = useState(null);
 
   useEffect(() => {
     const el = rackRef.current;
@@ -171,6 +176,49 @@ function RailStage({ products }) {
       };
     });
 
+  /* The swing tag, kept out of the turned rack.
+
+     Inside it, the card's text was drawn and then the drawing turned with the
+     rack's 3D tilt — and with the card's own tilt and twist on top — so small
+     type came out soft. A garment photograph hides that; a price does not.
+     So the tag is laid flat over the scene instead, and pinned under the hem
+     of whichever piece is wearing it: the hem's position is read from the
+     page, rounded to whole pixels, so the text lands on the pixel grid and
+     stays sharp. */
+  const place = useCallback(() => {
+    const scene = sceneRef.current;
+    const rack = rackRef.current;
+    if (!scene || !rack) return;
+    const img = rack.querySelectorAll('.cx-hang__item')[active]?.querySelector('.cx-garment');
+    const g = img?.getBoundingClientRect();
+    if (!g || !g.width || !img.offsetParent) { setTagAt(null); return; }
+    const s = scene.getBoundingClientRect();
+    // Rounded against the page, not the scene: the scene can itself sit on a
+    // fractional pixel, and text placed on half a pixel is soft again.
+    setTagAt({
+      left: Math.round(g.left + g.width * 0.58) - s.left,
+      top: Math.round(g.bottom - 22) - s.top,
+    });
+  }, [active]);
+
+  useEffect(() => {
+    if (!shown) return undefined;
+    place();
+    // Again once the drop-in, or a hovered piece's swing forward, has settled.
+    const later = setTimeout(place, 650);
+    const settled = setTimeout(place, 1400);
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => place()) : null;
+    if (ro && sceneRef.current) ro.observe(sceneRef.current);
+    window.addEventListener('resize', place);
+    return () => {
+      clearTimeout(later); clearTimeout(settled);
+      ro?.disconnect();
+      window.removeEventListener('resize', place);
+    };
+  }, [place, shown, pieces.length]);
+
+  const tagged = pieces[active];
+
   return (
     <Stage kind="rail" label={c.railEyebrow} scrollDriven={false}>
       <div className="cx-showroom">
@@ -185,7 +233,7 @@ function RailStage({ products }) {
           )}
         </div>
 
-        <div className="cx-showroom__scene">
+        <div className="cx-showroom__scene" ref={sceneRef}>
           <span className="cx-glow" aria-hidden />
 
           <div className={`cx-rack${shown ? ' is-in' : ''}`} ref={rackRef}>
@@ -195,13 +243,21 @@ function RailStage({ products }) {
             <span className="cx-rack__leg cx-rack__leg--r" aria-hidden />
             <span className="cx-rack__base" aria-hidden />
 
-            <ul className="cx-hang">
+            <ul className="cx-hang" onMouseLeave={() => setActive(0)}>
               {pieces.map((item, i) => (
-                <li key={item.key} className="cx-hang__item" style={{ '--d': i }}>
+                <li
+                  key={item.key}
+                  className="cx-hang__item"
+                  style={{ '--d': i }}
+                  onMouseEnter={() => setActive(i)}
+                  onFocus={() => setActive(i)}
+                  onBlur={() => setActive(0)}
+                >
                   <Link
                     to={item.slug ? `/product/${item.slug}` : '/shop'}
                     className="cx-hang__link"
                     data-cursor="View"
+                    aria-label={item.price != null ? `${item.name}, ${inr(item.price)}` : item.name}
                   >
                     <span className="cx-hang__figure">
                       <span className="cx-hang__swing">
@@ -215,18 +271,8 @@ function RailStage({ products }) {
                           loading="lazy"
                           decoding="async"
                           draggable={false}
+                          onLoad={place}
                         />
-                        {/* The swing tag: a card on a thread from the hem, the
-                            way the shop would price a piece on the shop floor.
-                            It hangs off the garment rather than floating under
-                            it, so nothing on the rack runs through it. */}
-                        <span className="cx-tag">
-                          <span className="cx-tag__card">
-                            <span className="cx-tag__brand" aria-hidden>Velvent</span>
-                            <span className="cx-tag__name">{item.name}</span>
-                            {item.price != null && <span className="cx-tag__price">{inr(item.price)}</span>}
-                          </span>
-                        </span>
                       </span>
                     </span>
                   </Link>
@@ -237,6 +283,18 @@ function RailStage({ products }) {
             {/* Drawn after the hangers so the rail passes in front of the hooks. */}
             <span className="cx-rack__bar" aria-hidden><span className="cx-rack__shine" /></span>
           </div>
+
+          {/* The swing tag, flat over the scene — see place() above. Keyed by
+              the piece, so moving to another garment fades a fresh card in. */}
+          {shown && tagAt && tagged && (
+            <span key={tagged.key} className="cx-tag" style={{ left: tagAt.left, top: tagAt.top }} aria-hidden>
+              <span className="cx-tag__card">
+                <span className="cx-tag__brand">Velvent</span>
+                <span className="cx-tag__name">{tagged.name}</span>
+                {tagged.price != null && <span className="cx-tag__price">{inr(tagged.price)}</span>}
+              </span>
+            </span>
+          )}
         </div>
       </div>
 

@@ -816,6 +816,11 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   animation: cx-sway 7.5s ease-in-out infinite;
   animation-delay: calc(var(--d) * -1.45s);
 }
+/* The piece wearing the tag holds still, so the thread stays on its hem:
+   the front one does not rock, and one being pointed at stops where it is. */
+.cx-hang__item:first-child .cx-hang__swing { animation: none; }
+.cx-hang__item:hover .cx-hang__swing,
+.cx-hang__item:focus-within .cx-hang__swing { animation-play-state: paused; }
 @keyframes cx-sway {
   0%, 100% { transform: rotate(-.85deg); }
   50%      { transform: rotate(.85deg); }
@@ -845,73 +850,68 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 }
 
 /* The swing tag. A heavy cream card on a thread from the hem, with a brass
-   eyelet, turned a little away in its own perspective and twisting slowly on
-   the thread — the way a piece is priced on a good shop floor.
+   eyelet — the way a piece is priced on a good shop floor.
 
-   It replaces a line of loose type under the front piece, which the rack's
-   leg ran straight through. A card is opaque: the leg goes behind it.
+   It is laid flat over the scene rather than hung inside the turned rack, and
+   it is never rotated, scaled or animated in place. Text inside a 3D tilt is
+   drawn first and then the drawing is turned, which is what made the earlier
+   tag read soft; this one is placed on whole pixels and left alone, so the
+   type is as sharp as the heading beside it. Its depth comes from the card
+   itself instead — the shading across it, the edge of the board down its
+   right side, and the shadow under it.
 
-   The front piece wears its tag all the time, so the rack reads as something
-   to click; the others show theirs when they are pointed at. */
+   One tag, worn by the front piece and moved to whichever piece is pointed
+   at. The width is fixed so it centres on the thread without a half-pixel. */
 .cx-tag {
-  /* Pinned near the hem, where a shop pins it, rather than off the very
-     bottom edge: hung any lower it reaches the base of the rack. */
-  position: absolute; z-index: 6; left: 58%; top: calc(100% - 24px);
+  position: absolute; z-index: 6;
+  width: 168px; margin-left: -84px;
   display: flex; flex-direction: column; align-items: center;
-  transform-origin: 50% 0;
-  opacity: 0; transform: translateY(-8px);
-  transition: opacity .35s ease, transform .55s cubic-bezier(.22,.61,.36,1);
-  filter: drop-shadow(0 9px 12px rgba(0,0,0,.55)) drop-shadow(0 2px 2px rgba(0,0,0,.35));
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)) drop-shadow(0 2px 2px rgba(0,0,0,.35));
   pointer-events: none;
+  animation: cx-tag-in .35s ease-out both;
 }
+@keyframes cx-tag-in { from { opacity: 0; } to { opacity: 1; } }
 /* The thread, from the hem to the eyelet. */
 .cx-tag::before {
-  content: ''; display: block; width: 1px; height: clamp(10px, 1.6vh, 14px);
-  background: linear-gradient(to bottom, rgba(226,217,198,.15), rgba(226,217,198,.85));
+  content: ''; display: block; width: 1px; height: 14px;
+  background: linear-gradient(to bottom, rgba(226,217,198,.2), rgba(226,217,198,.9));
 }
-.cx-hang__item:first-child .cx-tag,
-.cx-hang__item:hover .cx-tag,
-.cx-hang__item:focus-within .cx-tag { opacity: 1; transform: none; }
 
 .cx-tag__card {
   position: relative;
   display: grid; justify-items: center; gap: .22rem;
-  width: max-content; min-width: 116px; max-width: 188px;
-  padding: .95rem .85rem .55rem;
-  background: linear-gradient(165deg, #FCF9F2 0%, #F1EADD 62%, #E6DCC8 100%);
+  width: 100%;
+  padding: .95rem .85rem .6rem;
+  background:
+    /* the board's edge, catching less light down the right side */
+    linear-gradient(90deg, rgba(0,0,0,0) calc(100% - 4px), rgba(120,104,74,.28) calc(100% - 4px)),
+    /* light across the face of the card, from the upper left */
+    linear-gradient(115deg, #FFFDF8 0%, #F5EFE3 45%, #EAE1CF 100%);
   color: #0F131A; text-align: center;
   /* Clipped top corners, the shape of a swing tag. The shadow is on the
      parent, as a drop-shadow, so it follows this outline. */
   clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px);
-  transform-origin: 50% 0;
-  transform: perspective(420px) rotateY(-12deg) rotate(-2.5deg);
-  animation: cx-twist 6.5s ease-in-out infinite;
-  animation-delay: calc(var(--d) * -1.1s);
 }
 /* The eyelet the thread goes through: a brass ring. */
 .cx-tag__card::before {
-  content: ''; position: absolute; top: 6px; left: 50%; translate: -50% 0;
-  width: 7px; height: 7px; border-radius: 50%;
+  content: ''; position: absolute; top: 6px; left: 50%; margin-left: -4px;
+  width: 8px; height: 8px; border-radius: 50%;
   background: #1E2531;
   box-shadow: inset 0 0 0 1.6px #C3A86A, 0 0 0 .6px rgba(0,0,0,.25);
 }
-@keyframes cx-twist {
-  0%, 100% { transform: perspective(420px) rotateY(-16deg) rotate(-2.5deg); }
-  50%      { transform: perspective(420px) rotateY(-5deg)  rotate(-1.5deg); }
-}
 
 .cx-tag__brand {
-  font-size: 7px; font-weight: 600; text-transform: uppercase; letter-spacing: .38em;
-  color: #8A93A1;
+  font-size: 7.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .38em;
+  color: #6B7384;
   padding-bottom: .3rem; margin-bottom: .1rem;
   border-bottom: 1px solid rgba(15,19,26,.12);
 }
 .cx-tag__name {
   font-family: Cinzel, 'Trajan Pro', Georgia, serif;
-  font-size: 10px; font-weight: 600; line-height: 1.25;
+  font-size: 11px; font-weight: 600; line-height: 1.25;
   text-transform: uppercase; letter-spacing: .05em;
 }
-.cx-tag__price { font-size: 11px; font-weight: 600; letter-spacing: .04em; color: #2C3544; }
+.cx-tag__price { font-size: 11.5px; font-weight: 700; letter-spacing: .04em; color: #2C3544; }
 
 
 
