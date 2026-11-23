@@ -7,6 +7,8 @@ import { ORDER_STATUS_KEYS, NEEDS_ACTION, STOCK_ALREADY_RETURNED } from '../lib/
 import { deleteContent, getContent, saveContent } from '../lib/content.js';
 import { getProvider, listProviders, normaliseShipment } from '../lib/shipping/index.js';
 import { getMediaStore } from '../lib/media/index.js';
+import { ensureInvoiceNumber, getTaxSettings, slabRateFor } from '../lib/gst.js';
+import { checkContent, checkSlug } from '../lib/pages.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -21,14 +23,33 @@ router.use(requireAdmin);
 const UPLOAD_LIMIT_BYTES = 12 * 1024 * 1024;
 const UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
 
+/**
+ * Video is allowed but kept on a short leash.
+ *
+ * A product clip stored in Postgres is bytes the database pays for and bytes
+ * the server streams on every view, and the hosting this store runs on gives
+ * both sparingly. 25 MB is about a 20-second clip at sensible quality, which
+ * is what a product video should be. Anything longer belongs on YouTube or
+ * Vimeo, and the editor offers that as the first option for exactly this
+ * reason.
+ */
+const VIDEO_LIMIT_BYTES = 25 * 1024 * 1024;
+const VIDEO_TYPES = ['video/mp4', 'video/webm'];
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: UPLOAD_LIMIT_BYTES },
+  limits: { fileSize: VIDEO_LIMIT_BYTES },
   fileFilter: (_req, file, cb) => {
-    const ok = UPLOAD_TYPES.includes(file.mimetype);
-    cb(ok ? null : new Error('Only JPG, PNG, WEBP or AVIF images are allowed.'), ok);
+    const ok = UPLOAD_TYPES.includes(file.mimetype) || VIDEO_TYPES.includes(file.mimetype);
+    cb(ok ? null : new Error('Allowed: JPG, PNG, WEBP, AVIF images, or MP4 and WEBM video.'), ok);
   },
 });
+
+/** Images keep their own, tighter ceiling even though multer's is the video one. */
+const overSizeFor = (file) => {
+  const limit = VIDEO_TYPES.includes(file.mimetype) ? VIDEO_LIMIT_BYTES : UPLOAD_LIMIT_BYTES;
+  return file.size > limit ? limit : null;
+};
 
 /**
  * Multer reports a rejected upload by throwing, and without this it reaches
@@ -40,11 +61,11 @@ const handleUploadErrors = (err, _req, res, next) => {
   if (!err) return next();
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({
-      error: `That image is larger than ${Math.round(UPLOAD_LIMIT_BYTES / 1024 / 1024)} MB. Resize it and try again.`,
+      error: `That file is larger than ${Math.round(VIDEO_LIMIT_BYTES / 1024 / 1024)} MB. Images must be under ${Math.round(UPLOAD_LIMIT_BYTES / 1024 / 1024)} MB.`,
     });
   }
   if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') {
-    return res.status(400).json({ error: 'Send one image at a time.' });
+    return res.status(400).json({ error: 'Send one file at a time.' });
   }
   return res.status(400).json({ error: err.message || 'That upload was refused.' });
 };
@@ -127,6 +148,7 @@ router.get('/products/:id', ah(async (req, res) => {
 
 const PRODUCT_FIELDS = ['name', 'category_id', 'short_desc', 'description', 'mrp', 'sale_price',
   'fabric', 'wash_care', 'fit', 'sleeve', 'collar', 'weight_grams',
+  'hsn_code', 'tax_rate', 'length_cm', 'breadth_cm', 'height_cm', 'video_url',
   'is_active', 'is_featured', 'is_new', 'sort_order'];
 
 router.post('/products', ah(async (req, res) => {
@@ -211,6 +233,13 @@ function normalise(field, value) {
   if (['is_active', 'is_featured', 'is_new'].includes(field)) return Boolean(value);
   if (['category_id', 'weight_grams', 'sort_order'].includes(field)) return parseInt(value, 10) || null;
   if (['mrp', 'sale_price'].includes(field)) return Number(value);
+  /* Parcel size and tax rate are decimals, and a blank one has to stay NULL
+     rather than becoming 0 — an empty tax rate means "use the slab rule",
+     while a zero would mean "this product is tax free". */
+  if (['tax_rate', 'length_cm', 'breadth_cm', 'height_cm'].includes(field)) {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
   return value;
 }
 
@@ -372,6 +401,12 @@ router.put('/orders/:id/status', ah(async (req, res) => {
       [req.params.id, status || null, payment_status || null],
     );
 
+    /* An order becoming a real sale earns its invoice number here, the first
+       time it reaches a status that means money changed hands. Orders that go
+       straight from pending to cancelled never take one, which is what keeps
+       the sequence unbroken. */
+    const invoiceNumber = await ensureInvoiceNumber(client, before[0].id, rows[0].status);
+
     // Cancelling from here has to return the stock, exactly as it does when a
     // customer cancels their own order.
     if (STOCK_ALREADY_RETURNED.includes(status) && !STOCK_ALREADY_RETURNED.includes(before[0].status)) {
@@ -388,7 +423,9 @@ router.put('/orders/:id/status', ah(async (req, res) => {
         }
       }
     }
-    return rows[0];
+    /* RETURNING * ran before the invoice number was written, so the fresh one
+       is put back on by hand rather than re-reading the row. */
+    return { ...rows[0], invoice_number: invoiceNumber || rows[0].invoice_number };
   });
 
   if (!updated) return res.status(404).json({ error: 'Order not found.' });
@@ -399,7 +436,16 @@ router.put('/orders/:id/status', ah(async (req, res) => {
 
 /** Stores uploads in Postgres so images survive Render's ephemeral filesystem. */
 router.post('/media', upload.single('file'), handleUploadErrors, ah(async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Choose an image to upload.' });
+  if (!req.file) return res.status(400).json({ error: 'Choose a file to upload.' });
+
+  /* Multer's ceiling is the video one, so an oversized image gets past it and
+     is caught here instead. */
+  const over = overSizeFor(req.file);
+  if (over) {
+    return res.status(413).json({
+      error: `That file is larger than ${Math.round(over / 1024 / 1024)} MB. Resize it and try again.`,
+    });
+  }
 
   const store = getMediaStore();
 
@@ -1186,6 +1232,152 @@ router.put('/stock', ah(async (req, res) => {
   });
 
   res.json({ ok: true, saved });
+}));
+
+
+/* ------------------------------------------------------------ built pages */
+
+/** The list screen: everything except the layout, which is far too big for it. */
+router.get('/pages', ah(async (_req, res) => {
+  const { rows } = await query(
+    `SELECT id, slug, title, status, show_in_nav, created_at, updated_at,
+            (SELECT COUNT(*)::int FROM page_revisions r WHERE r.page_id = p.id) AS revisions
+       FROM pages p ORDER BY updated_at DESC LIMIT 300`,
+  );
+  res.json(rows);
+}));
+
+router.get('/pages/:id', ah(async (req, res) => {
+  const { rows } = await query('SELECT * FROM pages WHERE id = $1', [req.params.id]);
+  if (!rows[0]) return res.status(404).json({ error: 'Page not found.' });
+  res.json(rows[0]);
+}));
+
+router.post('/pages', ah(async (req, res) => {
+  const b = req.body || {};
+  const title = String(b.title || '').trim();
+  if (!title) return res.status(400).json({ error: 'Give the page a name.' });
+
+  const checked = checkSlug(b.slug || title);
+  if (checked.error) return res.status(400).json({ error: checked.error });
+
+  /* Two pages cannot share an address, and the client should be told which
+     one is in the way rather than getting a constraint error. */
+  const { rowCount } = await query('SELECT 1 FROM pages WHERE slug = $1', [checked.slug]);
+  if (rowCount) return res.status(409).json({ error: `A page already lives at “/${checked.slug}”.` });
+
+  const { rows } = await query(
+    `INSERT INTO pages (slug, title, status, content, seo_title, seo_desc, show_in_nav)
+     VALUES ($1,$2,'draft','{"sections":[]}'::jsonb,$3,$4,$5) RETURNING *`,
+    [checked.slug, title, b.seo_title || null, b.seo_desc || null, Boolean(b.show_in_nav)],
+  );
+  res.status(201).json(rows[0]);
+}));
+
+router.put('/pages/:id', ah(async (req, res) => {
+  const b = req.body || {};
+
+  const saved = await withTransaction(async (client) => {
+    const { rows: before } = await client.query('SELECT * FROM pages WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (!before[0]) return { status: 404, body: { error: 'Page not found.' } };
+
+    let slug = before[0].slug;
+    if (b.slug !== undefined && b.slug !== slug) {
+      const checked = checkSlug(b.slug);
+      if (checked.error) return { status: 400, body: { error: checked.error } };
+      const { rowCount } = await client.query(
+        'SELECT 1 FROM pages WHERE slug = $1 AND id <> $2', [checked.slug, req.params.id],
+      );
+      if (rowCount) return { status: 409, body: { error: `A page already lives at “/${checked.slug}”.` } };
+      slug = checked.slug;
+    }
+
+    let content = before[0].content;
+    if (b.content !== undefined) {
+      const checked = checkContent(b.content);
+      if (checked.error) return { status: 400, body: { error: checked.error } };
+      content = checked.content;
+
+      /* The version being replaced is kept before it is overwritten, and only
+         when the layout actually changed — renaming a page should not fill the
+         history with identical copies of its content. */
+      if (JSON.stringify(before[0].content) !== JSON.stringify(content)) {
+        await client.query(
+          'INSERT INTO page_revisions (page_id, content, author_id) VALUES ($1,$2,$3)',
+          [before[0].id, JSON.stringify(before[0].content), req.user?.id || null],
+        );
+        await client.query(
+          `DELETE FROM page_revisions
+            WHERE page_id = $1
+              AND id NOT IN (SELECT id FROM page_revisions WHERE page_id = $1 ORDER BY id DESC LIMIT 30)`,
+          [before[0].id],
+        );
+      }
+    }
+
+    const status = b.status === 'published' || b.status === 'draft' ? b.status : before[0].status;
+
+    const { rows } = await client.query(
+      `UPDATE pages SET slug = $2, title = $3, status = $4, content = $5::jsonb,
+                        seo_title = $6, seo_desc = $7, show_in_nav = $8, updated_at = NOW()
+        WHERE id = $1 RETURNING *`,
+      [
+        req.params.id, slug,
+        b.title !== undefined ? String(b.title).trim() || before[0].title : before[0].title,
+        status, JSON.stringify(content),
+        b.seo_title !== undefined ? b.seo_title : before[0].seo_title,
+        b.seo_desc !== undefined ? b.seo_desc : before[0].seo_desc,
+        b.show_in_nav !== undefined ? Boolean(b.show_in_nav) : before[0].show_in_nav,
+      ],
+    );
+    return { status: 200, body: rows[0] };
+  });
+
+  res.status(saved.status).json(saved.body);
+}));
+
+router.delete('/pages/:id', ah(async (req, res) => {
+  await query('DELETE FROM pages WHERE id = $1', [req.params.id]);
+  res.json({ ok: true });
+}));
+
+/** Earlier versions of one page, newest first, for rolling back. */
+router.get('/pages/:id/revisions', ah(async (req, res) => {
+  const { rows } = await query(
+    `SELECT r.id, r.created_at, u.name AS author
+       FROM page_revisions r LEFT JOIN users u ON u.id = r.author_id
+      WHERE r.page_id = $1 ORDER BY r.id DESC LIMIT 30`,
+    [req.params.id],
+  );
+  res.json(rows);
+}));
+
+router.post('/pages/:id/revisions/:revisionId/restore', ah(async (req, res) => {
+  const restored = await withTransaction(async (client) => {
+    const { rows: rev } = await client.query(
+      'SELECT content FROM page_revisions WHERE id = $1 AND page_id = $2',
+      [req.params.revisionId, req.params.id],
+    );
+    if (!rev[0]) return null;
+
+    /* Restoring is itself a change, so what it replaces is kept too. Without
+       this, rolling back by mistake would be the one edit you cannot undo. */
+    const { rows: before } = await client.query('SELECT content FROM pages WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (!before[0]) return null;
+    await client.query(
+      'INSERT INTO page_revisions (page_id, content, author_id) VALUES ($1,$2,$3)',
+      [req.params.id, JSON.stringify(before[0].content), req.user?.id || null],
+    );
+
+    const { rows } = await client.query(
+      'UPDATE pages SET content = $2::jsonb, updated_at = NOW() WHERE id = $1 RETURNING *',
+      [req.params.id, JSON.stringify(rev[0].content)],
+    );
+    return rows[0];
+  });
+
+  if (!restored) return res.status(404).json({ error: 'That version is no longer there.' });
+  res.json(restored);
 }));
 
 export default router;

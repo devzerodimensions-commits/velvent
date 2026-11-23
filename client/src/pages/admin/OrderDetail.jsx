@@ -126,6 +126,28 @@ export default function OrderDetail() {
                 <div className="flex justify-between border-t border-adm-line pt-2 text-[15px] font-semibold text-adm-ink">
                   <dt>Total</dt><dd>{inr(order.total)}</dd>
                 </div>
+
+                {/* The tax is inside the total, not added to it, so it is shown
+                    under the line rather than above it — the same way it reads
+                    on the invoice. */}
+                {order.tax_amount !== null && order.tax_amount !== undefined && (
+                  <div className="mt-1 space-y-1 border-t border-dashed border-adm-line pt-2 text-[12px] text-adm-mute">
+                    <div className="flex justify-between">
+                      <dt>Value of goods</dt><dd>{inr(order.taxable_amount)}</dd>
+                    </div>
+                    {Number(order.igst) > 0 ? (
+                      <div className="flex justify-between"><dt>IGST (included)</dt><dd>{inr(order.igst)}</dd></div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between"><dt>CGST (included)</dt><dd>{inr(order.cgst)}</dd></div>
+                        <div className="flex justify-between"><dt>SGST (included)</dt><dd>{inr(order.sgst)}</dd></div>
+                      </>
+                    )}
+                    {order.place_of_supply && (
+                      <div className="flex justify-between"><dt>Place of supply</dt><dd>{order.place_of_supply}</dd></div>
+                    )}
+                  </div>
+                )}
               </dl>
             </MetaBox>
 
@@ -178,6 +200,18 @@ export default function OrderDetail() {
                 Cancelling or refunding returns the stock automatically.
               </p>
             </MetaBox>
+
+            {order.invoice_number && (
+              <MetaBox title="Tax invoice">
+                <p className="font-mono text-[13px] font-semibold text-adm-ink">{order.invoice_number}</p>
+                {order.invoice_date && (
+                  <p className="mt-1 text-[12px] text-adm-mute">Issued {formatDate(order.invoice_date)}</p>
+                )}
+                <p className="mt-2 text-[11.5px] leading-relaxed text-adm-mute">
+                  Numbered when the order became a sale. It never changes, and the sequence restarts each April.
+                </p>
+              </MetaBox>
+            )}
 
             <MetaBox title="Shipping">
               {order.tracking_number ? (

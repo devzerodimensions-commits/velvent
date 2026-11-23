@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Mark } from '../../components/Logo';
 import {
-  Bag, Box, Chart, ChevronDown, ChevronLeft, Close, Cog, Grid, Logout, Mail, Menu,
+  Bag, Box, Chart, ChevronDown, ChevronLeft, Close, Cog, Grid, Layers, Logout, Mail, Menu,
   Ruler, Search, Shield, Star, Tag, Upload, User,
 } from '../../components/Icons';
 import { useAuth } from '../../store/auth';
@@ -60,6 +60,14 @@ const MENU = [
   {
     heading: 'Store content',
     items: [
+      {
+        to: '/admin/pages',
+        label: 'Pages',
+        Icon: Layers,
+        children: [
+          { to: '/admin/pages', end: true, label: 'All pages' },
+        ],
+      },
       {
         to: '/admin/content',
         label: 'Content',

@@ -18,13 +18,48 @@ router.get('/health', ah(async (_req, res) => {
   res.json({ status: 'ok', db: 'connected', time: rows[0].now, counts: counts[0] });
 }));
 
-/** Serves an admin-uploaded image, from wherever this deployment keeps them. */
+/**
+ * Serves an admin-uploaded image or video, from wherever this deployment
+ * keeps them.
+ *
+ * Video gets byte ranges. This is not an optimisation: Safari on iOS will not
+ * play a <video> at all unless the server answers a Range request with a 206,
+ * and most of this shop's customers are on a phone. Everything else is sent
+ * whole, as before.
+ */
 router.get('/media/:id', ah(async (req, res) => {
   const found = await getMediaStore().get(req.params.id);
   if (!found) return res.status(404).end();
+
   res.set('Content-Type', found.mime);
   res.set('Cache-Control', 'public, max-age=31536000, immutable');
-  res.send(found.bytes);
+
+  const isVideo = String(found.mime || '').startsWith('video/');
+  if (!isVideo) return res.send(found.bytes);
+
+  const total = found.bytes.length;
+  res.set('Accept-Ranges', 'bytes');
+
+  const range = req.headers.range;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(String(range || ''));
+  if (!match) return res.send(found.bytes);
+
+  /* An open-ended range ("bytes=0-") means to the end of the file. A suffix
+     range ("bytes=-500") means the last 500 bytes. */
+  let start = match[1] === '' ? total - Number(match[2]) : Number(match[1]);
+  let end = match[1] === '' || match[2] === '' ? total - 1 : Number(match[2]);
+  start = Math.max(0, Math.min(start, total - 1));
+  end = Math.max(start, Math.min(end, total - 1));
+
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    res.set('Content-Range', `bytes */${total}`);
+    return res.status(416).end();
+  }
+
+  res.status(206);
+  res.set('Content-Range', `bytes ${start}-${end}/${total}`);
+  res.set('Content-Length', String(end - start + 1));
+  return res.end(found.bytes.subarray(start, end + 1));
 }));
 
 router.post('/newsletter', ah(async (req, res) => {
@@ -83,6 +118,33 @@ router.get('/content', ah(async (_req, res) => {
   const content = await getContent();
   res.set('Cache-Control', 'public, max-age=30');
   res.json(content);
+}));
+
+
+/**
+ * GET /api/pages/:slug — one published page for the storefront.
+ *
+ * Drafts are invisible here even to a signed-in admin: this is the shopper's
+ * endpoint, and the admin previews through the builder instead. That keeps
+ * "is it live?" answerable by looking at the site.
+ */
+router.get('/pages/:slug', ah(async (req, res) => {
+  const { rows } = await query(
+    `SELECT slug, title, content, seo_title, seo_desc, updated_at
+       FROM pages WHERE slug = $1 AND status = 'published'`,
+    [String(req.params.slug || '').toLowerCase()],
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'That page could not be found.' });
+  res.json(rows[0]);
+}));
+
+/** Built pages the client asked to appear in the site navigation. */
+router.get('/nav-pages', ah(async (_req, res) => {
+  const { rows } = await query(
+    `SELECT slug, title FROM pages
+      WHERE status = 'published' AND show_in_nav ORDER BY title LIMIT 20`,
+  );
+  res.json(rows);
 }));
 
 export default router;

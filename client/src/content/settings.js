@@ -20,6 +20,22 @@ export const defaults = {
     title: 'Back shortly',
     body: 'We are making a few changes to the store. Please check back in a little while.',
   },
+
+  /* GST.
+
+     Switched off until the shop fills in its GSTIN, because a half-filled tax
+     setup produces invoices that are worse than none. Turning it on changes
+     no price: every price on this store already includes the tax, so the
+     figures below only decide how that price is split on a bill. */
+  tax: {
+    enabled: false,
+    gstin: '',
+    legalName: '',
+    sellerState: 'Gujarat',
+    invoicePrefix: 'VLV/',
+    defaultHsn: '6105',
+    pickup: { line1: '', line2: '', city: '', state: 'Gujarat', pincode: '' },
+  },
 };
 
 export const fields = [
@@ -31,6 +47,34 @@ export const fields = [
 
   { name: 'notifyEmail', label: 'Order notification email', type: 'text', help: 'Where to send a note when an order comes in. Leave empty to use the store email.' },
   { name: 'lowStockAt', label: 'Low stock warning at', type: 'number', help: 'The dashboard flags a size once its stock reaches this number.' },
+
+  {
+    name: 'tax',
+    label: 'GST & invoicing',
+    type: 'group',
+    help: 'Your prices already include GST, so switching this on does not change what anyone pays. It decides how the tax is shown on a bill and what gets sent to the courier.',
+    fields: [
+      { name: 'enabled', label: 'Charge and show GST', type: 'toggle' },
+      { name: 'gstin', label: 'GSTIN', type: 'text', help: 'Your 15-character GST number, e.g. 24ABCDE1234F1Z5.' },
+      { name: 'legalName', label: 'Registered business name', type: 'text', help: 'The name on your GST certificate, if it differs from VELVENT.' },
+      { name: 'sellerState', label: 'Your state', type: 'text', help: 'Orders inside this state are billed CGST + SGST. Everywhere else is IGST.' },
+      { name: 'invoicePrefix', label: 'Invoice number prefix', type: 'text', help: 'Invoices read like VLV/2026-27/0001. The number restarts each April.' },
+      { name: 'defaultHsn', label: 'Default HSN code', type: 'text', help: 'Used for any product without its own. 6105 is knitted shirts and polos.' },
+      {
+        name: 'pickup',
+        label: 'Pickup address',
+        type: 'group',
+        help: 'Where parcels are collected from. Shiprocket and every other courier needs this before it will book a shipment.',
+        fields: [
+          { name: 'line1', label: 'Address line 1', type: 'text' },
+          { name: 'line2', label: 'Address line 2', type: 'text' },
+          { name: 'city', label: 'City', type: 'text' },
+          { name: 'state', label: 'State', type: 'text' },
+          { name: 'pincode', label: 'PIN code', type: 'text' },
+        ],
+      },
+    ],
+  },
 
   {
     name: 'maintenance',

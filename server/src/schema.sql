@@ -268,3 +268,97 @@ ALTER TABLE media ALTER COLUMN bytes DROP NOT NULL;
 
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reply      TEXT;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS replied_at TIMESTAMPTZ;
+
+/* ------------------------------------------------------------------- GST
+
+   Indian apparel is sold at an MRP that already contains the tax, so these
+   columns record a split of a price the shopper already saw rather than
+   anything added on top. Changing them never changes what the store charges.
+
+   tax_rate is per product and may be NULL, which means "work it out from the
+   price": garments are 5% up to ₹1,000 a piece and 12% above it. Setting a
+   rate here overrides that for products the slab rule gets wrong. */
+ALTER TABLE products ADD COLUMN IF NOT EXISTS hsn_code TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS tax_rate NUMERIC(5,2);
+
+/* Parcel size. Shiprocket and every other courier API refuses an order
+   without these, so they live beside weight_grams rather than in whatever
+   provider gets plugged in later. */
+ALTER TABLE products ADD COLUMN IF NOT EXISTS length_cm  NUMERIC(6,2);
+ALTER TABLE products ADD COLUMN IF NOT EXISTS breadth_cm NUMERIC(6,2);
+ALTER TABLE products ADD COLUMN IF NOT EXISTS height_cm  NUMERIC(6,2);
+
+/* One product video. A URL rather than a table of its own: YouTube, Vimeo or
+   a direct MP4 all fit, and a shop with no video stores nothing. */
+ALTER TABLE products ADD COLUMN IF NOT EXISTS video_url TEXT;
+
+/* The tax split, frozen onto the order the moment it is placed. Recomputing
+   it later from today's rates would rewrite history every time a rate or a
+   price changed, and a tax invoice must say what was actually charged.
+
+   Place of supply decides the split: the buyer's state inside Gujarat means
+   CGST + SGST, anywhere else means IGST. Both are stored so neither has to be
+   inferred when an invoice is printed months later. */
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS taxable_amount  NUMERIC(10,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS tax_amount      NUMERIC(10,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS cgst            NUMERIC(10,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS sgst            NUMERIC(10,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS igst            NUMERIC(10,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS place_of_supply TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_number  TEXT UNIQUE;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_date    TIMESTAMPTZ;
+
+/* Per line, because an invoice has to show the rate and HSN against each
+   item, and because a cart can mix the 5% and 12% slabs. */
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS hsn_code       TEXT;
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS tax_rate       NUMERIC(5,2);
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS taxable_amount NUMERIC(10,2);
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS tax_amount     NUMERIC(10,2);
+
+/* Invoice numbering.
+
+   A tax invoice number has to be unique and run in sequence within a
+   financial year, so the counter is a row the database increments atomically
+   rather than a MAX() read that two orders could win at once. One row per
+   year, which is also what makes the number restart each April. */
+CREATE TABLE IF NOT EXISTS invoice_counters (
+  fy          TEXT PRIMARY KEY,
+  last_number INT NOT NULL DEFAULT 0
+);
+
+/* ----------------------------------------------------------- built pages
+
+   Pages assembled in the visual builder. The layout is one JSON document —
+   sections holding columns holding widgets — because the shape of a page is
+   the thing the client keeps changing, and a schema that needed a migration
+   every time they added a widget would be the wrong shape for the job.
+
+   Nothing here is ever rendered as HTML. The storefront walks the tree and
+   renders React components, so a value in this column cannot become markup
+   in a shopper's browser. */
+CREATE TABLE IF NOT EXISTS pages (
+  id         SERIAL PRIMARY KEY,
+  slug       TEXT UNIQUE NOT NULL,
+  title      TEXT NOT NULL,
+  status     TEXT NOT NULL DEFAULT 'draft',   -- draft | published
+  content    JSONB NOT NULL DEFAULT '{"sections":[]}'::jsonb,
+  seo_title  TEXT,
+  seo_desc   TEXT,
+  show_in_nav BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS pages_status_idx ON pages(status);
+
+/* Every save keeps the version it replaced, so a client who spends an
+   afternoon on a page and then wrecks it has somewhere to go back to. Undo
+   in the editor only survives while the tab is open; this survives the tab
+   being closed. Trimmed to the last 30 per page on write. */
+CREATE TABLE IF NOT EXISTS page_revisions (
+  id         SERIAL PRIMARY KEY,
+  page_id    INT NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
+  content    JSONB NOT NULL,
+  author_id  INT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS page_revisions_page_idx ON page_revisions(page_id, id DESC);

@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Seo, Spinner } from '../../components/ui';
-import { Box, Grid, Plus, Ruler, Tag, Trash, Upload } from '../../components/Icons';
+import { Box, Grid, Play, Plus, Ruler, Tag, Trash, Upload } from '../../components/Icons';
 import {
   EditLayout, Field, MetaBox, Notice, PublishBox, ScreenHeader, TabbedMetaBox,
 } from '../../components/adminUi';
 import { api } from '../../lib/api';
 import { bySize, inr, SIZE_ORDER } from '../../lib/format';
+import { slabRateFor, splitInclusive } from '../../lib/gst';
+import { isEmbed } from '../../lib/video';
 import { useToast } from '../../store/toast';
 
 const BLANK = {
@@ -15,6 +17,9 @@ const BLANK = {
   fabric: 'Knitted Cotton',
   wash_care: 'Machine wash cold with like colours. Do not bleach. Tumble dry low. Warm iron on reverse.',
   fit: 'Regular Fit', sleeve: 'Half Sleeve', collar: '', weight_grams: 450,
+  hsn_code: '', tax_rate: '',
+  length_cm: 30, breadth_cm: 24, height_cm: 4,
+  video_url: '',
   is_active: true, is_featured: false, is_new: true, sort_order: 0,
   images: [], variants: [],
 };
@@ -23,6 +28,7 @@ const TABS = [
   { key: 'general', label: 'General', Icon: Tag },
   { key: 'inventory', label: 'Inventory', Icon: Box },
   { key: 'shipping', label: 'Shipping', Icon: Box },
+  { key: 'tax', label: 'Tax', Icon: Tag },
   { key: 'attributes', label: 'Attributes', Icon: Ruler },
   { key: 'variations', label: 'Variations', Icon: Grid },
 ];
@@ -33,12 +39,14 @@ export default function ProductEditor() {
   const navigate = useNavigate();
   const { success, error: toastError } = useToast();
   const fileRef = useRef(null);
+  const videoRef = useRef(null);
 
   const [form, setForm] = useState(BLANK);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [error, setError] = useState(null);
 
   // The "add S–3XL for this colour" builder, which is how a run is really added.
@@ -56,6 +64,17 @@ export default function ProductEditor() {
 
   const set = (k) => (e) =>
     setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+
+  /* --------------------------------------------------------------- tax */
+
+  /* What the slab rule would pick if the rate box is left empty, and the
+     split at whichever rate is actually in force. Shown live so the client
+     can see the effect of a price before saving it. */
+  const autoRate = slabRateFor(form.sale_price || 0);
+  const effectiveRate = form.tax_rate === '' || form.tax_rate === null || form.tax_rate === undefined
+    ? autoRate
+    : Number(form.tax_rate) || 0;
+  const taxPreview = { rate: effectiveRate, ...splitInclusive(form.sale_price || 0, effectiveRate) };
 
   /* ------------------------------------------------------------- images */
 
@@ -82,6 +101,31 @@ export default function ProductEditor() {
     if (url?.trim()) {
       setForm((f) => ({ ...f, images: [...f.images, { url: url.trim(), alt: f.name, color: '', sort_order: f.images.length }] }));
     }
+  };
+
+  /* -------------------------------------------------------------- video */
+
+  const uploadVideo = async (e) => {
+    const file = (e.target.files || [])[0];
+    if (!file) return;
+    setUploadingVideo(true);
+    try {
+      /* Straight to the server, with no WebP conversion step in between —
+         that pass is for stills and would destroy a video. */
+      const { url } = await api.admin.upload(file);
+      setForm((f) => ({ ...f, video_url: url }));
+      success('Video uploaded.');
+    } catch (err) { toastError(err.message); }
+    finally {
+      setUploadingVideo(false);
+      if (videoRef.current) videoRef.current.value = '';
+    }
+  };
+
+  const addVideoUrl = () => {
+    // eslint-disable-next-line no-alert
+    const url = window.prompt('Paste a YouTube, Vimeo or MP4 link');
+    if (url?.trim()) setForm((f) => ({ ...f, video_url: url.trim() }));
   };
 
   const patchImage = (i, patch) =>
@@ -235,9 +279,90 @@ export default function ProductEditor() {
                   )}
 
                   {tab === 'shipping' && (
-                    <Field label="Weight (g)" htmlFor="p-weight" hint="Used on the product page's details list.">
-                      <input id="p-weight" type="number" min="0" value={form.weight_grams || ''} onChange={set('weight_grams')} className="ad-input sm:w-40" />
-                    </Field>
+                    <div className="space-y-4">
+                      <Field label="Weight (g)" htmlFor="p-weight" hint="Shown on the product page, and sent to the courier when a parcel is booked.">
+                        <input id="p-weight" type="number" min="0" value={form.weight_grams || ''} onChange={set('weight_grams')} className="ad-input sm:w-40" />
+                      </Field>
+
+                      <div>
+                        <p className="ad-label">Packed parcel size (cm)</p>
+                        <p className="mb-2 mt-1 text-[11.5px] leading-relaxed text-adm-mute">
+                          Measure the box or bag once it is packed, not the garment. Couriers refuse a booking
+                          without these, and they decide the shipping rate you are charged.
+                        </p>
+                        <div className="flex flex-wrap gap-3">
+                          {[
+                            ['length_cm', 'Length'],
+                            ['breadth_cm', 'Breadth'],
+                            ['height_cm', 'Height'],
+                          ].map(([key, label]) => (
+                            <div key={key}>
+                              <label htmlFor={`p-${key}`} className="mb-1 block text-[11.5px] text-adm-mute">{label}</label>
+                              <input
+                                id={`p-${key}`}
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={form[key] ?? ''}
+                                onChange={set(key)}
+                                className="ad-input w-24"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {tab === 'tax' && (
+                    <div className="space-y-4">
+                      <Notice tone="info">
+                        Your prices already include GST. Nothing here changes what a customer pays —
+                        it only decides how the tax is shown on their bill.
+                      </Notice>
+
+                      <Field label="HSN code" htmlFor="p-hsn" hint="The code this garment is classified under. Leave empty to use the default from Settings.">
+                        <input id="p-hsn" value={form.hsn_code || ''} onChange={set('hsn_code')} placeholder="6105" className="ad-input sm:w-40" />
+                      </Field>
+
+                      <Field
+                        label="GST rate (%)"
+                        htmlFor="p-taxrate"
+                        hint="Leave empty and the rate is worked out from the price — 5% up to ₹1,050, 12% above. Only fill this in if that is wrong for this product."
+                      >
+                        <input
+                          id="p-taxrate"
+                          type="number"
+                          min="0"
+                          max="28"
+                          step="0.5"
+                          value={form.tax_rate ?? ''}
+                          onChange={set('tax_rate')}
+                          placeholder={`Automatic: ${autoRate}%`}
+                          className="ad-input sm:w-40"
+                        />
+                      </Field>
+
+                      <div className="rounded-xl border border-adm-line bg-adm-soft/60 p-4">
+                        <p className="text-[12.5px] font-bold uppercase tracking-[0.08em] text-adm-mute">
+                          At {inr(form.sale_price || 0)} this works out as
+                        </p>
+                        <dl className="mt-3 space-y-1.5 text-[13px]">
+                          <div className="flex justify-between">
+                            <dt className="text-adm-mute">Value of goods</dt>
+                            <dd className="font-semibold text-adm-ink">{inr(taxPreview.taxable)}</dd>
+                          </div>
+                          <div className="flex justify-between">
+                            <dt className="text-adm-mute">GST at {taxPreview.rate}%</dt>
+                            <dd className="font-semibold text-adm-ink">{inr(taxPreview.tax)}</dd>
+                          </div>
+                          <div className="flex justify-between border-t border-adm-line pt-1.5">
+                            <dt className="font-semibold text-adm-ink">Price the customer pays</dt>
+                            <dd className="font-semibold text-adm-ink">{inr(form.sale_price || 0)}</dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </div>
                   )}
 
                   {tab === 'attributes' && (
@@ -434,6 +559,52 @@ export default function ProductEditor() {
                 </p>
               </MetaBox>
             )}
+
+            <MetaBox title="Product video">
+              {form.video_url ? (
+                <div>
+                  {isEmbed(form.video_url) ? (
+                    <div className="flex items-center gap-2 rounded-lg border border-adm-line bg-adm-soft p-3">
+                      <Play size={16} className="shrink-0 text-adm-mute" />
+                      <span className="min-w-0 flex-1 truncate text-[12px] text-adm-ink">{form.video_url}</span>
+                    </div>
+                  ) : (
+                    <video
+                      src={form.video_url}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="aspect-[3/4] w-full rounded-lg bg-adm-soft object-cover"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, video_url: '' }))}
+                    className="mt-2 text-[12px] text-sale transition hover:underline"
+                  >
+                    Remove video
+                  </button>
+                </div>
+              ) : (
+                <p className="text-[12.5px] text-adm-mute">No video yet.</p>
+              )}
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={addVideoUrl} className="ad-btn-ghost">
+                  <Play size={14} /> Add a link
+                </button>
+                <button type="button" onClick={() => videoRef.current?.click()} disabled={uploadingVideo} className="ad-btn-ghost">
+                  <Upload size={14} /> {uploadingVideo ? 'Uploading…' : 'Upload a file'}
+                </button>
+                <input ref={videoRef} type="file" accept="video/mp4,video/webm" onChange={uploadVideo} className="hidden" />
+              </div>
+
+              <p className="mt-2 text-[11.5px] leading-relaxed text-adm-mute">
+                A YouTube or Vimeo link is the better option — it costs nothing to store and plays
+                smoothly everywhere. Upload a file only for a short clip: MP4 or WEBM, under 25&nbsp;MB,
+                and keep it to about 20 seconds.
+              </p>
+            </MetaBox>
           </>
         )}
       />

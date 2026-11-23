@@ -632,3 +632,112 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ===================================================================== */
+/* The page builder.                                                      */
+/*                                                                        */
+/* These rules only ever apply inside the editor. The canvas renders the  */
+/* same components the storefront does, so everything here is outline,    */
+/* handle and drop indicator — nothing that changes layout, because a     */
+/* rule that moved something would make the editor lie about the page.    */
+/* ===================================================================== */
+
+@layer components {
+  /* ---------------------------------------------------- panel controls */
+  .vb-input {
+    @apply w-full rounded-lg border border-adm-line bg-white px-2.5 py-1.5 text-[12.5px] text-adm-ink outline-none transition;
+    @apply focus:border-navy focus:ring-2 focus:ring-navy/15;
+  }
+  .vb-btn {
+    @apply inline-flex items-center justify-center gap-1 rounded-lg border border-adm-line bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-adm-ink transition hover:border-navy hover:text-navy;
+  }
+  .vb-btn-danger { @apply text-sale hover:border-sale hover:text-sale; }
+}
+
+/* ------------------------------------------------------------ outlines */
+
+.vb-editable { position: relative; }
+
+/* Outline, never border: a border occupies space and would nudge the page
+   every time the pointer crossed something. */
+.vb-editable.vb-hot  { outline: 1px dashed rgba(44, 53, 68, .45); outline-offset: -1px; }
+.vb-editable.vb-sel  { outline: 2px solid #2C3544; outline-offset: -2px; }
+.vb-ed-column.vb-hot { outline-color: rgba(44, 53, 68, .3); }
+
+/* An empty section or column has nothing to show, so it is given a visible
+   footprint — otherwise the client builds a layout they cannot see or aim at. */
+.vb-ed-column { min-height: 48px; }
+
+.vb-empty {
+  margin: 4px;
+  padding: 18px 10px;
+  border: 1px dashed rgba(44, 53, 68, .35);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 11.5px;
+  color: rgba(44, 53, 68, .6);
+}
+.vb-empty.vb-drop-on { border-color: #2C3544; background: rgba(44, 53, 68, .07); }
+
+/* -------------------------------------------------------- drop targets */
+
+/* Absolutely positioned and only present while a drag is in flight, so they
+   never take part in the layout and never intercept an ordinary click. An
+   earlier version put them in the flow, which made a section's column gap
+   apply between the strips as well — the canvas measured wider than the
+   published page, which defeats the point of rendering the real thing. */
+.vb-strip { position: absolute; z-index: 15; }
+.vb-strip-top    { top: -5px; left: 0; right: 0; height: 11px; }
+.vb-strip-bottom { bottom: -5px; left: 0; right: 0; height: 11px; }
+.vb-strip-left   { left: -5px; top: 0; bottom: 0; width: 11px; }
+.vb-strip-right  { right: -5px; top: 0; bottom: 0; width: 11px; }
+
+.vb-strip-on::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  background: #2C3544;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(44, 53, 68, .18);
+}
+.vb-strip-top.vb-strip-on::after,
+.vb-strip-bottom.vb-strip-on::after { height: 4px; }
+.vb-strip-left.vb-strip-on::after,
+.vb-strip-right.vb-strip-on::after { width: 4px; }
+
+/* ---------------------------------------------------------- the handle */
+
+.vb-chrome {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: #2C3544;
+  color: #F6F2EA;
+  font-family: Montserrat, ui-sans-serif, system-ui, sans-serif;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(15, 19, 26, .25);
+}
+.vb-chrome button {
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1;
+}
+.vb-chrome button:hover { background: rgba(246, 242, 234, .2); }
+.vb-chrome-name { padding: 0 3px; font-weight: 600; letter-spacing: .04em; }
+.vb-grip { cursor: grab; padding: 2px 3px; font-size: 11px; }
+.vb-grip:active { cursor: grabbing; }
+
+/* Each level sits in a different corner, so a widget's handle never hides
+   the handle of the column it is in. */
+.vb-chrome-section { top: 0; left: 50%; transform: translate(-50%, -50%); }
+.vb-chrome-column  { top: 0; left: 0; }
+.vb-chrome-widget  { top: 0; right: 0; }

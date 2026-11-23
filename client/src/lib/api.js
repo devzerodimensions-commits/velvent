@@ -60,6 +60,10 @@ export const api = {
 
   content: () => request('/content'),
 
+  /** A published page built in the visual editor. */
+  page: (slug) => request(`/pages/${encodeURIComponent(slug)}`),
+  navPages: () => request('/nav-pages'),
+
   categories: () => request('/categories'),
   products: (params) => request(`/products${qs(params)}`),
   filters: () => request('/products/filters'),
@@ -157,6 +161,17 @@ export const api = {
 
     media: () => request('/admin/media'),
     deleteMedia: (id) => request(`/admin/media/${id}`, { method: 'DELETE' }),
+
+    /* Built pages. savePage sends the whole layout, so it is the one admin
+       call that can carry a few hundred kilobytes. */
+    pages: () => request('/admin/pages'),
+    page: (id) => request(`/admin/pages/${id}`),
+    createPage: (body) => request('/admin/pages', { method: 'POST', body }),
+    savePage: (id, body) => request(`/admin/pages/${id}`, { method: 'PUT', body }),
+    deletePage: (id) => request(`/admin/pages/${id}`, { method: 'DELETE' }),
+    pageRevisions: (id) => request(`/admin/pages/${id}/revisions`),
+    restorePageRevision: (id, revisionId) =>
+      request(`/admin/pages/${id}/revisions/${revisionId}/restore`, { method: 'POST' }),
 
     /**
      * Every upload in the admin goes through here, so the conversion to WebP

@@ -3,9 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { Accordion, Alert, Breadcrumbs, PageLoader, Rating, SectionHead, Seo } from '../components/ui';
 import { SizeGuideModal } from '../components/SizeGuide';
-import { Bag, Box, Check, Heart, Minus, Plus, Refresh, Ruler, Rupee, Share, Shield, Similar, Tag, Truck } from '../components/Icons';
+import { Bag, Box, Check, Heart, Minus, Play, Plus, Refresh, Ruler, Rupee, Share, Shield, Similar, Tag, Truck } from '../components/Icons';
 import { api } from '../lib/api';
 import { bySize, deliveryEstimate, discountPct, formatDate, inr } from '../lib/format';
+import { embedSrc, fileSrc } from '../lib/video';
 import { Rich } from '../components/RichText';
 import { useContent } from '../store/content';
 import { useCart } from '../store/cart';
@@ -16,11 +17,61 @@ import { useToast } from '../store/toast';
    into a component, falling back rather than breaking the page. */
 const TRUST_ICONS = { Truck, Refresh, Shield, Box, Rupee, Check, Tag };
 
-function Gallery({ images, name, activeColor }) {
+/**
+ * One slide. A photo, or the product video playing where a photo would be.
+ *
+ * A YouTube or Vimeo link becomes an iframe; anything else is a real <video>
+ * tag, which is what an uploaded clip needs. `playsInline` matters more than
+ * it looks: without it iOS takes the video fullscreen the moment it starts,
+ * which is not what someone flicking through a gallery asked for.
+ */
+function Slide({ item, name, priority }) {
+  if (item.kind !== 'video') {
+    return (
+      <img
+        src={item.url}
+        alt={item.alt || name}
+        className="h-full w-full object-cover"
+        fetchpriority={priority ? 'high' : undefined}
+        loading={priority ? undefined : 'lazy'}
+      />
+    );
+  }
+
+  const frame = embedSrc(item.url);
+  if (frame) {
+    return (
+      <iframe
+        src={frame}
+        title={`${name} video`}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        className="h-full w-full border-0"
+      />
+    );
+  }
+
+  return (
+    <video
+      src={fileSrc(item.url)}
+      controls
+      playsInline
+      preload="metadata"
+      className="h-full w-full bg-navy object-cover"
+    />
+  );
+}
+
+function Gallery({ images, name, activeColor, video }) {
   const shown = useMemo(() => {
     const forColor = images.filter((i) => !i.color || i.color === activeColor);
-    return forColor.length ? forColor : images;
-  }, [images, activeColor]);
+    const photos = (forColor.length ? forColor : images).map((img) => ({ ...img, kind: 'image' }));
+    /* The video goes last, so the first thing anyone sees is still the
+       garment. A link we cannot make sense of is dropped rather than
+       rendered as a broken frame. */
+    const playable = video && (embedSrc(video) || fileSrc(video));
+    return playable ? [...photos, { kind: 'video', url: video }] : photos;
+  }, [images, activeColor, video]);
 
   const [i, setI] = useState(0);
   const stripRef = useRef(null);
@@ -40,6 +91,9 @@ function Gallery({ images, name, activeColor }) {
   useEffect(() => {
     if (taken || shown.length < 2) return undefined;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
+    /* Nothing slides away from a video. Someone who has reached it is either
+       watching it or about to, and moving it on would interrupt them. */
+    if (shown[i]?.kind === 'video') return undefined;
 
     const id = setInterval(() => {
       const el = stripRef.current;
@@ -48,7 +102,7 @@ function Gallery({ images, name, activeColor }) {
       el.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' });
     }, 4000);
     return () => clearInterval(id);
-  }, [taken, shown.length]);
+  }, [taken, shown, i]);
 
   const goTo = (n) => {
     setTaken(true);
@@ -66,6 +120,9 @@ function Gallery({ images, name, activeColor }) {
   };
 
   const current = shown[Math.min(i, shown.length - 1)] || images[0];
+  /* What the video's thumbnail borrows. Undefined when the product has no
+     photographs, which is the case the thumbnail has to survive. */
+  const firstPhoto = shown.find((s) => s.kind === 'image')?.url;
 
   return (
     <div className="flex gap-3 lg:gap-4">
@@ -75,13 +132,30 @@ function Gallery({ images, name, activeColor }) {
             <button
               key={img.url + n}
               onClick={() => setI(n)}
-              aria-label={`View image ${n + 1}`}
+              aria-label={img.kind === 'video' ? 'Watch the video' : `View image ${n + 1}`}
               aria-current={n === i}
-              className={`aspect-[3/4] overflow-hidden border-2 bg-cream transition ${
+              className={`relative aspect-[3/4] overflow-hidden border-2 bg-cream transition ${
                 n === i ? 'border-navy' : 'border-transparent opacity-70 hover:opacity-100'
               }`}
             >
-              <img src={img.url} alt="" className="h-full w-full object-cover" loading="lazy" />
+              {/* The video's thumbnail is the first photo with a play mark on
+                  it, so no second image has to be uploaded for it. A product
+                  with a video and no photographs at all has nothing to stand
+                  in, and gets the play mark on its own rather than the video
+                  file handed to an <img> that cannot render it. */}
+              {(img.kind === 'video' ? firstPhoto : img.url) && (
+                <img
+                  src={img.kind === 'video' ? firstPhoto : img.url}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              )}
+              {img.kind === 'video' && (
+                <span className="absolute inset-0 grid place-items-center bg-navy/35">
+                  <Play size={20} className="text-cream" />
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -90,12 +164,7 @@ function Gallery({ images, name, activeColor }) {
       <div className="order-2 min-w-0 flex-1">
         {/* Above the small breakpoint the thumbnail column picks the image. */}
         <div className="hidden aspect-[3/4] overflow-hidden bg-cream sm:block">
-          <img
-            src={current?.url}
-            alt={current?.alt || name}
-            className="h-full w-full object-cover"
-            fetchpriority="high"
-          />
+          {current && <Slide item={current} name={name} priority />}
         </div>
 
         {/* On a phone it is a real strip: swipe it, or let it carry itself. */}
@@ -108,13 +177,7 @@ function Gallery({ images, name, activeColor }) {
         >
           {shown.map((img, n) => (
             <div key={img.url + n} className="aspect-[3/4] w-full shrink-0 snap-center overflow-hidden bg-cream">
-              <img
-                src={img.url}
-                alt={img.alt || name}
-                className="h-full w-full object-cover"
-                fetchpriority={n === 0 ? 'high' : undefined}
-                loading={n === 0 ? undefined : 'lazy'}
-              />
+              <Slide item={img} name={name} priority={n === 0} />
             </div>
           ))}
         </div>
@@ -125,7 +188,7 @@ function Gallery({ images, name, activeColor }) {
               <button
                 key={img.url + n}
                 onClick={() => goTo(n)}
-                aria-label={`View image ${n + 1}`}
+                aria-label={img.kind === 'video' ? 'Watch the video' : `View image ${n + 1}`}
                 aria-current={n === i}
                 className={`h-1.5 flex-1 transition ${n === i ? 'bg-navy' : 'bg-mist'}`}
               />
@@ -402,7 +465,7 @@ export default function Product() {
             stretch to the height of the details beside it, and the chip would
             anchor to the bottom of that empty space rather than the picture. */}
         <div className="relative self-start">
-          <Gallery images={product.images} name={product.name} activeColor={color} />
+          <Gallery images={product.images} name={product.name} activeColor={color} video={product.video_url} />
 
           {/* Stacked on the photograph: similar first, share under it. Share is
               only here on a phone — on desktop it stays in the button row,

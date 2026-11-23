@@ -19,6 +19,7 @@ export async function priceCart(client, items, coupon = null) {
   const { rows } = await client.query(
     `SELECT v.id, v.size, v.color, v.stock, v.sku,
             p.id AS product_id, p.name, p.slug, p.sale_price, p.mrp, p.is_active,
+            p.hsn_code, p.tax_rate,
             (SELECT url FROM product_images pi
               WHERE pi.product_id = p.id
               ORDER BY (pi.color IS DISTINCT FROM v.color), pi.sort_order, pi.id
@@ -54,6 +55,8 @@ export async function priceCart(client, items, coupon = null) {
       unitPrice: Number(v.sale_price),
       quantity: qty,
       lineTotal: money(Number(v.sale_price) * qty),
+      hsn: v.hsn_code || null,
+      taxRate: v.tax_rate === null || v.tax_rate === undefined ? null : Number(v.tax_rate),
     });
   }
 

@@ -19,6 +19,14 @@ export const Bag = (p) => (
   <Svg {...p}><path d="M5 7h14l1 13H4L5 7Z" /><path d="M9 7V5.5a3 3 0 0 1 6 0V7" /></Svg>
 );
 export const Menu = (p) => <Svg {...p}><path d="M3 6h18M3 12h18M3 18h18" /></Svg>;
+export const Play = (p) => (
+  <Svg {...p}><path d="M8 5.5v13l11-6.5-11-6.5Z" /></Svg>
+);
+export const Layers = (p) => (
+  <Svg {...p}>
+    <path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z" /><path d="m4 12 8 4.5 8-4.5" /><path d="m4 16.5 8 4.5 8-4.5" />
+  </Svg>
+);
 export const Close = (p) => <Svg {...p}><path d="M6 6l12 12M18 6 6 18" /></Svg>;
 export const ChevronDown = (p) => <Svg {...p}><path d="m6 9 6 6 6-6" /></Svg>;
 export const ChevronLeft = (p) => <Svg {...p}><path d="m15 18-6-6 6-6" /></Svg>;

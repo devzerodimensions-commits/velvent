@@ -52,6 +52,11 @@ const AdminMedia = lazy(() => import('./pages/admin/Media'));
 const AdminMediaUpload = lazy(() => import('./pages/admin/MediaUpload'));
 const AdminUsers = lazy(() => import('./pages/admin/Users'));
 const AdminProfile = lazy(() => import('./pages/admin/Profile'));
+const AdminPages = lazy(() => import('./pages/admin/Pages'));
+/* The builder is the heaviest screen in the panel and the least often opened,
+   so it stays out of the admin bundle until someone edits a page. */
+const PageBuilder = lazy(() => import('./pages/admin/PageBuilder'));
+const BuiltPage = lazy(() => import('./pages/BuiltPage'));
 
 function RequireAuth({ children, admin = false }) {
   const { user, ready, isAdmin } = useAuth();
@@ -117,7 +122,11 @@ function Storefront() {
             <Route path="media/new" element={<AdminMediaUpload />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="profile" element={<AdminProfile />} />
+            <Route path="pages" element={<AdminPages />} />
           </Route>
+          {/* Outside the admin shell on purpose: the builder is full-screen,
+              and a rail down the side would steal room from the canvas. */}
+          <Route path="/admin/pages/:id/edit" element={<RequireAuth admin><PageBuilder /></RequireAuth>} />
         </Routes>
       </Suspense>
     );
@@ -152,6 +161,12 @@ function Storefront() {
           <Route path="/returns" element={<Policy kind="returns" />} />
           <Route path="/privacy" element={<Policy kind="privacy" />} />
           <Route path="/terms" element={<Policy kind="terms" />} />
+
+          {/* Last of the single-segment routes: anything that did not match a
+              built-in screen is looked up as a page the client built. The
+              component renders the store's own 404 when there is none, so an
+              unknown address still lands somewhere familiar. */}
+          <Route path="/:slug" element={<BuiltPage />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

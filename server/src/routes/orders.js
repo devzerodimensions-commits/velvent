@@ -6,6 +6,7 @@ import { requireAuth } from '../lib/auth.js';
 import { priceCart, findCoupon } from '../lib/pricing.js';
 import { clearAbandoned, recordAbandoned } from '../lib/abandoned.js';
 import { CANCELLABLE, initialStatus } from '../lib/orderStatus.js';
+import { computeTax, ensureInvoiceNumber, getTaxSettings } from '../lib/gst.js';
 
 const router = Router();
 
@@ -28,7 +29,13 @@ router.post('/cart/price', ah(async (req, res) => {
 
   const priced = await priceCart({ query }, items, coupon);
   if (priced.error) return res.status(400).json({ error: priced.error });
-  res.json(priced);
+
+  /* How much of this total is tax. The cart cannot know the buyer's state
+     yet, so there is no CGST/SGST/IGST split here — only the one figure a
+     shopper wants, which is what the price already includes. */
+  const settings = await getTaxSettings();
+  const tax = computeTax({ lines: priced.lines, totals: priced.totals, buyerState: null, settings });
+  res.json({ ...priced, totals: { ...priced.totals, tax: tax.order ? { amount: tax.order.tax } : null } });
 }));
 
 /**
@@ -114,27 +121,61 @@ router.post('/orders', ah(async (req, res) => {
     }
 
     const { totals } = priced;
+
+    /* The tax split is worked out once, here, and written onto the order. It
+       is never recomputed afterwards: rates and prices change, and an invoice
+       has to keep saying what was actually charged on the day. */
+    const taxSettings = await getTaxSettings();
+    const tax = computeTax({
+      lines: priced.lines,
+      totals,
+      buyerState: a.state,
+      settings: taxSettings,
+    });
+
+    const startAt = initialStatus(method);
     const { rows: orderRows } = await client.query(
       `INSERT INTO orders (order_number, user_id, email, phone, payment_method, payment_status, status,
-                           subtotal, discount, shipping, total, coupon_code, shipping_address, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+                           subtotal, discount, shipping, total, coupon_code, shipping_address, notes,
+                           taxable_amount, tax_amount, cgst, sgst, igst, place_of_supply)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
       [orderNumber(), req.user?.id || null, String(email).toLowerCase(), phone, method, 'pending',
-        initialStatus(method),
+        startAt,
         totals.subtotal, totals.discount, totals.shipping, totals.total,
-        totals.couponCode, JSON.stringify(a), notes || null],
+        totals.couponCode, JSON.stringify(a), notes || null,
+        tax.order?.taxable ?? null, tax.order?.tax ?? null,
+        tax.order?.cgst ?? null, tax.order?.sgst ?? null, tax.order?.igst ?? null,
+        tax.order?.placeOfSupply ?? null],
     );
     const order = orderRows[0];
 
-    for (const l of priced.lines) {
+    priced.lines.forEach((l, i) => { l.tax = tax.lines[i]; });
+
+    for (let i = 0; i < priced.lines.length; i += 1) {
+      const l = priced.lines[i];
+      const t = tax.lines[i];
       await client.query(
         `INSERT INTO order_items (order_id, product_id, variant_id, name, slug, image_url,
-                                  size, color, unit_price, quantity)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [order.id, l.productId, l.variantId, l.name, l.slug, l.imageUrl, l.size, l.color, l.unitPrice, l.quantity],
+                                  size, color, unit_price, quantity,
+                                  hsn_code, tax_rate, taxable_amount, tax_amount)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+        [order.id, l.productId, l.variantId, l.name, l.slug, l.imageUrl, l.size, l.color, l.unitPrice, l.quantity,
+          t?.hsn ?? null, t?.rate ?? null, t?.taxable ?? null, t?.tax ?? null],
       );
       await client.query('UPDATE product_variants SET stock = stock - $2 WHERE id = $1', [l.variantId, l.quantity]);
     }
-    return { status: 201, body: { order: { ...order, items: priced.lines }, totals } };
+
+    /* A COD order is a sale the moment it is placed, so it earns its invoice
+       number now. An online one waits for the payment to clear. */
+    const invoiceNumber = await ensureInvoiceNumber(client, order.id, startAt);
+
+    return {
+      status: 201,
+      body: {
+        order: { ...order, invoice_number: invoiceNumber, items: priced.lines },
+        totals: { ...totals, tax: tax.order },
+      },
+    };
   });
 
   if (result.status !== 201) return res.status(result.status).json(result.body);
@@ -206,13 +247,22 @@ router.post('/orders/:orderNumber/verify', ah(async (req, res) => {
     return res.status(400).json({ error: 'We could not verify that payment.' });
   }
 
-  const { rows } = await query(
-    `UPDATE orders SET payment_status = 'paid', status = 'processing',
-            razorpay_payment_id = $2, updated_at = NOW()
-      WHERE id = $1 RETURNING *`,
-    [order.id, razorpay_payment_id],
-  );
-  res.json({ ok: true, order: rows[0] });
+  /* Marking it paid and giving it an invoice number are one change, not two:
+     an order that cleared payment but never got a number would be a sale with
+     no bill, and a number handed out beside a failed update would be a hole
+     in the sequence. */
+  const paid = await withTransaction(async (client) => {
+    const { rows } = await client.query(
+      `UPDATE orders SET payment_status = 'paid', status = 'processing',
+              razorpay_payment_id = $2, updated_at = NOW()
+        WHERE id = $1 RETURNING *`,
+      [order.id, razorpay_payment_id],
+    );
+    const invoiceNumber = await ensureInvoiceNumber(client, order.id, 'processing');
+    return { ...rows[0], invoice_number: invoiceNumber || rows[0].invoice_number };
+  });
+
+  res.json({ ok: true, order: paid });
 }));
 
 /** GET /api/orders - the signed-in customer's order history. */
