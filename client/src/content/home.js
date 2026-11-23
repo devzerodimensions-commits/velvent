@@ -18,10 +18,10 @@ export const defaults = {
     note: 'Sizes S – 3XL',
   },
 
+  statementLabel: 'Autumn knitwear',
   statement: 'Velvent is knitted cotton for people who dress with intent.',
   statementEmphasis: 'knitted, cotton, intent.',
   statementImageA: '/products/anatomy-cable.jpg',
-  statementImageB: '/products/anatomy-collar.jpg',
 
   railEyebrow: 'The range',
   railTitle: 'Made to be worn often',
@@ -176,8 +176,18 @@ export const fields = [
     type: 'text',
     help: 'Comma-separated. These words are picked out in the statement. Match them exactly, punctuation included.',
   },
-  { name: 'statementImageA', label: 'Statement image, left', type: 'image' },
-  { name: 'statementImageB', label: 'Statement image, right', type: 'image' },
+  {
+    name: 'statementLabel',
+    label: 'Statement eyebrow',
+    type: 'text',
+    help: 'The small line above the sentence. Leave empty to hide it.',
+  },
+  {
+    name: 'statementImageA',
+    label: 'Statement photograph',
+    type: 'image',
+    help: 'Fills the left half of the stage, full height. A portrait crop works best — it is cropped to fill, so keep the subject centred.',
+  },
 
   { name: 'railEyebrow', label: 'Range eyebrow', type: 'text' },
   { name: 'railTitle', label: 'Range heading', type: 'text' },

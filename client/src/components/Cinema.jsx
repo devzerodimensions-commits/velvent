@@ -295,26 +295,34 @@ export function Cinema({ products = [] }) {
         </div>
       </Stage>
 
-      {/* 2 — an outlined sentence fills in word by word as it is read */}
+      {/* 2 — the statement, read against one full-height photograph */}
       <Stage kind="fill" label={STATEMENT}>
-        <Mark className="cx-mark" />
-        <figure className="cx-swatch cx-swatch--a" aria-hidden>
+        <figure className="cx-split__media" aria-hidden>
           <img src={c.statementImageA} alt="" loading="lazy" />
         </figure>
-        <figure className="cx-swatch cx-swatch--b" aria-hidden>
-          <img src={c.statementImageB} alt="" loading="lazy" />
-        </figure>
-        <p className="cx-fill" aria-label={STATEMENT}>
-          {STATEMENT.split(' ').map((w, i) => (
-            <span
-              key={w + i}
-              aria-hidden
-              className={`cx-fill__word${EMPHASIS.has(w.toLowerCase()) ? ' cx-fill__word--em' : ''}`}
-            >
-              {w}
-            </span>
-          ))}
-        </p>
+
+        <div className="cx-split__body">
+          {c.statementLabel && (
+            <span className="cx-meta cx-split__eyebrow">{c.statementLabel}</span>
+          )}
+          {/* The sentence is split into words so the emphasised ones can be
+              picked out. Each word is hidden from assistive tech and the whole
+              paragraph carries the sentence, or it would be read one word at a
+              time with no punctuation between. */}
+          <p className="cx-fill" aria-label={STATEMENT}>
+            {STATEMENT.split(' ').map((w, i) => (
+              <span
+                key={w + i}
+                aria-hidden
+                className={`cx-fill__word${EMPHASIS.has(w.toLowerCase()) ? ' cx-fill__word--em' : ''}`}
+              >
+                {w}
+              </span>
+            ))}
+          </p>
+          <span className="cx-split__rule" aria-hidden />
+        </div>
+
         <span className="cx-chapter cx-meta" aria-hidden>02 / 03</span>
       </Stage>
 

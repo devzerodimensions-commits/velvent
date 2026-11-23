@@ -363,62 +363,67 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cx-thread__line { position: relative; width: 1px; height: 46px; overflow: hidden; background: rgba(246,242,234,.18); }
 .cx-thread__line::after { content: ''; position: absolute; inset: 0; background: #F6F2EA; animation: cx-pull 2.2s cubic-bezier(.77,0,.18,1) infinite; }
 
-/* 2 · fill — the statement is simply set, in one colour, start to finish. It
-   used to be drawn in outline and fill word by word as the section scrolled,
-   which meant arriving at a sentence too dark to read and waiting for it. The
-   two swatches are the section's motion now: absent to begin with, easing in
-   either side of the text as it is read. */
+/* 2 · the statement, read against one photograph.
 
-/* The monogram sits still.
+   This stage used to be a centred sentence with two small tilted swatches
+   pinned in opposite corners and a watermark monogram behind. It left a large
+   empty middle and bottom, the photographs were too small to carry anything,
+   and the emphasised words were underlined, which read as broken links.
 
-   It used to rotate and grow as the stage was scrolled. Nothing else on this
-   stage reads the scroll position any more, so that one moving thing behind
-   the sentence read as a distraction from it rather than as depth. Kept as a
-   watermark at the size the motion used to settle on. */
-.cx-mark {
-  z-index: 0; width: min(80vh, 90vw); height: auto;
-  color: transparent; opacity: .14;
-  stroke: #F6F2EA; stroke-width: .6;
-  transform: scale(1.02);
+   It is an editorial split now: one photograph holding a full column, the
+   sentence set against it. The emphasis is colour alone. */
+.cx-stage--fill {
+  grid-template-columns: minmax(0, 46%) minmax(0, 1fr);
+  place-items: stretch;
+}
+/* .cx-stage stacks every child into one cell, which is right for the other
+   stages and wrong for this one. */
+.cx-stage--fill > .cx-split__media,
+.cx-stage--fill > .cx-split__body { grid-area: auto; place-self: stretch; }
+
+.cx-split__media { position: relative; z-index: 2; margin: 0; overflow: hidden; }
+.cx-split__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.cx-split__body {
+  position: relative; z-index: 3;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: clamp(1.75rem, 5vw, 5rem);
+  padding-right: clamp(1.75rem, 6vw, 7rem);
+}
+.cx-split__eyebrow { margin-bottom: clamp(.9rem, 2.4vh, 1.6rem); }
+.cx-split__rule {
+  width: clamp(36px, 4.5vw, 72px); height: 1px;
+  background: rgba(226,217,198,.65);
+  margin-top: clamp(1.1rem, 3vh, 2.2rem);
 }
 
+/* Ranged against the column it sits in rather than the viewport, so the
+   sentence breaks to roughly the same shape at every width. */
 .cx-fill {
   position: relative; z-index: 3;
-  max-width: 22ch; margin: 0 auto; padding: 0 1.25rem;
-  display: flex; flex-wrap: wrap; justify-content: center; gap: .05em .3em;
+  max-width: 20ch; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .06em .32em;
   font-family: Cinzel, 'Trajan Pro', Georgia, serif;
   font-weight: 400;
-  text-transform: uppercase; text-align: center;
-  font-size: clamp(24px, min(4.8vw, 6.8vh), 72px);
-  line-height: 1.2; letter-spacing: .04em;
+  text-transform: uppercase; text-align: left;
+  font-size: clamp(22px, min(3.2vw, 5.6vh), 58px);
+  line-height: 1.24; letter-spacing: .02em;
 }
-.cx-fill__word {
-  position: relative; display: inline-block;
-  color: #F6F2EA;
-}
+.cx-fill__word { display: inline-block; color: #F6F2EA; }
+/* Colour only. The underline this used to carry made the words look clickable. */
 .cx-fill__word--em { color: #E2D9C6; }
-.cx-fill__word--em::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -.04em; height: 2px;
-  background: #E2D9C6;
-}
 
-/* Pinned where they are placed. Nothing here reads the scroll position: no
-   fade, no slide, no parallax inside the frame, and the tilt is a fixed angle
-   rather than one that settles. The section arriving is what reveals them, and
-   from then on they hold still while the statement is read. */
-.cx-swatch {
-  position: absolute; z-index: 2; overflow: hidden;
-  width: clamp(120px, 17vw, 250px); aspect-ratio: 3 / 4;
-  box-shadow: 0 30px 60px -20px rgba(0,0,0,.6);
-}
-.cx-swatch img { width: 100%; height: 100%; object-fit: cover; }
-.cx-swatch--a { place-self: start start; margin: 25vh 0 0 6vw; transform: rotate(-4deg); }
-.cx-swatch--b { place-self: end end; margin: 0 6vw 14vh 0; transform: rotate(3deg); }
 @media (max-width: 767px) {
-  .cx-swatch--a { margin: 14vh 0 0 4vw; }
-  .cx-swatch--b { margin: 0 4vw 10vh 0; }
+  .cx-stage--fill {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 45svh minmax(0, 1fr);
+  }
+  /* Still centred, now within the half it has rather than the whole stage.
+     Left aligned it would hang off the top of that half with everything
+     below it empty. */
+  .cx-split__body { padding: clamp(1.5rem, 7vw, 2.25rem); }
+  .cx-fill { max-width: none; font-size: clamp(21px, 7vw, 34px); }
 }
-
 /* 3 · rail — two of the range at a time, with the buttons that turn to the
    next two sitting after them. Nothing scrolls: the row is a pager that slides
    a page at a time. The heading keeps the left of the screen, which is also
