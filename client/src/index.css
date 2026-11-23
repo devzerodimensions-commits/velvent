@@ -628,26 +628,57 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   perspective-origin: 34% 44%;
 }
 
-/* A studio light on the wall behind the rack: the disc the garments stand
-   against, in the store's cream rather than a colour. Bright enough to be the
-   first thing the eye finds, with a rim you can see and a halo past it, so it
-   reads as light falling on a wall and not as a grey circle. The dark pieces
-   stand out against it; that is what it is for. */
+/* The light behind the rack, as an object rather than a smudge.
+
+   The client's reference stands its rack in front of a great lit disc with a
+   bright rim. This is that idea in the store's own colours: a sphere of
+   light, lit from the upper left — cream where the light hits, running
+   through the steel blue-grey of the chrome into the charcoal of the room —
+   with its lower right falling into shadow so it has volume, and a rim of
+   light round the edge that drifts a little, so it reads as something lit
+   rather than something painted. The dark garments stand against the bright
+   side of it. */
 .cx-glow {
   position: absolute; z-index: 0; left: 50%; top: 40%; translate: -50% -50%;
   width: min(78%, 520px); aspect-ratio: 1; border-radius: 50%;
-  background: radial-gradient(circle at 50% 44%,
-      rgba(246,242,234,.30) 0%,
-      rgba(246,242,234,.22) 34%,
-      rgba(246,242,234,.13) 60%,
-      rgba(246,242,234,.07) 80%,
-      rgba(246,242,234,.03) 94%,
-      transparent 100%);
+  background:
+    radial-gradient(circle at 34% 28%,
+      rgba(252,249,242,.48) 0%,
+      rgba(246,242,234,.33) 16%,
+      rgba(214,214,214,.25) 36%,
+      rgba(138,147,161,.22) 58%,
+      rgba(88,98,114,.26) 80%,
+      rgba(44,53,68,.46) 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(246,242,234,.14),
-    inset 0 0 60px rgba(246,242,234,.06),
-    0 0 90px 24px rgba(246,242,234,.07);
-  filter: blur(1.5px);
+    inset -26px -32px 70px rgba(9,12,18,.36),
+    inset 18px 22px 46px rgba(246,242,234,.10),
+    0 0 120px 28px rgba(246,242,234,.07),
+    0 40px 90px -24px rgba(0,0,0,.7);
+}
+/* The rim light: a ring, brightest at the upper left, gone by the lower
+   right, drawn with a conic gradient through a ring-shaped mask. */
+.cx-glow::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  padding: 2px;
+  background: conic-gradient(from 210deg,
+    rgba(252,249,242,.95), rgba(246,242,234,.4) 14%, rgba(246,242,234,.1) 34%,
+    rgba(246,242,234,.08) 62%, rgba(246,242,234,.38) 82%, rgba(252,249,242,.95));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  filter: blur(.4px);
+  animation: cx-rim 14s ease-in-out infinite alternate;
+}
+/* Where the light strikes the surface: a soft bloom, upper left. */
+.cx-glow::after {
+  content: ''; position: absolute; left: 17%; top: 11%; width: 36%; height: 27%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255,255,255,.26), rgba(255,255,255,0));
+  filter: blur(8px);
+}
+@keyframes cx-rim {
+  from { transform: rotate(-22deg); }
+  to   { transform: rotate(26deg); }
 }
 
 .cx-rack {
@@ -666,6 +697,35 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   position: absolute; z-index: 5; left: 3%; right: 3%; top: 13%;
   height: 7px; border-radius: 4px;
   box-shadow: 0 3px 14px rgba(0,0,0,.65);
+}
+/* Turned finials on the ends of the rail and the base, the detail that makes
+   it a piece of shop furniture rather than a length of tube. */
+.cx-rack__bar::before, .cx-rack__bar::after,
+.cx-rack__base::before, .cx-rack__base::after {
+  content: ''; position: absolute; top: 50%; translate: 0 -50%;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #FFFFFF 0%, #D5DAE4 22%, #8A93A1 58%, #3D434F 100%);
+  box-shadow: 0 2px 6px rgba(0,0,0,.6);
+}
+.cx-rack__bar::before, .cx-rack__base::before { left: -7px; }
+.cx-rack__bar::after,  .cx-rack__base::after  { right: -7px; }
+.cx-rack__base::before, .cx-rack__base::after { width: 12px; height: 12px; }
+.cx-rack__base::before { left: -6px; }
+.cx-rack__base::after  { right: -6px; }
+
+/* Light running along the chrome now and then — once every seven seconds, a
+   narrow glint from one end to the other, then nothing. */
+.cx-rack__shine {
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden;
+}
+.cx-rack__shine::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: -18%; width: 16%;
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.9) 50%, rgba(255,255,255,0));
+  animation: cx-glint 7s cubic-bezier(.45,.05,.55,.95) infinite 1.5s;
+}
+@keyframes cx-glint {
+  0%, 62% { transform: translateX(0); }
+  92%, 100% { transform: translateX(760%); }
 }
 .cx-rack__leg {
   position: absolute; z-index: 1; --a: 90deg;
@@ -784,23 +844,75 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   user-select: none; -webkit-user-drag: none;
 }
 
-/* The name is only there when it is wanted. The front piece keeps a quiet
-   one so the rack reads as something you can click into. */
-.cx-hang__label {
-  position: absolute; z-index: 5; left: 50%; translate: -50% 0;
-  top: calc(100% + 14px);
-  width: max-content; max-width: 100%; text-align: center;
-  opacity: 0; transition: opacity .3s;
+/* The swing tag. A heavy cream card on a thread from the hem, with a brass
+   eyelet, turned a little away in its own perspective and twisting slowly on
+   the thread — the way a piece is priced on a good shop floor.
+
+   It replaces a line of loose type under the front piece, which the rack's
+   leg ran straight through. A card is opaque: the leg goes behind it.
+
+   The front piece wears its tag all the time, so the rack reads as something
+   to click; the others show theirs when they are pointed at. */
+.cx-tag {
+  /* Pinned near the hem, where a shop pins it, rather than off the very
+     bottom edge: hung any lower it reaches the base of the rack. */
+  position: absolute; z-index: 6; left: 58%; top: calc(100% - 24px);
+  display: flex; flex-direction: column; align-items: center;
+  transform-origin: 50% 0;
+  opacity: 0; transform: translateY(-8px);
+  transition: opacity .35s ease, transform .55s cubic-bezier(.22,.61,.36,1);
+  filter: drop-shadow(0 9px 12px rgba(0,0,0,.55)) drop-shadow(0 2px 2px rgba(0,0,0,.35));
+  pointer-events: none;
 }
-.cx-hang__item:first-child .cx-hang__label { opacity: .55; }
-.cx-hang__item:hover .cx-hang__label,
-.cx-hang__item:focus-within .cx-hang__label { opacity: 1; }
-.cx-hang__name {
-  display: block;
+/* The thread, from the hem to the eyelet. */
+.cx-tag::before {
+  content: ''; display: block; width: 1px; height: clamp(10px, 1.6vh, 14px);
+  background: linear-gradient(to bottom, rgba(226,217,198,.15), rgba(226,217,198,.85));
+}
+.cx-hang__item:first-child .cx-tag,
+.cx-hang__item:hover .cx-tag,
+.cx-hang__item:focus-within .cx-tag { opacity: 1; transform: none; }
+
+.cx-tag__card {
+  position: relative;
+  display: grid; justify-items: center; gap: .22rem;
+  width: max-content; min-width: 116px; max-width: 188px;
+  padding: .95rem .85rem .55rem;
+  background: linear-gradient(165deg, #FCF9F2 0%, #F1EADD 62%, #E6DCC8 100%);
+  color: #0F131A; text-align: center;
+  /* Clipped top corners, the shape of a swing tag. The shadow is on the
+     parent, as a drop-shadow, so it follows this outline. */
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px);
+  transform-origin: 50% 0;
+  transform: perspective(420px) rotateY(-12deg) rotate(-2.5deg);
+  animation: cx-twist 6.5s ease-in-out infinite;
+  animation-delay: calc(var(--d) * -1.1s);
+}
+/* The eyelet the thread goes through: a brass ring. */
+.cx-tag__card::before {
+  content: ''; position: absolute; top: 6px; left: 50%; translate: -50% 0;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #1E2531;
+  box-shadow: inset 0 0 0 1.6px #C3A86A, 0 0 0 .6px rgba(0,0,0,.25);
+}
+@keyframes cx-twist {
+  0%, 100% { transform: perspective(420px) rotateY(-16deg) rotate(-2.5deg); }
+  50%      { transform: perspective(420px) rotateY(-5deg)  rotate(-1.5deg); }
+}
+
+.cx-tag__brand {
+  font-size: 7px; font-weight: 600; text-transform: uppercase; letter-spacing: .38em;
+  color: #8A93A1;
+  padding-bottom: .3rem; margin-bottom: .1rem;
+  border-bottom: 1px solid rgba(15,19,26,.12);
+}
+.cx-tag__name {
   font-family: Cinzel, 'Trajan Pro', Georgia, serif;
-  font-size: 11.5px; text-transform: uppercase; letter-spacing: .1em;
+  font-size: 10px; font-weight: 600; line-height: 1.25;
+  text-transform: uppercase; letter-spacing: .05em;
 }
-.cx-hang__price { display: block; margin-top: .2rem; font-size: 11.5px; color: rgba(246,242,234,.62); }
+.cx-tag__price { font-size: 11px; font-weight: 600; letter-spacing: .04em; color: #2C3544; }
+
 
 
 
@@ -836,6 +948,12 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
   .cx-rack__bar { height: 5px; }
   .cx-rack__leg { width: 5px; }
   .cx-rack__base { height: 4px; }
+  .cx-rack__bar::before, .cx-rack__bar::after { width: 10px; height: 10px; }
+  .cx-rack__bar::before { left: -5px; }
+  .cx-rack__bar::after  { right: -5px; }
+  .cx-rack__base::before, .cx-rack__base::after { width: 8px; height: 8px; }
+  .cx-rack__base::before { left: -4px; }
+  .cx-rack__base::after  { right: -4px; }
   /* One facing you and three behind it. The front piece is whole from its
      collar to its hem; the rest are a third of themselves each. */
   .cx-hang__item:nth-child(n + 5) { display: none; }
@@ -844,10 +962,10 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
     --sink: .07;
     margin-left: calc(-1 * clamp(58px, 27%, 116px));
   }
-  /* No pointer to reveal them with, and a row of names across a phone is a
-     thicket. The link still carries the name for a screen reader. */
-  .cx-hang__label,
-  .cx-hang__item:first-child .cx-hang__label { opacity: 0; }
+  /* No tags on a phone: there is no pointer to reveal them with, and under a
+     rack this size a card covers the next garment's hem. The link still
+     carries the name and price for a screen reader. */
+  .cx-tag { display: none; }
 }
 
 

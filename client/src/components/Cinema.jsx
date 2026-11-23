@@ -216,11 +216,18 @@ function RailStage({ products }) {
                           decoding="async"
                           draggable={false}
                         />
+                        {/* The swing tag: a card on a thread from the hem, the
+                            way the shop would price a piece on the shop floor.
+                            It hangs off the garment rather than floating under
+                            it, so nothing on the rack runs through it. */}
+                        <span className="cx-tag">
+                          <span className="cx-tag__card">
+                            <span className="cx-tag__brand" aria-hidden>Velvent</span>
+                            <span className="cx-tag__name">{item.name}</span>
+                            {item.price != null && <span className="cx-tag__price">{inr(item.price)}</span>}
+                          </span>
+                        </span>
                       </span>
-                    </span>
-                    <span className="cx-hang__label">
-                      <span className="cx-hang__name">{item.name}</span>
-                      {item.price != null && <span className="cx-hang__price">{inr(item.price)}</span>}
                     </span>
                   </Link>
                 </li>
@@ -228,7 +235,7 @@ function RailStage({ products }) {
             </ul>
 
             {/* Drawn after the hangers so the rail passes in front of the hooks. */}
-            <span className="cx-rack__bar" aria-hidden />
+            <span className="cx-rack__bar" aria-hidden><span className="cx-rack__shine" /></span>
           </div>
         </div>
       </div>
