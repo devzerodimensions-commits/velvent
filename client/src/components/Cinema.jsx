@@ -236,6 +236,9 @@ function RailStage({ rail }) {
 export function Cinema({ products = [] }) {
   const ready = useIntroDone();
   const c = useContent('home');
+  /* The label signs itself with the store's name, which is a brand setting
+     rather than a home-page one — renaming the shop should rename this too. */
+  const brand = useContent('brand');
   const HERO = c.hero;
   const STATEMENT = c.statement || '';
   const headline = [HERO.headline1, HERO.headline2].filter(Boolean).join(' ');
@@ -299,30 +302,31 @@ export function Cinema({ products = [] }) {
       {/* scrollDriven off: nothing in this stage reads the scroll position, so
           there is no reason to measure it on every frame of every scroll. */}
       <Stage kind="fill" label={STATEMENT} scrollDriven={false}>
-        <figure className="cx-split__media" aria-hidden>
+        <div className="cx-label__bg" aria-hidden>
           <img src={c.statementImageA} alt="" loading="lazy" />
-        </figure>
+        </div>
 
-        <div className="cx-split__body">
-          {c.statementLabel && (
-            <span className="cx-meta cx-split__eyebrow">{c.statementLabel}</span>
-          )}
+        <div className="cx-label">
+          {c.statementLabel && <p className="cx-label__meta">{c.statementLabel}</p>}
+
           {/* The sentence is split into words so the emphasised ones can be
-              picked out. Each word is hidden from assistive tech and the whole
-              paragraph carries the sentence, or it would be read one word at a
-              time with no punctuation between. */}
-          <p className="cx-fill" aria-label={STATEMENT}>
+              picked out. Each word is hidden from assistive tech and the
+              paragraph carries the whole sentence, or it would be read one
+              word at a time with no punctuation between. */}
+          <p className="cx-label__text" aria-label={STATEMENT}>
             {STATEMENT.split(' ').map((w, i) => (
               <span
                 key={w + i}
                 aria-hidden
-                className={`cx-fill__word${EMPHASIS.has(w.toLowerCase()) ? ' cx-fill__word--em' : ''}`}
+                className={`cx-label__word${EMPHASIS.has(w.toLowerCase()) ? ' cx-label__word--em' : ''}`}
               >
-                {w}
+                {w}{' '}
               </span>
             ))}
           </p>
-          <span className="cx-split__rule" aria-hidden />
+
+          <span className="cx-label__rule" aria-hidden />
+          <span className="cx-label__mark" aria-hidden>{brand.name || 'Velvent'}</span>
         </div>
 
         <span className="cx-chapter cx-meta" aria-hidden>02 / 03</span>

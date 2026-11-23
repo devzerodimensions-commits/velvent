@@ -369,69 +369,107 @@ main:has(> :last-child[data-flush]) + footer { margin-top: 0; }
 .cx-thread__line { position: relative; width: 1px; height: 46px; overflow: hidden; background: rgba(246,242,234,.18); }
 .cx-thread__line::after { content: ''; position: absolute; inset: 0; background: #F6F2EA; animation: cx-pull 2.2s cubic-bezier(.77,0,.18,1) infinite; }
 
-/* 2 · the statement, read against one photograph.
+/* 2 · the statement, on a woven label.
 
-   This stage used to be a centred sentence with two small tilted swatches
-   pinned in opposite corners and a watermark monogram behind. It left a large
-   empty middle and bottom, the photographs were too small to carry anything,
-   and the emphasised words were underlined, which read as broken links.
+   Two earlier versions were rejected. The first scattered two small tilted
+   photographs into opposite corners around a centred sentence, leaving the
+   middle and the whole bottom empty. The second set the sentence beside one
+   full-height photograph, which filled the left but left the right half of a
+   wide screen mostly bare.
 
-   It is an editorial split now: one photograph holding a full column, the
-   sentence set against it. The emphasis is colour alone. */
+   This one stops treating the sentence as a caption next to a picture. The
+   photograph goes full bleed behind everything, and the sentence is presented
+   the way a knitwear brand presents words on a garment: a woven label, sewn
+   slightly off square, with the stitch line showing inside its edge.
+
+   It is the only thing on the page that is cream on dark rather than the
+   other way round, which is what makes it read as an object rather than a
+   section. */
 .cx-stage--fill {
-  /* Not sticky. Every other stage pins while its animation plays; this one
-     has no animation to play, so it scrolls by as a normal section. */
+  /* Not sticky: nothing here reads the scroll position, so the stage scrolls
+     past like an ordinary section instead of pinning the page. */
   position: relative;
-  grid-template-columns: minmax(0, 46%) minmax(0, 1fr);
-  place-items: stretch;
+  overflow: hidden;
 }
-/* .cx-stage stacks every child into one cell, which is right for the other
-   stages and wrong for this one. */
-.cx-stage--fill > .cx-split__media,
-.cx-stage--fill > .cx-split__body { grid-area: auto; place-self: stretch; }
 
-.cx-split__media { position: relative; z-index: 2; margin: 0; overflow: hidden; }
-.cx-split__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* place-self: stretch undoes the `center` every stage child inherits. An
+   absolutely positioned grid child with inset:0 is still laid out inside its
+   grid area, and a non-stretch alignment makes it shrink to fit its content
+   and sit in the middle — so the photograph came out at its own aspect ratio
+   with bare stage showing above and below it. */
+.cx-label__bg { position: absolute; inset: 0; z-index: 1; place-self: stretch; }
+/* Biased up the frame. A tall photograph cropped to a wide stage shows only
+   a band of itself, and centred on a full-length shot that band lands on the
+   legs. Thirty per cent puts it across the chest, which is where the garment
+   is — and the label then sits on the knitwear rather than floating over a
+   pair of trousers. */
+.cx-label__bg img {
+  display: block; width: 100%; height: 100%;
+  object-fit: cover; object-position: 50% 30%;
+}
+/* Dark enough for a cream panel to sit on it without the photograph fighting
+   the text, and graded so the garment is still legible at the edges. */
+.cx-label__bg::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(70% 55% at 50% 50%, rgba(15,19,26,.78), rgba(15,19,26,.52) 60%, rgba(15,19,26,.72)),
+    linear-gradient(to bottom, rgba(15,19,26,.55), rgba(15,19,26,.25) 35%, rgba(15,19,26,.6));
+}
 
-.cx-split__body {
+.cx-label {
   position: relative; z-index: 3;
-  display: flex; flex-direction: column; justify-content: center;
-  padding: clamp(1.75rem, 5vw, 5rem);
-  padding-right: clamp(1.75rem, 6vw, 7rem);
+  width: min(90vw, 700px);
+  margin: 0;
+  padding: clamp(1.9rem, 4.2vw, 3.4rem) clamp(1.5rem, 4vw, 3rem);
+  background: #F6F2EA;
+  color: #2C3544;
+  text-align: center;
+  /* Sewn on by hand, not printed. A whole degree is the difference between
+     deliberate and crooked. */
+  transform: rotate(-1.2deg);
+  box-shadow: 0 34px 80px -28px rgba(0,0,0,.75);
 }
-.cx-split__eyebrow { margin-bottom: clamp(.9rem, 2.4vh, 1.6rem); }
-.cx-split__rule {
-  width: clamp(36px, 4.5vw, 72px); height: 1px;
-  background: rgba(226,217,198,.65);
-  margin-top: clamp(1.1rem, 3vh, 2.2rem);
+/* The stitch line, inside the edge, the way it runs on a woven label. */
+.cx-label::before {
+  content: ''; position: absolute; inset: clamp(8px, 1vw, 13px);
+  border: 1px dashed rgba(44,53,68,.38);
+  pointer-events: none;
 }
 
-/* Ranged against the column it sits in rather than the viewport, so the
-   sentence breaks to roughly the same shape at every width. */
-.cx-fill {
-  position: relative; z-index: 3;
-  max-width: 20ch; margin: 0; padding: 0;
-  display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .06em .32em;
+.cx-label__meta {
+  margin: 0 0 clamp(1rem, 2.4vw, 1.6rem);
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .28em;
+  color: rgba(44,53,68,.55);
+}
+
+.cx-label__text {
+  margin: 0;
   font-family: Cinzel, 'Trajan Pro', Georgia, serif;
-  font-weight: 400;
-  text-transform: uppercase; text-align: left;
-  font-size: clamp(22px, min(3.2vw, 5.6vh), 58px);
-  line-height: 1.24; letter-spacing: .02em;
+  font-weight: 400; text-transform: uppercase;
+  font-size: clamp(21px, 3.3vw, 42px);
+  line-height: 1.24; letter-spacing: .015em;
 }
-.cx-fill__word { display: inline-block; color: #F6F2EA; }
-/* Colour only. The underline this used to carry made the words look clickable. */
-.cx-fill__word--em { color: #E2D9C6; }
+/* The sentence is set a shade back and the emphasised words come forward at
+   full strength — emphasis by weight of colour rather than an underline,
+   which on the old version read as a broken link. */
+.cx-label__word { color: rgba(44,53,68,.62); }
+.cx-label__word--em { color: #2C3544; }
+
+.cx-label__rule {
+  display: block; width: clamp(34px, 4vw, 54px); height: 1px;
+  margin: clamp(1.1rem, 2.6vw, 1.8rem) auto clamp(.7rem, 1.4vw, 1rem);
+  background: rgba(44,53,68,.3);
+}
+.cx-label__mark {
+  display: block;
+  font-family: Cinzel, 'Trajan Pro', Georgia, serif;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .34em;
+  color: rgba(44,53,68,.5);
+}
 
 @media (max-width: 767px) {
-  .cx-stage--fill {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 45svh minmax(0, 1fr);
-  }
-  /* Still centred, now within the half it has rather than the whole stage.
-     Left aligned it would hang off the top of that half with everything
-     below it empty. */
-  .cx-split__body { padding: clamp(1.5rem, 7vw, 2.25rem); }
-  .cx-fill { max-width: none; font-size: clamp(21px, 7vw, 34px); }
+  .cx-label { width: min(90vw, 440px); transform: rotate(-1deg); }
 }
 /* 3 · rail — two of the range at a time, with the buttons that turn to the
    next two sitting after them. Nothing scrolls: the row is a pager that slides

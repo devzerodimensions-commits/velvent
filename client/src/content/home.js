@@ -186,7 +186,7 @@ export const fields = [
     name: 'statementImageA',
     label: 'Statement photograph',
     type: 'image',
-    help: 'Fills the left half of the stage, full height. A portrait crop works best — it is cropped to fill, so keep the subject centred.',
+    help: 'Fills the whole stage behind the label, and is darkened so the label reads on it. Only a wide band across the upper-middle of the picture shows, so put the garment there.',
   },
 
   { name: 'railEyebrow', label: 'Range eyebrow', type: 'text' },
