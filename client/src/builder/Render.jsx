@@ -32,7 +32,7 @@ const NOOP_UI = {
 /* The palette the widgets' own defaults refer to, so a button with no colour
    set still looks like it belongs to this store. */
 const BASE_CSS = `
-.vb-page{--vb-ink:#2C3544;--vb-paper:#F6F2EA;--font-heading:'Helvetica Neue',Inter,Helvetica,Arial,sans-serif;--font-body:Montserrat,ui-sans-serif,system-ui,sans-serif}
+.vb-page{--vb-ink:#2C3544;--vb-paper:#F6F2EA;--font-heading:Cinzel,'Trajan Pro',Georgia,serif;--font-body:Montserrat,ui-sans-serif,system-ui,sans-serif}
 .vb-section{position:relative;width:100%}
 .vb-row{display:flex;flex-wrap:wrap;margin:0 auto;width:100%;box-sizing:border-box}
 .vb-col{display:flex;flex-direction:column;flex:1 1 0%;min-width:0;box-sizing:border-box}

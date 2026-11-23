@@ -34,10 +34,10 @@ export default {
       fontFamily: {
         sans: ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         display: ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        // Helvetica Neue ships with macOS and iOS only. Inter sits behind it so
-        // Windows and Android get a neo-grotesque cut from the same cloth
-        // rather than dropping all the way to Arial.
-        heading: ['Helvetica Neue', 'Inter', 'Helvetica', 'Arial', 'sans-serif'],
+        // The brand serif. Cinzel is a Trajan-style roman capital and is what
+        // every heading on this store is set in; Trajan Pro and Georgia stand
+        // in only if it fails to load.
+        heading: ['Cinzel', 'Trajan Pro', 'Georgia', 'serif'],
       },
       letterSpacing: { brand: '0.28em', wider2: '0.18em' },
       maxWidth: { shell: '1440px' },
