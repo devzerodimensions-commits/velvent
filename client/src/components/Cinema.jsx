@@ -164,12 +164,21 @@ function GarmentShapes() {
    every photograph they add from here is theirs to place. */
 const DEFAULT_CROP = 45;
 
+const fixFor = (img, fixes) => (Array.isArray(fixes) ? fixes.find((f) => f && f.image === img) : null);
+
 /** The crop for one piece, as a background-position. */
 const cropFor = (img, fallback, fixes) => {
-  const fix = Array.isArray(fixes) ? fixes.find((f) => f && f.image === img) : null;
+  const fix = fixFor(img, fixes);
   const n = Number(fix && fix.crop !== '' && fix.crop !== null ? fix.crop : fallback);
   return `50% ${Number.isFinite(n) ? Math.min(90, Math.max(0, n)) : DEFAULT_CROP}%`;
 };
+
+/* Some photographs cannot hang. One of the range is shot with the model's
+   arms folded across his chest, and there is no band of that picture which is
+   only cloth — every crop of it puts a forearm on the rail. Rather than leave
+   the shop to notice that on its own homepage, a photograph can be marked in
+   the admin as one to leave off, and the rack simply takes the next piece. */
+const onTheRack = (fixes) => (piece) => !fixFor(piece.img, fixes)?.hide;
 
 /** A wire hanger. Its hook is drawn long enough to cross the rail above it. */
 function Hanger() {
@@ -219,7 +228,7 @@ function RailStage({ rail }) {
 
   /* Four hang on the rail: one facing you and three stepping back behind it.
      A fifth is a sliver of sleeve, which is clutter rather than depth. */
-  const pieces = rail.slice(0, 4);
+  const pieces = rail.filter(onTheRack(c.railCropFixes)).slice(0, 4);
 
   return (
     <Stage kind="rail" label={c.railEyebrow} scrollDriven={false}>

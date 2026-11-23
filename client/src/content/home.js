@@ -29,13 +29,20 @@ export const defaults = {
   railCtaLabel: 'Browse the rail',
   railCtaHref: '/shop',
   /* How far down each photograph the garment is taken from, for the rack on
-     the third stage. The range is shot at the hip, which puts the chest about
-     45% of the way down; the two lifestyle pictures below are shot head to
-     shoe, so the same band would land on a pair of trousers. */
+     the third stage. A photograph framed at the hip puts the chest about 45%
+     of the way down; one shot head to shoe puts it nearer 25, and the same
+     band would land on a pair of trousers. So the range gets 45 and the
+     full-length shots are named below.
+
+     A photograph can also be left off the rack altogether. The fine stripe
+     polo is shot with the model's arms folded across his chest: there is no
+     band of that picture that is only cloth, so no crop saves it. */
   railCrop: 45,
   railCropFixes: [
+    { image: '/products/rugby-stripe-polo-1.jpg', crop: 24 },
+    { image: '/api/media/31', crop: 28 },
     { image: '/products/vertical-stripe-shirt-olive-1.jpg', crop: 26 },
-    { image: '/products/fine-stripe-polo-1.jpg', crop: 20 },
+    { image: '/products/fine-stripe-polo-1.jpg', crop: 20, hide: true },
   ],
 
   promises: [
@@ -218,10 +225,11 @@ export const fields = [
     type: 'list',
     itemLabel: 'Photo',
     titleKey: 'image',
-    help: 'For any product photo that needs a different crop from the rest — a full-length shot among close ones, say.',
+    help: 'For any product photo that needs a different crop from the rest — a full-length shot among close ones — or that should not be on the rack at all.',
     fields: [
       { name: 'image', label: 'Product photo', type: 'image', help: 'The same image the product uses first.' },
       { name: 'crop', label: 'Crop for this photo', type: 'number' },
+      { name: 'hide', label: 'Leave off the rack', type: 'toggle', help: 'For a photo no crop can save — arms folded across the chest, or a shot from behind. The product still appears everywhere else.' },
     ],
   },
 
