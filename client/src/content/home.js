@@ -31,16 +31,20 @@ export const defaults = {
   /* What hangs on the rack on the third stage, front to back. Each is a
      garment cut-out — the garment alone, front on, on a transparent ground —
      and the product it opens. The first faces the reader; six hang on a
-     desktop and four on a phone, so the order is the display. */
+     desktop and four on a phone, so the order is the display.
+
+     The first six also give the second stage its row of fabric swatches,
+     each labelled with its cloth name, so the cloth and the clothes made
+     from it are always the same six. */
   railPieces: [
-    { image: '/products/rack/cable-knit-polo-green.webp', slug: 'cable-knit-contrast-polo' },
-    { image: '/products/rack/coastal-stripe-polo.webp', slug: 'coastal-stripe-knitted-polo' },
-    { image: '/products/rack/rugby-stripe-polo.webp', slug: 'rugby-stripe-knitted-polo' },
-    { image: '/products/rack/cable-knit-polo-burgundy.webp', slug: 'cable-knit-contrast-polo' },
-    { image: '/products/rack/vertical-stripe-shirt-olive.webp', slug: 'riviera-stripe-knitted-shirt' },
-    { image: '/products/rack/heritage-stripe-polo.webp', slug: 'heritage-stripe-knitted-polo' },
-    { image: '/products/rack/vertical-stripe-shirt-navy.webp', slug: 'riviera-stripe-knitted-shirt' },
-    { image: '/products/rack/oversized-tee-black.webp', slug: 'oversized-t-shirt' },
+    { image: '/products/rack/cable-knit-polo-green.webp', slug: 'cable-knit-contrast-polo', cloth: 'Forest cable' },
+    { image: '/products/rack/coastal-stripe-polo.webp', slug: 'coastal-stripe-knitted-polo', cloth: 'Coastal stripe' },
+    { image: '/products/rack/rugby-stripe-polo.webp', slug: 'rugby-stripe-knitted-polo', cloth: 'Rugby stripe' },
+    { image: '/products/rack/cable-knit-polo-burgundy.webp', slug: 'cable-knit-contrast-polo', cloth: 'Burgundy cable' },
+    { image: '/products/rack/vertical-stripe-shirt-olive.webp', slug: 'riviera-stripe-knitted-shirt', cloth: 'Olive riviera' },
+    { image: '/products/rack/heritage-stripe-polo.webp', slug: 'heritage-stripe-knitted-polo', cloth: 'Heritage stripe' },
+    { image: '/products/rack/vertical-stripe-shirt-navy.webp', slug: 'riviera-stripe-knitted-shirt', cloth: 'Navy riviera' },
+    { image: '/products/rack/oversized-tee-black.webp', slug: 'oversized-t-shirt', cloth: 'Black jersey' },
   ],
 
   promises: [
@@ -217,10 +221,11 @@ export const fields = [
     type: 'list',
     itemLabel: 'Garment',
     titleKey: 'slug',
-    help: 'The garments hanging on the rack, front to back. The first faces the customer. Six show on a computer and four on a phone. Each image must be the garment alone with a transparent background (PNG or WebP) — a photo of someone wearing it, or one on a white background, will not look right on the rail.',
+    help: 'The garments hanging on the rack, front to back. The first faces the customer. Six show on a computer and four on a phone, and the first six also make the row of fabric swatches under the statement. Each image must be the garment alone with a transparent background (PNG or WebP) — a photo of someone wearing it, or one on a white background, will not look right on the rail.',
     fields: [
       { name: 'image', label: 'Garment cut-out', type: 'image', help: 'Front view, the whole garment from collar to hem, background removed.' },
       { name: 'slug', label: 'Opens product', type: 'text', help: "The product's URL slug, as in /product/cable-knit-contrast-polo. Its name and price are shown on the rack." },
+      { name: 'cloth', label: 'Swatch name', type: 'text', help: 'A short name for the cloth, shown under its swatch — "Forest cable", "Rugby stripe". Leave empty to use the product name.' },
     ],
   },
 

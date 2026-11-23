@@ -243,6 +243,71 @@ function RailStage({ products }) {
   );
 }
 
+/**
+ * The cloth, before the clothes.
+ *
+ * A row of fabric swatches under the statement, one square of knit from each
+ * garment hanging on the rack below, in the same order. The second stage says
+ * what the shop makes things from; the third shows what it made. They are cut
+ * from the rack's own cut-outs, so the swatches change when the rack does —
+ * there is nothing separate to keep in step.
+ *
+ * The pictures are only asked for once the row is near the screen. They are
+ * the same files the rack uses, so by the time the reader reaches the rack
+ * they are already in the cache, but nothing is fetched while they are still
+ * looking at the opening photograph.
+ */
+function Swatches({ products }) {
+  const c = useContent('home');
+  const ref = useRef(null);
+  const [near, setNear] = useState(false);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setNear(true); setShown(true); return undefined; }
+    const soon = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setNear(true); soon.disconnect(); } }, { rootMargin: '600px 0px' });
+    const now = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setShown(true); now.disconnect(); } }, { rootMargin: '0px 0px -8% 0px' });
+    soon.observe(el);
+    now.observe(el);
+    return () => { soon.disconnect(); now.disconnect(); };
+  }, []);
+
+  const bySlug = new Map(products.map((p) => [p.slug, p]));
+  const list = (Array.isArray(c.railPieces) ? c.railPieces : [])
+    .filter((p) => p && p.image)
+    .slice(0, 6)
+    .map((p, i) => {
+      const product = bySlug.get(p.slug);
+      return {
+        key: `${i}-${p.image}`,
+        image: p.image,
+        slug: product ? product.slug : p.slug,
+        label: (p.cloth || '').trim() || product?.name?.trim() || fromSlug(p.slug),
+        product: product?.name?.trim() || fromSlug(p.slug),
+      };
+    });
+  if (!list.length) return null;
+
+  return (
+    <ul className={`cx-swatches${shown ? ' is-in' : ''}`} ref={ref}>
+      {list.map((s, i) => (
+        <li key={s.key} className="cx-swatches__item" style={{ '--i': i }}>
+          <Link
+            to={s.slug ? `/product/${s.slug}` : '/shop'}
+            className="cx-swatch"
+            data-cursor="View"
+            aria-label={s.label === s.product ? s.product : `${s.label} — ${s.product}`}
+          >
+            <span className="cx-swatch__cloth" style={near ? { '--img': `url("${s.image}")` } : undefined} aria-hidden />
+            <span className="cx-swatch__name" aria-hidden>{s.label}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function Cinema({ products = [] }) {
   const ready = useIntroDone();
   const c = useContent('home');
@@ -307,22 +372,22 @@ export function Cinema({ products = [] }) {
         </div>
       </Stage>
 
-      {/* 2 — the statement, read against one full-height photograph */}
-      {/* scrollDriven off: nothing in this stage reads the scroll position, so
-          there is no reason to measure it on every frame of every scroll. */}
+      {/* 2 — the statement, and the cloth it is about.
+
+          The same charcoal and the same light as the rack below, so the two
+          stages read as one room: the sentence, a row of the actual cloth, and
+          then the rail with those garments on it. scrollDriven is off because
+          nothing here reads the scroll position. */}
       <Stage
         kind="fill"
         label={STATEMENT}
         scrollDriven={false}
-        className="cx-cloth"
         style={{ '--knit': `url("${c.statementTexture || '/products/anatomy-cable.jpg'}")` }}
       >
-        {/* The sentence, knitted.
+        <span className="cx-spot" aria-hidden />
 
-            The emphasised words are not coloured in — they are filled with a
-            photograph of the cloth itself, so "knitted cotton" is set in
-            knitted cotton. The fabric drifts slowly inside the letterforms,
-            which is the only motion on the stage. */}
+        {/* The sentence, knitted: the emphasised words are filled with a
+            photograph of the cloth, so "knitted cotton" is set in it. */}
         <div className="cx-knit">
           {c.statementLabel && <p className="cx-meta cx-knit__eyebrow">{c.statementLabel}</p>}
 
@@ -338,7 +403,7 @@ export function Cinema({ products = [] }) {
             ))}
           </p>
 
-          <span className="cx-knit__rule" aria-hidden />
+          <Swatches products={products} />
         </div>
 
         <span className="cx-chapter cx-meta" aria-hidden>02 / 03</span>
